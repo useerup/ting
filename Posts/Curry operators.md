@@ -1,0 +1,9 @@
+Curry `<>`
+
+
+Curry tail `<>`
+
+
+Uncurry `><`
+
+
