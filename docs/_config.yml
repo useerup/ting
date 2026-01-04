@@ -6,4 +6,4 @@ defaults:
 collections:
   programmers-reference:
     output: true
-    permalink: /programmers-reference/:name/
+    permalink: /ting/:name/
