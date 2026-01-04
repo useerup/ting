@@ -1,2 +1,0 @@
-# Ting Programmers Reference
-

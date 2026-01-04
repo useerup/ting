@@ -46,7 +46,7 @@ Declaring `Player..Opponent` like this declares `Opponent` as a property on all 
 ### Game state
 
         GameState = record {  
-            Board : Square --> Player * PieceType
+            Board : Square --> enum WhitePlayer * PieceType
             Castling : Player --> record{ KingSide, QueenSide }
             EnPassant : Maybe Square
         }
