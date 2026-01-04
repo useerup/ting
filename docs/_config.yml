@@ -2,4 +2,4 @@ title: Ting programming language
 markdown: kramdown
 theme: minima
 defaults:
-  - layout: default
+  - layout: programmers-reference
