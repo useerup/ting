@@ -3,7 +3,3 @@ markdown: kramdown
 theme: minima
 defaults:
   - layout: default
-collections:
-  programmers-reference:
-    output: true
-    permalink: /ting/:name/

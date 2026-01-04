@@ -13,4 +13,4 @@ If you are new to Ting, we recommend starting with the following resources:
 
 For detailed information about the language features and syntax, consult the reference documentation:
 
-*   [Programmers Reference](programmers-reference/) - Comprehensive guide for developers.
+*   [Programmers Reference](programmers-reference/index.md) - Comprehensive guide for developers.
