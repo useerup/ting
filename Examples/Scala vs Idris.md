@@ -4,7 +4,7 @@ See also https://www.youtube.com/watch?v=fV2no1Rkzdw&list=PLcGKfGEEONaD7ncbh5S1q
 
 
 
-    Nat = type { Symbol Z, Symbol S -> Nat _ }
+    Nat = enum{ Z, S of Nat}
 
     List = Types T \ type { Symbol Nil, T*(List T) _ }
 

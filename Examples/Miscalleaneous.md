@@ -25,15 +25,13 @@
 
 ## Roots
 
-    Root = { 
-        (float a, float b, float c)
-    -> 
-        b^2-4*a*c ; { 
+    Root = (float a, float b, float c) =>
+        b^2-4*a*c |> 
+        { 
             0       ->  ( -b) / 2 / a
             d?>0    ->  _ ? ( -b+Sqrt(d) ) / 2 / a  ~|~  ( -b-Sqrt(d) ) / 2 / a
             _       ->  void
         }
-    }
 
 
 ## Factorial
@@ -43,18 +41,27 @@
 
 ## Compose
 
-    Compose = (Sets f, Sets g) \ x \ f (g x)
+    Compose = (Sets f, Sets g) => x => f (g x)
+
+    ComposeReverse = (Sets f, Sets g) => x => g (f x)
 
 
 ## Fizzbuzz
 
-    FizzBuzz = x?>0 \ (x % 3, x % 5) |> 
+    x : 0...100 \ (x%3, x%5) |> 
     {
         (0,0) -> "FizzBuzz"
         (0,_) -> "Fizz"
         (_,0) -> "Buzz"
-        _ -> x.ToString
-    }
+    } || .ToString
+
+    {0...100}.Map
+        Func {
+            int??%?3??%?5 _ -> "FizzBuzz"
+            int??%?3 _ -> "Fizz"
+            int??%?5 _ -> "Buzz"
+            x -> x.ToString 
+        }
 
     
 ## Find power

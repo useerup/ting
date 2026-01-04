@@ -17,13 +17,14 @@ Obviously, you don't know my language, but given that you know the task, does th
     // The main expression.
     Exp = 
         LeftAssoc ( `+` | `-` )
-            LeftAssoc ( `*` | `/` | `%` )
-                RightAssoc ( `^` )
-                    Prefix 0 ( `-` | `+` )
-                        Literal | ParensExp
+            LeftAssoc (`*` | `/` | `%` )
+                RightAssoc `^`
+                    Prefix ((`-`   `+` ) 0)
+                        Literal
+                        || ParensExp
 
     // Rules for each operator
-    `+` = Symbol "+"  <-  (Decimals a, Decimals b) -> a+b
+    `+` = Symbol "+"  <-  IAdditionOperators.Add
     `-` = Symbol "-"  <-  (Decimals a, Decimals b) -> a-b
     `*` = Symbol "*"  <-  (Decimals a, Decimals b) -> a*b
     `/` = Symbol "/"  <-  (Decimals a, Decimals b) -> a/b
@@ -31,7 +32,7 @@ Obviously, you don't know my language, but given that you know the task, does th
 
     // A numeric literal (decimal number)
     Literal = Space >> {
-        OneOrMore Digit i >> Char '.' >> ZeroOrMore Digit f  <--  Decimals.Parse (i+"."+f)
+        Decimals.Parse (i+"."+f) =!> >>>>> (OneOrMore Digit i) (Char '.') (ZeroOrMore Digit f)  
         OneOrMore Digit i  <--  decimal.Parse i
     }
 

@@ -1,0 +1,33 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem.Demo\\FaellesDesignSystem.Demo\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\FaellesDesignSystem.Demo.bundle.scp.css",
+      "PackagePath": "staticwebassets\\FaellesDesignSystem.Demo.fhco94syit.bundle.scp.css"
+    },
+    {
+      "Id": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem.Demo\\FaellesDesignSystem.Demo\\wwwroot\\app.css",
+      "PackagePath": "staticwebassets\\app.css"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.FaellesDesignSystem.Demo.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.FaellesDesignSystem.Demo.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.build.FaellesDesignSystem.Demo.props",
+      "PackagePath": "build\\FaellesDesignSystem.Demo.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.buildMultiTargeting.FaellesDesignSystem.Demo.props",
+      "PackagePath": "buildMultiTargeting\\FaellesDesignSystem.Demo.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.buildTransitive.FaellesDesignSystem.Demo.props",
+      "PackagePath": "buildTransitive\\FaellesDesignSystem.Demo.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

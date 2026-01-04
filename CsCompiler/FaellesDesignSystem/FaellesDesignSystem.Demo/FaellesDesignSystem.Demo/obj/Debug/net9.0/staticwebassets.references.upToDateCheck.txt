@@ -1,0 +1,2 @@
+C:\Users\uffe\OneDrive\Github\ting\CsCompiler\FaellesDesignSystem\FaellesDesignSystem\obj\Debug\net9.0\staticwebassets.build.json
+C:\Users\uffe\OneDrive\Github\ting\CsCompiler\FaellesDesignSystem\FaellesDesignSystem.Demo\FaellesDesignSystem.Demo.Client\obj\Debug\net9.0\staticwebassets.build.json

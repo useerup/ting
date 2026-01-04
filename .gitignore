@@ -1,0 +1,9 @@
+# MkDocs build artifacts
+site/
+build/
+
+# Python virtual environments
+.venv/
+
+# VS Code
+.vscode/

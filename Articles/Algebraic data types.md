@@ -6,16 +6,15 @@ Reference: https://flix.dev/about/
 ## Algebraic types
 
 
-    let
-
+    let 
         // An algebraic data type for shapes.
-        Shapes = {@ Circle:float, Square:float, Rectangle:float*float @}
+        Shapes = class rec { Circle:float, Square:float, Rectangle:float*float }
 
         // Computes the area of the given shape.
-        Shapes..Area = {
-            Circle r ~> Math.Pi*r^2
-            Square w ~> w^2
-            Rectangle (w,h) ~> w*h
+        Shapes..Area = fn {
+            Circle r -> Math.Pi*r^2
+            Square w -> w^2
+            Rectangle (w,h) -> w*h
         }
 
     in
@@ -27,13 +26,14 @@ Reference: https://flix.dev/about/
     let
 
         // An algebraic data type for binary trees where each leaf carries a value of type T.
-        Trees = Sets T \ enum {
-            Leaf ->> T
-            Node ->> This*This
+        Trees = Sets T => enum {
+            Leaf of T ? 
+                x => x.ToString override = $"Leaf {x}"
+            Node of Trees.Of T * Trees.Of T
         }
 
         // A ToString instance for Tree.
-        override Trees..ToString = ~{
+        Sets all T=>(Trees T)..ToString override = {
             Leaf a -> $"Leaf({a})"
             Node (l,r) -> $"Node({l},{r})"
         }
@@ -52,3 +52,4 @@ Reference: https://flix.dev/about/
 
         // Squares all elements in the simple tree.
         tree.Map (x\x*x) @ Console.WriteLn
+

@@ -1,38 +1,40 @@
-// https://www.reddit.com/r/ProgrammingLanguages/comments/1cjtptw/clone_wars/
-
-`EvenNumber` and `OddNumber` are *refinements* of `int`:
-
-    EvenNumber = { int x \ x%2==0 }
-    OddNumber = { int x \ x%2==1 }
-
-An `OddNumber` plus an `OddNumber` should be an `EvenNumber`. An `EvenNumber` plus an `EvenNumber` should be an `EvenNumber`. This is not overloading; rather it is asserted so that the type system can use it:
-
-    (a:OddNumber, b:OddNumber, c=a+b) axiom c:EvenNumber
-    (a:EvenNumber, b:EvenNumber, c=a+b) axiom c:EvenNumber
 
 
-`ShoeSize` is a
+## Operators
 
-    ShoeSize = class int
+### Operator `./`: Scoped Member Access
 
+The `./` operator allows developers to reference the members of an object or expression directly. Acting as a binary infix operator, it evaluates the right-hand expression (rhs) within the scope of the left-hand operand (lhs).
 
+The lhs operand provides the scope for evaluating rhs. All accessible members of lhs can be referenced directly in rhs without qualification. Identifiers of lhs shadows any identifier already in scope with the same name.
 
-Lengths
-
-    Meters unit m = class float
-    where
-        unit [cm]
-        Inches unit [in]
-
-        Convert override || 
+Considerations
+- `./` enhances readability by reducing redundant object references.
+- Care should be taken to avoid ambiguity when dealing with nested scopes.
 
 
-    2.54[cm] = 1[in]
-    1[m] = 100[cm]
-    
-    let x:float in m = (x*100) cm
+### Operator `+`: Addition / concatenation
 
-Area
+Defined for
+- byte*byte=>byte
+- sbyte*sbyte=>sbyte
+- int*int=>int
+- uint*uint=>uint
+- long*long=>long
+- ulong*ulong=>ulong
+- float*float=>float
+- double*double=>double
+- decimal*decimal=>decimal
+- list*list=>list
+- set*set=>set
 
-    SquareMeters = m^2
-    SquareCentimeters = cm^2
+### Operator `-`: Addition / concatenation
+
+### Operator `*`: Addition / concatenation
+
+### Operator `+`: Addition / concatenation
+
+### Operator `/`: Addition / concatenation
+
+### Operator `%`: Addition / concatenation
+

@@ -1,0 +1,44 @@
+
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ImportDirectoryBuildProps>false</ImportDirectoryBuildProps>
+    <ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeFrameworkVersion></RuntimeFrameworkVersion>
+    <AssemblyName>44a6b7f5-abfd-4534-af61-438311be9d4b</AssemblyName>
+    <AssemblyTitle>44a6b7f5-abfd-4534-af61-438311be9d4b</AssemblyTitle>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <TreatWarningsAsErrors>False</TreatWarningsAsErrors>
+    <DebugSymbols>false</DebugSymbols>
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <Deterministic>true</Deterministic>
+    <RunAnalyzers>false</RunAnalyzers>
+    <PublishAot Condition=" '$(TargetFramework)' != 'net6.0' ">true</PublishAot>
+    <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+    <TrimMode>link</TrimMode><TrimmerDefaultAction>link</TrimmerDefaultAction>
+    <IlcGenerateCompleteTypeMetadata>True</IlcGenerateCompleteTypeMetadata>
+    <IlcGenerateStackTraceData>True</IlcGenerateStackTraceData>
+    <EnsureNETCoreAppRuntime>false</EnsureNETCoreAppRuntime> <!-- workaround for 'This runtime may not be supported by.NET Core.' error -->
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles> <!-- workaround for 'Found multiple publish output files with the same relative path.' error -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    <IlcInstructionSet>base,sse,sse2,sse3,ssse3,sse4.1,sse4.2,avx,avx2,aes,bmi,bmi2,fma,lzcnt,pclmul,popcnt</IlcInstructionSet>
+  </PropertyGroup>
+  <PropertyGroup>
+<ServerGarbageCollection>false</ServerGarbageCollection>
+<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+</PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="44a6b7f5-abfd-4534-af61-438311be9d4b.notcs" Exclude="bin\**;obj\**;**\*.xproj;packages\**" />
+  </ItemGroup>
+  <ItemGroup>
+    
+    <ProjectReference Include="C:\Users\uffe\OneDrive\Github\ting\CsCompiler\Benchmarks\Benchmarks\Benchmarks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <RdXmlFile Include="bdn_generated.rd.xml" />
+  </ItemGroup>
+</Project>

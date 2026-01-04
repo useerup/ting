@@ -1,0 +1,1145 @@
+{
+  "Version": 1,
+  "Hash": "HLAZfVdFHlC4efhTue8dzoc7gE5SeX+vDoihMTuRUQo=",
+  "Source": "FaellesDesignSystem",
+  "BasePath": "_content/FaellesDesignSystem",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "FaellesDesignSystem\\wwwroot",
+      "Source": "FaellesDesignSystem",
+      "ContentRoot": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\",
+      "BasePath": "_content/FaellesDesignSystem",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\ib580lvds0-0g91fillrf.gz",
+      "SourceId": "FaellesDesignSystem",
+      "SourceType": "Computed",
+      "ContentRoot": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\",
+      "BasePath": "_content/FaellesDesignSystem",
+      "RelativePath": "FaellesDesignSystem#[.{fingerprint=0g91fillrf}]?.styles.css.gz",
+      "AssetKind": "All",
+      "AssetMode": "CurrentProject",
+      "AssetRole": "Alternative",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\bundle\\FaellesDesignSystem.styles.css",
+      "AssetTraitName": "Content-Encoding",
+      "AssetTraitValue": "gzip",
+      "Fingerprint": "td0uxq8o1p",
+      "Integrity": "j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\bundle\\FaellesDesignSystem.styles.css"
+    },
+    {
+      "Identity": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\okwjtk31sr-0g91fillrf.gz",
+      "SourceId": "FaellesDesignSystem",
+      "SourceType": "Computed",
+      "ContentRoot": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\",
+      "BasePath": "_content/FaellesDesignSystem",
+      "RelativePath": "FaellesDesignSystem#[.{fingerprint=0g91fillrf}]!.bundle.scp.css.gz",
+      "AssetKind": "All",
+      "AssetMode": "Reference",
+      "AssetRole": "Alternative",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\FaellesDesignSystem.bundle.scp.css",
+      "AssetTraitName": "Content-Encoding",
+      "AssetTraitValue": "gzip",
+      "Fingerprint": "td0uxq8o1p",
+      "Integrity": "j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\FaellesDesignSystem.bundle.scp.css"
+    },
+    {
+      "Identity": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\qjxkueggc7-6pqz8bsss0.gz",
+      "SourceId": "FaellesDesignSystem",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\",
+      "BasePath": "_content/FaellesDesignSystem",
+      "RelativePath": "exampleJsInterop#[.{fingerprint=6pqz8bsss0}]?.js.gz",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Alternative",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\exampleJsInterop.js",
+      "AssetTraitName": "Content-Encoding",
+      "AssetTraitValue": "gzip",
+      "Fingerprint": "vrr7rs2wfg",
+      "Integrity": "W5OYF2QMLswqQgt4f7ObfRYIFziQJY1EpIyGrVpg/uA=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\exampleJsInterop.js"
+    },
+    {
+      "Identity": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\bundle\\FaellesDesignSystem.styles.css",
+      "SourceId": "FaellesDesignSystem",
+      "SourceType": "Computed",
+      "ContentRoot": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\bundle\\",
+      "BasePath": "_content/FaellesDesignSystem",
+      "RelativePath": "FaellesDesignSystem#[.{fingerprint}]?.styles.css",
+      "AssetKind": "All",
+      "AssetMode": "CurrentProject",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "ScopedCss",
+      "AssetTraitValue": "ApplicationBundle",
+      "Fingerprint": "0g91fillrf",
+      "Integrity": "EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\bundle\\FaellesDesignSystem.styles.css"
+    },
+    {
+      "Identity": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\FaellesDesignSystem.bundle.scp.css",
+      "SourceId": "FaellesDesignSystem",
+      "SourceType": "Computed",
+      "ContentRoot": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\",
+      "BasePath": "_content/FaellesDesignSystem",
+      "RelativePath": "FaellesDesignSystem#[.{fingerprint}]!.bundle.scp.css",
+      "AssetKind": "All",
+      "AssetMode": "Reference",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "ScopedCss",
+      "AssetTraitValue": "ProjectBundle",
+      "Fingerprint": "0g91fillrf",
+      "Integrity": "EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\FaellesDesignSystem.bundle.scp.css"
+    },
+    {
+      "Identity": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\background.png",
+      "SourceId": "FaellesDesignSystem",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\",
+      "BasePath": "_content/FaellesDesignSystem",
+      "RelativePath": "background#[.{fingerprint}]?.png",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "x2rx4ajns0",
+      "Integrity": "WeOKCkI7IdJHs2kCqsKgLfiWX4/sNPbaRUspOLefkCY=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\background.png"
+    },
+    {
+      "Identity": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\exampleJsInterop.js",
+      "SourceId": "FaellesDesignSystem",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\",
+      "BasePath": "_content/FaellesDesignSystem",
+      "RelativePath": "exampleJsInterop#[.{fingerprint}]?.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "6pqz8bsss0",
+      "Integrity": "FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\exampleJsInterop.js"
+    }
+  ],
+  "Endpoints": [
+    {
+      "Route": "background.png",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\background.png",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "378"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/png"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"WeOKCkI7IdJHs2kCqsKgLfiWX4/sNPbaRUspOLefkCY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:55:06 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-WeOKCkI7IdJHs2kCqsKgLfiWX4/sNPbaRUspOLefkCY="
+        }
+      ]
+    },
+    {
+      "Route": "background.x2rx4ajns0.png",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\background.png",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "378"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/png"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"WeOKCkI7IdJHs2kCqsKgLfiWX4/sNPbaRUspOLefkCY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:55:06 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "x2rx4ajns0"
+        },
+        {
+          "Name": "label",
+          "Value": "background.png"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-WeOKCkI7IdJHs2kCqsKgLfiWX4/sNPbaRUspOLefkCY="
+        }
+      ]
+    },
+    {
+      "Route": "exampleJsInterop.6pqz8bsss0.js",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\qjxkueggc7-6pqz8bsss0.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.005208333333"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "191"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"W5OYF2QMLswqQgt4f7ObfRYIFziQJY1EpIyGrVpg/uA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:55:06 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4=\""
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "6pqz8bsss0"
+        },
+        {
+          "Name": "label",
+          "Value": "exampleJsInterop.js"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4="
+        }
+      ]
+    },
+    {
+      "Route": "exampleJsInterop.6pqz8bsss0.js",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\exampleJsInterop.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "247"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:55:06 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "6pqz8bsss0"
+        },
+        {
+          "Name": "label",
+          "Value": "exampleJsInterop.js"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4="
+        }
+      ]
+    },
+    {
+      "Route": "exampleJsInterop.6pqz8bsss0.js.gz",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\qjxkueggc7-6pqz8bsss0.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "191"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"W5OYF2QMLswqQgt4f7ObfRYIFziQJY1EpIyGrVpg/uA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:55:06 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "6pqz8bsss0"
+        },
+        {
+          "Name": "label",
+          "Value": "exampleJsInterop.js.gz"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-W5OYF2QMLswqQgt4f7ObfRYIFziQJY1EpIyGrVpg/uA="
+        }
+      ]
+    },
+    {
+      "Route": "exampleJsInterop.js",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\qjxkueggc7-6pqz8bsss0.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.005208333333"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "191"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"W5OYF2QMLswqQgt4f7ObfRYIFziQJY1EpIyGrVpg/uA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:55:06 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4=\""
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4="
+        }
+      ]
+    },
+    {
+      "Route": "exampleJsInterop.js",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\wwwroot\\exampleJsInterop.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "247"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:55:06 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-FrrTtczTUEHjkhc/zWRPC7CmxeXI0JCZGc1+76qQ8B4="
+        }
+      ]
+    },
+    {
+      "Route": "exampleJsInterop.js.gz",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\qjxkueggc7-6pqz8bsss0.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "191"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"W5OYF2QMLswqQgt4f7ObfRYIFziQJY1EpIyGrVpg/uA=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:55:06 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-W5OYF2QMLswqQgt4f7ObfRYIFziQJY1EpIyGrVpg/uA="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.0g91fillrf.bundle.scp.css",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\okwjtk31sr-0g91fillrf.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.005464480874"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "182"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=\""
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "0g91fillrf"
+        },
+        {
+          "Name": "label",
+          "Value": "FaellesDesignSystem.bundle.scp.css"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.0g91fillrf.bundle.scp.css",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\FaellesDesignSystem.bundle.scp.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "212"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "0g91fillrf"
+        },
+        {
+          "Name": "label",
+          "Value": "FaellesDesignSystem.bundle.scp.css"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.0g91fillrf.bundle.scp.css.gz",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\okwjtk31sr-0g91fillrf.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "182"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "0g91fillrf"
+        },
+        {
+          "Name": "label",
+          "Value": "FaellesDesignSystem.bundle.scp.css.gz"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.0g91fillrf.styles.css",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\ib580lvds0-0g91fillrf.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.005464480874"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "182"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=\""
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "0g91fillrf"
+        },
+        {
+          "Name": "label",
+          "Value": "FaellesDesignSystem.styles.css"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.0g91fillrf.styles.css",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\bundle\\FaellesDesignSystem.styles.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "212"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "0g91fillrf"
+        },
+        {
+          "Name": "label",
+          "Value": "FaellesDesignSystem.styles.css"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.0g91fillrf.styles.css.gz",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\ib580lvds0-0g91fillrf.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "182"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "0g91fillrf"
+        },
+        {
+          "Name": "label",
+          "Value": "FaellesDesignSystem.styles.css.gz"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.bundle.scp.css",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\okwjtk31sr-0g91fillrf.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.005464480874"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "182"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=\""
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.bundle.scp.css",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\projectbundle\\FaellesDesignSystem.bundle.scp.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "212"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.bundle.scp.css.gz",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\okwjtk31sr-0g91fillrf.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "182"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.styles.css",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\ib580lvds0-0g91fillrf.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.005464480874"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "182"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=\""
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.styles.css",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\scopedcss\\bundle\\FaellesDesignSystem.styles.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "212"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-EG0P8tQMLdQr3Jxx4BkCNq17oXh2wqdN8F/HFxYzav4="
+        }
+      ]
+    },
+    {
+      "Route": "FaellesDesignSystem.styles.css.gz",
+      "AssetFile": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem\\obj\\Debug\\net9.0\\compressed\\ib580lvds0-0g91fillrf.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "182"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 18 Dec 2024 11:57:38 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-j7mEGhbcbVKRG7CCNigT6rUiedXnxvp3phrPz6l8vPc="
+        }
+      ]
+    }
+  ]
+}
