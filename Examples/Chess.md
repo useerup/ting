@@ -34,13 +34,13 @@ Because `Rank.ElementAt r` *returns* a `Rank` member and it is used to define pa
 
 The players are identified by a discriminated union:
 
-        Player = enum { White, Black } 
+        Player = enums( White, Black ) 
 
 For convenience we also define a *member method* for calculating the opponent of a given player. This allows us to write `p.Opponent` when `p` is a member of the `Player` set:
 
-        Player..Opponent = fn{ Black->White, White->Black }
+        Player..Opponent = Player ./ fn{ Black->White, White->Black }
 
-Declaring `Player..Opponent` like this declares `Opponent` as a property on all *members* of `Player`. Accessed this way through `..` the property must be bound to a function which accepts the `Player` member as an argument. The argument of that function again relies on the fact that we can declare the argument as `Player.ElementAt i` to let the function operate on the *index* of the member within `Player`. The `Player` set has only 2 members at index `0` and index `1`, so `Player.ElementAt(1-i)` will return the member with the *other index*, i.e. the other player.
+Declaring `Player..Opponent` like this declares `Opponent` as a property on all *members* of `Player`. Accessed this way through `..` the property must be bound to a function which accepts the `Player` member as an argument. The `./` operator is used to "open" the scope of `Player` so that we can write `Black` instead of `Player.Black`.
 
 
 ### Game state

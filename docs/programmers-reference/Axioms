@@ -1,0 +1,44 @@
+## Axioms
+
+
+*Axioms* is a way to instruct the compiler about something that is *universally true*.
+
+> Note: *Ting axioms* - while similar - are not the axioms you may be familar with from math. For one, Ting uses axioms as a shortcut for something that is *known* to be true, for instance because it has been proven externally.
+
+Consider that it is important for you that the Ting compiler can reason about *divisibility*. We express divisibility of integers through a function on every `int` member:
+
+    int..IsDivisibleBy = this => int d => this % d == 0
+
+This declares a `IsDivisibleBy` property on all `int` members which can be used like this:
+
+    10.IsDivisibleBy 5      // true
+
+Now we want to make sure that the compiler "knows" that if you multiply 2 numbers, then the resulting number is divisible by any number that either of the two factors are divisible by.
+
+Thus we write an *axiom*:
+
+    "Divisible" axiom 
+        ( a:int, b:int, c:int, ad:int, bd:int )  all
+            c = a*b  &  a.IsDivisibleBy ad  &  b.IsDivisibleBy bd  then
+            c.IsDivisibleBy ad  &  c.IsDivisibleBy bd 
+
+This axiom states that given 5 integers `a`, `b`, `c`, `ad`, `bd` then
+*if*
+- `c` equals the product of `a` and `b`, and
+- `a` is divisible by `ad` and
+- `b` is divisible by `bd`
+
+*then*
+- `c` is divisible by both `ad` and `bd`
+
+To the compiler this means that it does not *have* to evaluate an axiom, but it is allowed to assume it.
+
+If we had stated the above not as an axiom but simply as something that must always be true, then the compiler would have to generate code
+
+
+
+###
+
+    "ListConcatLength" axiom (n:int,m:int,left:Vectors,right:Vectors,res:Vectors) all
+        left + right = res 
+        then VectorLength m left + VectorLength m right = VectorLength (m+n) res
