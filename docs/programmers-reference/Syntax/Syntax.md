@@ -26,16 +26,3 @@ Where more than one token could match, only the longest matching token matches. 
 ### Literals
 
 ### Parenthesis grouping
-
-### Folds
-
-Some special *syntax list operators* 
-
-`---` creates a list from the following list of expressions
-
-`,,,` creates a tuple from the following list of expressions
-
-`>>>` folds the following list of expressions from left to right.
-
-`<<<` folds the following list of expressions from right to left.
-

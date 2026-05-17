@@ -84,22 +84,23 @@ let rootIdentifier s = Identifier(Resolved(s, RootScope))
 
 let newScope() : Scope = LocalScope(System.Guid.NewGuid())
 
-let declare (exp:Exp) = let scope = newScope() in Scoped(scope, Declare(scope, exp)) 
-let declareLeftOperator (s:string) = let scope = newScope() in fun x y -> Scoped(scope, Apply(rootIdentifier $"_{s}_", Tuple [Declare(scope,x);Reference(scope,y)]))
-let referenceRightOperator (s:string) = fun x y -> Apply(rootIdentifier $"_{s}_", Tuple [x;Referential(y)])
+
+let declareLeftOperator (s:string) = fun x y -> let ns = new Scope() in Apply(rootIdentifier $"_{s}_", Tuple [Declare(ns,x);Scope(ns,y)])
+let referenceRightOperator (s:string) = fun x y -> Apply(rootIdentifier $"_{s}_", Tuple [x;Reference y])
+let referenceLeftOperator (s:string) = fun x y -> Apply(rootIdentifier $"_{s}_", Tuple [Reference x;y])
 
 let operator(s:string) = fun x y -> Apply(rootIdentifier $"_{s}_", Tuple [x;y])
 let prefixOperator(s:string) = fun x -> Apply(rootIdentifier $"{s}_", x)
 
 opp.TermParser <- pTerm
 
-opp.AddOperator(PrefixOperator("let", ws, 1, true, fun b -> declare b))
+opp.AddOperator(PrefixOperator("let", ws, 1, true, fun b -> let ns = new Names() in Declare(ns,b)))
 
 opp.AddOperator(InfixOperator("in", ws, 2, Associativity.Right, referenceRightOperator "in"))
 
 opp.AddOperator(InfixOperator("=", ws, 10, Associativity.Left, referenceRightOperator "="))
 
-opp.AddOperator(InfixOperator("->", ws, 20, Associativity.Left, declareLeftOperator "->"))
+opp.AddOperator(InfixOperator("->", ws, 20, Associativity.Left, operator "->"))
 
 opp.AddOperator(InfixOperator(">>", ws, 30, Associativity.Left, operator ">>"))
 opp.AddOperator(InfixOperator("<<", ws, 30, Associativity.Left, operator "<<"))
@@ -107,17 +108,14 @@ opp.AddOperator(InfixOperator("<<", ws, 30, Associativity.Left, operator "<<"))
 opp.AddOperator(InfixOperator("|>", ws, 30, Associativity.Left, operator "|>"))
 opp.AddOperator(InfixOperator("<|", ws, 30, Associativity.Left, operator "<|"))
 
-opp.AddOperator(InfixOperator("~", ws, 35, Associativity.Left, declareLeftOperator "~"))
+opp.AddOperator(InfixOperator("~", ws, 35, Associativity.Left, referenceRightOperator "~"))
 
 opp.AddOperator(InfixOperator("=>", ws, 40, Associativity.Right, declareLeftOperator "=>"))
 
-opp.AddOperator(InfixOperator("./", ws, 70, Associativity.Left, operator "./"))
+opp.AddOperator(InfixOperator("./", ws, 70, Associativity.Left, referenceLeftOperator "./"))
 opp.AddOperator(InfixOperator("../", ws, 70, Associativity.Left, operator "../"))
 
-opp.AddOperator(InfixOperator("?", ws, 80, Associativity.Left, operator "?"))
-opp.AddOperator(InfixOperator("??", ws, 80, Associativity.Left, operator "??"))
-opp.AddOperator(InfixOperator("?!", ws, 80, Associativity.Left, operator "?!"))
-opp.AddOperator(InfixOperator("??!", ws, 80, Associativity.Left, operator "??!"))
+
 opp.AddOperator(InfixOperator("catch", ws, 80, Associativity.Left, operator "catch"))
 opp.AddOperator(InfixOperator(@"\", ws, 80, Associativity.Left, declareLeftOperator @"\"))
 
@@ -126,6 +124,9 @@ opp.AddOperator(InfixOperator("||", ws, 90, Associativity.Left, operator "||"))
 
 opp.AddOperator(InfixOperator("&", ws, 100, Associativity.Left, operator "&"))
 opp.AddOperator(InfixOperator("&&", ws, 100, Associativity.Left, operator "&&"))
+
+opp.AddOperator(InfixOperator("?", ws, 103, Associativity.Left, operator "?"))
+opp.AddOperator(InfixOperator("??", ws, 103, Associativity.Left, operator "??"))
 
 opp.AddOperator(PrefixOperator("!", ws, 110, true, prefixOperator "!"))
 
@@ -157,8 +158,8 @@ opp.AddOperator(InfixOperator("/%", ws, 140, Associativity.Left, operator "/%"))
 
 opp.AddOperator(InfixOperator("^", ws, 150, Associativity.Left, operator "^"))
 
-opp.AddOperator(InfixOperator(".", ws, 160, Associativity.Left, operator "."))
-opp.AddOperator(InfixOperator("..", ws, 160, Associativity.Left, operator ".."))
+opp.AddOperator(InfixOperator(".", ws, 160, Associativity.Left, fun x y -> let ns = new Names() in operator "." x (Declare(ns,y))))
+opp.AddOperator(InfixOperator("..", ws, 160, Associativity.Left, declareRightOperator ".."))
 
 
 

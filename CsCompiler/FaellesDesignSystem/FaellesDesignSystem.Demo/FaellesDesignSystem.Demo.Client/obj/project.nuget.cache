@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "1SI/CmexZpg=",
+  "dgSpecHash": "W/DsKB6gKhk=",
   "success": true,
   "projectFilePath": "C:\\Users\\uffe\\OneDrive\\Github\\ting\\CsCompiler\\FaellesDesignSystem\\FaellesDesignSystem.Demo\\FaellesDesignSystem.Demo.Client\\FaellesDesignSystem.Demo.Client.csproj",
   "expectedPackageFiles": [
@@ -27,8 +27,8 @@
     "C:\\Users\\uffe\\.nuget\\packages\\microsoft.extensions.primitives\\9.0.0\\microsoft.extensions.primitives.9.0.0.nupkg.sha512",
     "C:\\Users\\uffe\\.nuget\\packages\\microsoft.jsinterop\\9.0.0\\microsoft.jsinterop.9.0.0.nupkg.sha512",
     "C:\\Users\\uffe\\.nuget\\packages\\microsoft.jsinterop.webassembly\\9.0.0\\microsoft.jsinterop.webassembly.9.0.0.nupkg.sha512",
-    "C:\\Users\\uffe\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.0\\microsoft.net.illink.tasks.9.0.0.nupkg.sha512",
-    "C:\\Users\\uffe\\.nuget\\packages\\microsoft.net.sdk.webassembly.pack\\9.0.0\\microsoft.net.sdk.webassembly.pack.9.0.0.nupkg.sha512"
+    "C:\\Users\\uffe\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.15\\microsoft.net.illink.tasks.9.0.15.nupkg.sha512",
+    "C:\\Users\\uffe\\.nuget\\packages\\microsoft.net.sdk.webassembly.pack\\10.0.6\\microsoft.net.sdk.webassembly.pack.10.0.6.nupkg.sha512"
   ],
   "logs": []
 }

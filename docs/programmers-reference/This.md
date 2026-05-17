@@ -13,3 +13,11 @@ Usually you will use this to simplify a function:
 This especially useful when extending a set members with new properties:
 
     public Persons..FullName = this => FirstName + " " + LastName
+
+
+### Operators which automatically set `this`
+
+- `record`
+- `records`
+- `tuple`
+- `tuples`

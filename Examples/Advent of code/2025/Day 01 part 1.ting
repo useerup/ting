@@ -1,24 +1,23 @@
+    
+    ParseLine = string([dir]+digits) => (dir=='L' then -1 else 1, int.Parse digits)
+
+    lines.FoldLR(  )
+
+    Dial = int pos => int move => pos + move |> NormalizePos
+
+    NormalizePos = int pos => pos % 100 |> fn { let rem?<0 -> rem+100, let rem -> rem }
 
 
-    // ------ begin parser combinators ------
+    ParseLine ReadLine
 
-    Rule = Any-->Parser
-    Parser = string-->string
+    Dial = (int pos, char dir,int count) => 
+        do 
+            pos := dir |> fn{ 'L'-> - count, 'R'-> + count }        
+            while pos < 0 do pos:=
+            
 
-    Char = c => [c]+s => s
 
-    OneOrMore = Rule rule => [head]+tail => rule head >> ZeroOrMore rule tail
-    ZeroOrMore = Rule rule => ([head]+tail => rule head >> ZeroOrMore rule tail) || func string
 
-    OneOrMoreDelimited = 
-    ZeroOrMoreDelimited = 
 
-    // ------ end parser combinators ------
-
-    Digit = { '0'...'9' } >> Char
-    Number = BigInteger.Parse(digits) => OneOrMore Digit digits
-    Interval = (BigInteger start,BigInteger end) => Number start >> Char '-' >> Number end
-
-    Intervals = intervals => OneOrMoreDelimited (Char ',') Interval intervals
-
-    (Intervals input).Sum((start,end)=>[start...end].Where() )
+            While = ((Env-->bool) cond, (Env-->Env) stmt) => 
+                let rec ?= Env e => cond e then stmt e |> w else e

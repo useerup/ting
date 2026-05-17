@@ -45,9 +45,6 @@ This is a set of records with fields `Value` and `Divisor`. Only records
 
 
 
-    axiom Divisible = ( a:int, b:int, c:int, ad:int, bd:int ) all 
-            c=a*b & a.IsDivisibleBy ad & b.IsDivisibleBy bd then 
-            c.IsDivisibleBy ad & c.IsDivisibleBy bd 
 
 The `Divisible` axiom is that
     

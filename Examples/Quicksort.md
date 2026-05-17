@@ -3,7 +3,7 @@
 
 ## Non-in place Quicksort
 
-    public QuickSort = fn{ []->[], [x]+xs -> QuickSort(xs??<x) + (xs??==x) + QuickSort(xs??>x) }
+    public QuickSort = fn{ []->[], let [x]+xs -> QuickSort(xs??<x) + (xs??==x) + QuickSort(xs??>x) }
 
 
 Explanation:

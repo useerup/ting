@@ -1,94 +1,164 @@
 ## Declarations
 
-Identifiers are declared inline within the expression in which they appear. Whether an identifier is being declared or referenced depends on to which scope it is being resolved and whether that scope is *referential* or *declarative*.
+Ting has no dedicated declaration syntax. Identifiers are declared *inline* within expressions when those expressions appear in a *declarative scope*. Whether an identifier is being declared or referenced depends entirely on the scope in which it appears.
 
-Scopes can be nested. When resolving an identifier the innermost scope is considered first. If the identifier can be resolved in that scope, then it is bound to the value of the identifier in that scope. If the identifier can not be resolved in a scope then the next enclosing scope is considered, and so on. The process stops when the identifier has been resolved or there is no more frames, in which case an error is reported.
+### Declarative and referential scopes
 
-If a scope is *declarative* and the scope does not already contain the identifier then it is added to that scope.
-If a scope is *referential* then the frame is searched for the identifier. If found, then the identifier is bound to that scope. 
+Every expression evaluates in either a *declarative* or a *referential* scope:
 
+- In a **declarative scope**, an identifier not yet known in the current scope is added to that scope (i.e., declared).
+- In a **referential scope**, an identifier must already be declared in the current scope or an enclosing one; if it is not found, an error is reported.
 
-### Nested declarative scope
+Scopes can be nested. When resolving an identifier the innermost scope is searched first. If not found there, the search continues outward until the identifier is found or there are no more scopes, in which case an error is reported.
 
+The expression
 
-  
+    let x = 5 in 2*x^2 + 5*x - 10
 
+contains both declarative and referential sub-expressions:
 
-### Operators that affect scopes
+- `let` creates a new declarative scope spanning `x = 5 in 2*x^2 + 5*x - 10`.
+- `x` to the left of `=` is *declarative* — it is being declared here.
+- The `x`'s after `in` are *referential* — they reference the `x` declared above.
 
-A number of operators creates scopes and/or converts scopes from declarative to referential.
+### Declaring operators
 
+The following unary operators establish a new declarative scope over their operand:
 
-#### The `let` operator
+| Operator | Scope created |
+|---|---|
+| `public` | Module-level with public visibility |
+| `private` | Module-level with private visibility |
+| `protected` | Module-level with protected visibility |
+| `local` | Module-level with local (file-scoped) visibility |
+| `record` | |
+| `records` | |
+| `tuple` | |
+| `tuples` | |
+| `fn` | |
 
-The `let` operator creates a new declarative local scope spanning its operand. Identifiers declared by `let` is not available outside the expression, i.e. the identifiers are local to the expression. Thus, the `let` operator is often used in combination with other operators such a `in`:
+### Local declarative operators
 
-    let answer = 42 in $"The answer is {answer}"    // returns "The answer is 42"
+The following binary operators establish a new declarative local scope over both operands (i.e. for the entire expression). Because these operators are also right-referential that scope is only declarative for their left operand:
 
-#### The `public`, `private`, `protected`, `local` declarations
-
-
-
-#### The `in` operator
-
-The `in` operator is *right-referential*. 
-
-    let f = (0=>1)||(x=>x*f(x-1))
-    in  f 5    // calculates factorial 5!
-
-#### The `=>` *lambda* operator
-
-#### The `->` *ordered pair* operator
-
-#### The `\` *such that* operator
-
-#### Unifying expressions
-
-The operators `?` and `=` can be used together to effectively act as a *unify* operator. If unification is not possible, the expression is undefined.
-
-The `?=` operator is right-referential: In declarative context
-
-
-Examples (aliasing and recursion):
-
-    // Anonymous factorial function
-    let f ?= fn{ 0 -> 1, int n?>0 -> n*f(n-1) }
-
-    // The list of Fibonacci numbers
-    [ let f = (a,b) => a ; f(b,a+b) in f(0,1) ]
-
-Examples (destructuring/pattern binding):
-
-    // Tuple destructuring
-    let ((x,y) = (0.7, 0.7)) in x + y
-
-    // Guarded parameter with refinement in a function alias
-    let fact ?= int n?>=0 => n==0 then 1 else n * fact(n-1) in  fact 6                                  // 720
+| Operator | Description |
+|---|---|
+| `let` |  |
+| `=>` | Lambda function |
+| `\` | Such that |
 
 
+### Right-referential operators
+
+Some operators, when appearing in a declarative scope, keep the declarative scope for their *left* operand but switch to a *referential* scope for their *right* operand. These are called **right-referential** operators:
+
+| Operator | Description |
+|---|---|
+| `=` |  |
+| `==` |  |
+| `!=` |  |
+| `<` |  |
+| `<=` |  |
+| `>` |  |
+| `>=` |  |
+| `:` |  |
+| `::` |  |
+| `:::` |  |
+| `in` |  |
+| `` |  |
 
 
-Examples:
+`=`, `==`, `!=`, `<=`, `<`, `>`, `>=`, `:`, `::`, `:::`, `in`
 
-    let answer = 42
+This is why `public y = x * 2` works as expected: `public` establishes a declarative scope; `=` keeps that declarative scope for `y` (which is declared) but switches to referential for `x * 2` (where `x` must already be known).
 
-    x => x * 2
+### Operator reference
 
-    
+#### `let`
 
+`let` creates a new declarative local scope spanning its operand. Bindings introduced by `let` are not visible outside the expression. It is typically paired with `in` to delimit where the bindings are available:
 
+    let answer = 42 in $"The answer is {answer}"    // "The answer is 42"
+
+`let` also supports recursive bindings via `?=` (see [`?=`](#-unify) below):
+
+    let f ?= fn{ 0 -> 1, int n?>0 -> n * f(n-1) }
+    in  f 5    // 120  (5!)
+
+    // Quicksort
     let qs ~ Span.Of Comparable a => let p=a.[0] in qs(a??<p) + (a??==p) + qs(a??>p)
 
+#### `public`, `private`, `protected`, `local`
+
+These visibility modifiers declare identifiers in the enclosing module or record with the specified visibility. They establish a declarative scope over their operand:
+
+    public y = x * 2    // declares y; x is referenced from an outer scope
+
+#### `in`
+
+`in` is a right-referential operator typically combined with `let` to scope bindings over the right-hand expression:
+
+    let f = (0=>1)||(x=>x*f(x-1))
+    in  f 5    // 120  (5!)
+
+The Fibonacci sequence as a lazy list:
+
+    [ let f = (a,b) => a ; f(b,a+b) in f(0,1) ]
+
+#### `=>` — lambda
+
+`=>` creates a function. Its left operand (the parameter pattern) is *declarative*; the declared parameter names are then in scope as a referential context for the right operand (the body):
+
+    x => x * 2              // maps x to x * 2
+    (a, b) => a + b         // function of a two-element tuple
+
+Parameter patterns may include type constraints and guards:
+
+    int n?>0 => n * 2       // defined only for positive integers
+    string s => s + rest => rest
+
+#### `->` — ordered pair
+
+`->` creates an ordered pair (pattern → value). It is used inside `fn{...}` to define function cases. The left side is a declarative pattern; the right side is the result with the pattern bindings in scope:
+
+    let f = fn{ 0 -> 1, 1 -> 1, int n?>1 -> n * f(n-1) } in f
+
+#### `\` — such that
+
+`\` (read *such that*) constrains a value by a predicate. The left operand is declarative and the right operand is a referential predicate over those names. In other words the operator creates a new local scope and is right-referential within that scope:
+
+    { int n \ n > 0 }           // the set of positive integers
+    { int n \ n % 2 == 0 }      // the set of even integers
+
+
+#### `record` and `records`
+
+`record` is a prefix operator whose operand is *declarative*. All identifiers declared by the operand become fields of the record. `this` is implicitly bound to the record instance inside the operand:
+
+    person  = record(Name:string, Age:int)
+    persons = records(Name:string, Age:int)    // shorthand for { record(...) }
+
+#### `?=` — unify
+
+`?=` combines declaration with unification semantics. If the right-hand value cannot be unified with the left-hand pattern the expression is *undefined* (i.e., the branch fails). This enables recursive self-referential bindings — a name bound with `?=` is in scope on the right-hand side:
+
+    // Anonymous factorial function
+    let f ?= fn{ 0 -> 1, int n?>0 -> n * f(n-1) }
+
+    // Guarded recursive binding
+    let fact ?= int n?>=0 => n==0 then 1 else n * fact(n-1) in fact 6    // 720
+
+    // Tuple destructuring
+    let (x,y) = (0.7, 0.7) in x + y
 
 ### Declaring `this`
 
-When `this` is in a declarative position, the scope(s) being declared are extended with whatver `this` is bound to.
+When `this` appears in a declarative position, the current scope is extended with whatever `this` is bound to, making all members of that value directly accessible without qualification.
 
-Example:
+The following is a function which accepts a DateTime member and formats it as a string:
 
-    DateTime this => $"{Year}-{Month}-{Date}"
+    DateTime this => $"{Year}-{Month}-{Day}"
 
-Because 1) `this` appears in a declarative position (argument of a lambda) and 2) it can be inferred that the method accepts a `DateTime` member, `this` is bound to a `DateTime`. 
-
+Because `this` is in the declarative parameter position of the lambda and its type can be inferred as `DateTime`, all `DateTime` members (`Year`, `Month`, `Day`, `Hour`, `Minute`, `Second` etc) are in scope in the lambda body without qualification.
 
     let this = DateTime.Now in $"{Year}-{Month}-{Date}"

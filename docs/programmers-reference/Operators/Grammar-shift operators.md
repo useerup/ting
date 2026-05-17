@@ -6,15 +6,20 @@ If the grammar-shift operator is **not** the last token on a line, then the rema
 
 #### The `>>>` fold left-to-right operator
 
-    Identifier = [h]+t => >> >>> (WordBeginChar h) (ZeroOrMore WordFollowChar t)
+    Identifier = [h]+t => (>>) [>>>] (WordBeginChar h) (ZeroOrMore WordFollowChar t)
 
 #### The `<<<` fold right-to-left operator
 
-#### The `(---)` operator
 
-#### The `record` `---` operator
+#### The `(---)` operator
 
 #### The `[---]` operator
 
 #### The `{---}` operator
+
+
+
+#### Thoughts
+
+    Asml.Frut (Wand.Ytr)
 
