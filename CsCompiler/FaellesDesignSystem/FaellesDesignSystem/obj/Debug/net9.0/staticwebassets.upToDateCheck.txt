@@ -1,3 +1,0 @@
-C:\Users\uffe\OneDrive\Github\ting\CsCompiler\FaellesDesignSystem\FaellesDesignSystem\wwwroot\exampleJsInterop.js
-wwwroot\background.png
-wwwroot\exampleJsInterop.js

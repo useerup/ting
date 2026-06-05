@@ -1,2 +1,0 @@
-C:\Users\uffe\OneDrive\Github\ting\CsCompiler\FaellesDesignSystem\FaellesDesignSystem.Demo\FaellesDesignSystem.Demo\wwwroot\app.css
-wwwroot\app.css

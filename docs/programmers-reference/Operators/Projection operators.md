@@ -80,5 +80,5 @@ The following expression is a function which accepts a set or sequence whose ele
 
 The following expression is a function which accepts a set or sequence whose elements have a property `FullName` which is a member of the `string` set. It returns a projection of the `FullName` property from each element.
 
-    ..(string..UpperCase FullName) >> .UpperCase
+    ..(string FullName)
 

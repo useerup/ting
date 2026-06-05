@@ -1,200 +1,53 @@
 ﻿open FParsec
 open Exp
-
-// user state (unused)
-type UserState = unit
-
-type Parser<'t> = FParsec.Primitives.Parser<'t, UserState>
-
-let ws: Parser<unit> = spaces // whitespace to skip between tokens
-
-// basic lexeme helpers
-let str s = pstring s
-let kw s = str s .>> ws
-
-// keyword with identifier boundary and backtracking
-let keyword (s: string) : Parser<unit> =
-    let identCont = satisfy (fun c -> System.Char.IsLetterOrDigit c || c = '_')
-    attempt (pstring s .>> notFollowedBy identCont) >>% ()
-    .>> ws
-
-let isIdentStart c = System.Char.IsLetter c || c = '_'
-let isIdentCont c = System.Char.IsLetterOrDigit c || c = '_'
-let isDoubleQuote c = c = '"'
-let isNotDoubleQuote c = c <> '"'
-
-let pIdentifier: Parser<Exp> =
-    many1Satisfy2L isIdentStart isIdentCont "identifier"
-    |>> fun name -> Exp.Identifier (Unresolved name)
-    .>> ws
-
-let pNumber: Parser<Exp> = pint32 .>> ws |>> fun n -> Number n
-
-let expr, exprRef = createParserForwardedToRef<Exp, UserState>()
-
-// Shared parser for a (possibly empty) comma-delimited list of expressions
-let private delimitedExprList (openCh: char) (closeCh: char): Parser<Exp list> =
-    let comma = skipChar ',' .>> ws
-    between (skipChar openCh .>> ws) (skipChar closeCh .>> ws) (sepBy expr comma)
-
-// Parentheses accept a comma-delimited list of expressions: (e1, e2, ...)
-// Returns Tuple items (can be empty or any length)
-let pParens: Parser<Exp> =
-    delimitedExprList '(' ')'
-    |>> fun items -> Tuple items
-
-// Braces parse into SetLiteral without special-casing 0 or 1 elements
-let pBraces: Parser<Exp> =
-    delimitedExprList '{' '}'
-    |>> fun items -> SetLiteral items
-
-// Brackets parse into ListLiteral without special-casing 0 or 1 elements
-let pBrackets: Parser<Exp> =
-    delimitedExprList '[' ']'
-    |>> fun items -> ListLiteral items
-
-// Quotes parse into string literal 
-let pStringLiteral: Parser<Exp> =
-    between (skipSatisfy isDoubleQuote) (skipSatisfy isDoubleQuote) (manySatisfy isNotDoubleQuote) |>> StringLiteral .>> ws
-
-let pExportType: Parser<ExportType> =
-    choice [
-        keyword "public" >>% ExportType.Public
-        keyword "private" >>% ExportType.Private
-        keyword "internal" >>% ExportType.Internal
-        keyword "protected" >>% ExportType.Protected
-        keyword "local" >>% ExportType.Local
-    ]
-
-let pExport: Parser<Exp> =
-    pExportType >>= fun exportType ->
-        expr
-        |>> fun operand ->
-            let s = LocalScope (System.Guid.NewGuid())
-            Export(exportType, s, Declare(s, operand))
-
-
-
-let pTerm: Parser<Exp> = choice [ pNumber; pExport; pIdentifier; pParens; pBraces; pBrackets; pStringLiteral ]
-
-let opp = new OperatorPrecedenceParser<Exp, UserState, unit>()
-let pExpr: Parser<Exp> = opp.ExpressionParser
-
-let rootIdentifier s = Identifier(Resolved(s, RootScope))
-
-let newScope() : Scope = LocalScope(System.Guid.NewGuid())
-
-
-let declareLeftOperator (s:string) = fun x y -> let ns = new Scope() in Apply(rootIdentifier $"_{s}_", Tuple [Declare(ns,x);Scope(ns,y)])
-let referenceRightOperator (s:string) = fun x y -> Apply(rootIdentifier $"_{s}_", Tuple [x;Reference y])
-let referenceLeftOperator (s:string) = fun x y -> Apply(rootIdentifier $"_{s}_", Tuple [Reference x;y])
-
-let operator(s:string) = fun x y -> Apply(rootIdentifier $"_{s}_", Tuple [x;y])
-let prefixOperator(s:string) = fun x -> Apply(rootIdentifier $"{s}_", x)
-
-opp.TermParser <- pTerm
-
-opp.AddOperator(PrefixOperator("let", ws, 1, true, fun b -> let ns = new Names() in Declare(ns,b)))
-
-opp.AddOperator(InfixOperator("in", ws, 2, Associativity.Right, referenceRightOperator "in"))
-
-opp.AddOperator(InfixOperator("=", ws, 10, Associativity.Left, referenceRightOperator "="))
-
-opp.AddOperator(InfixOperator("->", ws, 20, Associativity.Left, operator "->"))
-
-opp.AddOperator(InfixOperator(">>", ws, 30, Associativity.Left, operator ">>"))
-opp.AddOperator(InfixOperator("<<", ws, 30, Associativity.Left, operator "<<"))
-
-opp.AddOperator(InfixOperator("|>", ws, 30, Associativity.Left, operator "|>"))
-opp.AddOperator(InfixOperator("<|", ws, 30, Associativity.Left, operator "<|"))
-
-opp.AddOperator(InfixOperator("~", ws, 35, Associativity.Left, referenceRightOperator "~"))
-
-opp.AddOperator(InfixOperator("=>", ws, 40, Associativity.Right, declareLeftOperator "=>"))
-
-opp.AddOperator(InfixOperator("./", ws, 70, Associativity.Left, referenceLeftOperator "./"))
-opp.AddOperator(InfixOperator("../", ws, 70, Associativity.Left, operator "../"))
-
-
-opp.AddOperator(InfixOperator("catch", ws, 80, Associativity.Left, operator "catch"))
-opp.AddOperator(InfixOperator(@"\", ws, 80, Associativity.Left, declareLeftOperator @"\"))
-
-opp.AddOperator(InfixOperator("|", ws, 90, Associativity.Left, operator "|"))
-opp.AddOperator(InfixOperator("||", ws, 90, Associativity.Left, operator "||"))
-
-opp.AddOperator(InfixOperator("&", ws, 100, Associativity.Left, operator "&"))
-opp.AddOperator(InfixOperator("&&", ws, 100, Associativity.Left, operator "&&"))
-
-opp.AddOperator(InfixOperator("?", ws, 103, Associativity.Left, operator "?"))
-opp.AddOperator(InfixOperator("??", ws, 103, Associativity.Left, operator "??"))
-
-opp.AddOperator(PrefixOperator("!", ws, 110, true, prefixOperator "!"))
-
-opp.AddOperator(InfixOperator(":", ws, 115, Associativity.Left, referenceRightOperator ":"))
-opp.AddOperator(InfixOperator("::", ws, 115, Associativity.Left, referenceRightOperator "::"))
-opp.AddOperator(InfixOperator(":::", ws, 115, Associativity.Left, referenceRightOperator ":::"))
-opp.AddOperator(InfixOperator("<", ws, 115, Associativity.Left, referenceRightOperator "<"))
-opp.AddOperator(InfixOperator("<=", ws, 115, Associativity.None, referenceRightOperator "<="))
-opp.AddOperator(InfixOperator(">=", ws, 115, Associativity.None, referenceRightOperator ">="))
-opp.AddOperator(InfixOperator(">", ws, 115, Associativity.None, referenceRightOperator ">"))
-opp.AddOperator(InfixOperator("==", ws, 115, Associativity.Left, referenceRightOperator "=="))
-opp.AddOperator(InfixOperator("!=", ws, 115, Associativity.Left, referenceRightOperator "!="))
-opp.AddOperator(InfixOperator("!:", ws, 115, Associativity.None, referenceRightOperator "!:"))
-
-opp.AddOperator(InfixOperator("...", ws, 120, Associativity.Left, operator "..."))
-opp.AddOperator(InfixOperator("...<", ws, 120, Associativity.Left, operator "...<"))
-opp.AddOperator(InfixOperator("<...", ws, 120, Associativity.Left, operator "<..."))
-opp.AddOperator(InfixOperator("<...<", ws, 120, Associativity.Left, operator "<...<"))
-opp.AddOperator(InfixOperator(";", ws, 120, Associativity.Left, operator ";"))
-opp.AddOperator(InfixOperator(";;", ws, 120, Associativity.Left, operator ";;"))
-
-opp.AddOperator(InfixOperator("+", ws, 130, Associativity.Left, operator "+"))
-opp.AddOperator(InfixOperator("-", ws, 130, Associativity.Left, operator "-"))
-
-opp.AddOperator(InfixOperator("*", ws, 140, Associativity.Left, operator "*"))
-opp.AddOperator(InfixOperator("/", ws, 140, Associativity.Left, operator "/"))
-opp.AddOperator(InfixOperator("%", ws, 140, Associativity.Left, operator "%"))
-opp.AddOperator(InfixOperator("/%", ws, 140, Associativity.Left, operator "/%"))
-
-opp.AddOperator(InfixOperator("^", ws, 150, Associativity.Left, operator "^"))
-
-opp.AddOperator(InfixOperator(".", ws, 160, Associativity.Left, fun x y -> let ns = new Names() in operator "." x (Declare(ns,y))))
-opp.AddOperator(InfixOperator("..", ws, 160, Associativity.Left, declareRightOperator ".."))
-
-
-
-// wire the forward reference for expressions (for parentheses etc.)
-exprRef := pExpr
-
-// Public expression parser that skips leading/trailing whitespace and expects EOF
-let parseExpression: Parser<Exp> = ws >>. pExpr .>> eof
-
-// Convenience API to run the parser over a string
-let tryParseExpression (input: string) = run parseExpression input
-
-
+open Parser
+open Analyzer
 
 [<EntryPoint>]
 let main argv =
     let inputs = 
         [ 
-          "public { 1, 2, 3 }"
-          "protected { 1, 2, 3 }"
-          "protected internal { 1, 2, 3 }"
-          "internal public { 1, 2, 3 }"
+          "x => x * 2m"  
+          "`then` = 42"
+          "a==2 then a==3 then 0 else 1 else 2"
+          "DateTime this => $\"{Year}-{Month}-{Day}\""
+          "let answer=42 in $`Flollop{answer}`"
+          "Invoke true"
+          "{ true, false }"
+          "public { 1, 2, 3, `a` }"
+          "protected { 1, 2, 3, $`a{zark}b` }"
+          "protected internal { 1, 2, 3, a }"
+          "internal public { 1, 2, 3, a }"
           "let x in y"
           "person.(Name,Age)"  
           "let person.Name = \"Zaphod\""
+          "person.Name = \"Zaphod\""
           "let x=21 in Answer = x*2"
           "!a in b + c * d"
           "!(let 42 / 6 - 1)"
           "(x + y) * (a - b) in z"
+          "()"
+          "[]"
+          "{}"
+          "this"
+          "void"
+          "{ 1...10 }"
           "invalid$char + 5" // This input contains an invalid character
+          "int^2 ^^ int"
+          "record(Answer:int) \ (Answer = 42)"
+          "flollop"
+          "$\"{Word name} = {int value}\" => (name->value)"
+          "\"zark\" => (name->value)"
+          "{ int x \ x % 2 == 0}"
         ] 
+    System.Console.Clear()
     for input in inputs do
+        printfn "--------------------------------------------------------------------------------------------------------------------"
+        printfn $"{input}" 
+        printfn "--------------------------------------------------------------------------------------------------------------------"
         match tryParseExpression input with
-        | Success(result, _, _) ->
-            printfn $"Input: {input}\nParsed: {formatExp result}\n" 
+        | Success(result, _, _) -> do
+            let res = markDeclarations result rootScopeStack in printfn $"{res}\n\n" 
         | Failure(errorMsg, _, _) ->
-            printfn "Input: %s\nError: %s\n" input errorMsg
+            printfn "Error: %s\n" errorMsg
     0 // return an integer exit code
