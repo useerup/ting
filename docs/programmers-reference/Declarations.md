@@ -13,7 +13,7 @@ Scopes can be nested. When resolving an identifier the innermost scope is search
 
 The expression
 
-    let x = 5 in 2*x^2 + 5*x - 10
+    let x = 5 in 2*x^2 + 5*x - 10 
 
 contains both declarative and referential sub-expressions:
 
@@ -162,3 +162,23 @@ The following is a function which accepts a DateTime member and formats it as a 
 Because `this` is in the declarative parameter position of the lambda and its type can be inferred as `DateTime`, all `DateTime` members (`Year`, `Month`, `Day`, `Hour`, `Minute`, `Second` etc) are in scope in the lambda body without qualification.
 
     let this = DateTime.Now in $"{Year}-{Month}-{Date}"
+
+
+### Examples
+
+The following is a record with a field `Answer` which is bound to the value 42:
+
+    record(Answer:int) \ Answer=42
+
+Here there are 2 scopes in play:
+1. The `\` operator introduces a local scope which is declarative in its left hand operand (`record(Answer:int)`).
+2. The `record` operator introduces a *record scope* covering the field expression (`(Answer:int)`).
+
+The identifier `Answer` occurs within a scope stack where both these scopes are declarative. Thus it declares Answer in both scopes and unifies the values.
+
+
+The following function parses a string:
+
+    $"{Word name} = {int value}" => (name,value)
+
+How it works:

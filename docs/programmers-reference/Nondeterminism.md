@@ -1,7 +1,14 @@
 ## Nondeterminism
 
+In Ting an expression can evaluate to a *nondeterministic* value. 
 
-An expression that is not bound to one specific value is said to be *nondeterministic*.
+There are 3 types of nondeterminism:
+
+1. Unenumerable
+2. Enumerable unbounded
+3. Enumerable bounded
+
+In the simplest form nondeterminism arises from
 
 
 ### Bounded nondeterminism

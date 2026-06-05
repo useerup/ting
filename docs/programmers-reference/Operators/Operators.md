@@ -1,8 +1,25 @@
 ## Operators
 
+Binary operators can be categorized as follows:
+
+| pattern           | in declarative context                                                                 | in referential context                                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| left-declarative  | Creates a local scope spanning the operator expression. Both operands are declarative. | Creates a local scope spanning the operator expression. Left operand is declarative; right operand is referential. |
+| right-declarative | Creates a local scope spanning the operator expression. Both operands are declarative. | Creates a local scope spanning the operator expression. Right operand is declarative; left operand is referential. |
+| left-referential  | Left operand is referential; right operand is declarative.                             | Both operands are referential.                                                                                     |
+| right-referential | Left operand is declarative; right operand is referential.                             | Both operands are referential.                                                                                     |
+| non-declarative   | Both operands are declarative.                                                         | Both operands are referential.                                                                                     |
+
+The publishing operators (`public`, `private`, `internal`, `protected`) each creates a scope for which the operand expression is declarative. The operators can be nested. In that case the rule about overlapping declarative contexts comes into play, which means that identifiers that are declared in multiple contexts are unified. This effectively means that `protected internal int Answer` declares `Answer` as both a *protected* identifier and an *internal* identifier, and that both declarations refer to the same value.
+
+
 ### Arithmetic operators
 
 #### `+` addition
+
+Signatures: 
+- `Numeric*Numeric^^Numeric` where `Numeric:{int,float,double,byte,sbyte,long,ulong,short,ushort,uint,decimal}`
+- `string*string^^string`
 
 #### `-` subtraction
 
@@ -72,11 +89,9 @@
 
 #### `=>` Lambda
 
-The `=>` creates a new local scope which is declarative in its left operand and referential in its RHS operand.
+The `=>` operator creates a new function. The left operand is the argument and the right operand is the result of an application.
 
-    string sym => sym+rest => rest
-
-This works because an identifier is resolved by searching the current frame for a binding of the identifier. If a binding is found, the same binding is used. If a binding is *not* found, the current frame is searched for  declarative scopes. If one or more declarative scopes are found, the identifier is bound to each scope.
+`=>` is *left-declarative*. 
 
 #### `->` 
 

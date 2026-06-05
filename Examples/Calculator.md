@@ -30,8 +30,8 @@
         next
 
     Exp =
-        LeftAssoc Add|Sub
-            LeftAssoc Mul|Div
+        LeftAssoc (Add|Sub)
+            LeftAssoc (Mul|Div)
                 Number
 
     Add = (+) => Symbol "+"
