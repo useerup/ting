@@ -42,11 +42,15 @@ Consider for example a function `ExpectChar` which "parses" the first character 
 
 #### `|>` and `<|` "function application" operators
 
+Examples
 
+    f <| x          // same as `f x`
+    x |> f          // same as `f x`
 
+Unlike the juxtaposition function application, the function application operators are are *binding neutral*: In declarative binding position **both** operands are declarative. In referential binding position **both** operands are referential.
 
 #### Automatic set-to-function conversion
 
-When a set is used in a position where a function is expected, it is converted to its own *identity function*. An identity function of a set is a function which accepts members of the set and returns the same member.
+When a set is used in a position where a function is expected, it is promoted to its own *identity function*. An identity function of a set is a function which accepts members of the set and returns the same member.
 
-    (+)
+This is frequently used to restrict variables during declaration, such as `let float a = 42`. In this case `float a` is a function application. `float` is a set, so it is promoted to the function `float x=>x`. Thus it is equivalent to `let ref(float x=>x) a = 42` and thus `a` is inferred to be a member of `float`.
