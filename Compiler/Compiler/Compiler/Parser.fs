@@ -100,71 +100,58 @@ let pTerm: Parser<Exp> =
         pBraces
         pBrackets
         pInterpolatedString
-        pString 
+        pString
     ]
 
 let opp = new OperatorPrecedenceParser<Exp, UserState, unit>()
 let pExpr: Parser<Exp> = opp.ExpressionParser
 
-// Helpers for mapping parsed operators to AST forms.
-let declareLeftOperator (op:string) = fun x y -> let s = newScope() in  Local(s, Apply(BuiltIn $"_{op}_", Tuple [Declarative(s,x);Referential(s,y)]))
-let declareRightOperator (op:string) = fun x y -> let s =  newScope() in Local(s,  Apply(BuiltIn $"_{op}_", Tuple [Referential(s,x);Declarative(s,y)]))
-let referenceRightOperator (op:string) = fun x y -> Apply(BuiltIn $"_{op}_", Tuple [x;Reference y])
-let referenceLeftOperator (op:string) = fun x y -> Apply(BuiltIn $"_{op}_", Tuple [Reference x;y])
-let operator(op:string) = fun x y -> Apply(BuiltIn $"_{op}_", Tuple [x;y])
-let prefixOperator(op:string) = fun x -> Apply(BuiltIn $"{op}_", x)
+let declareLeftOperator (op: string) = fun x y -> DeclareLeft(BuiltIn $"_{op}_", x, y)
+let declareRightOperator (op: string) = fun x y -> DeclareRight(BuiltIn $"_{op}_", x, y)
+let referenceLeftOperator (op: string) = fun x y -> ReferenceLeft(BuiltIn $"_{op}_", x, y)
+let referenceRightOperator (op: string) = fun x y -> ReferenceRight(BuiltIn $"_{op}_", x, y)
 
-// Function application by juxtaposition: `f x y` → Apply(Apply(f, x), y)
-let pApp: Parser<Exp> =
-    many1 (attempt pTerm) |>> List.reduce (fun f x -> Apply(Reference f, x))
+let operator (op: string) = fun x y -> Apply(BuiltIn $"_{op}_", Tuple [ x; y ])
+
+let prefixOperator (op: string) = fun x -> Apply(BuiltIn $"{op}_", x)
+
+let pApp: Parser<Exp> = many1 (attempt pTerm) |>> List.reduce (fun f x -> Apply(Reference f, x))
 
 opp.TermParser <- pApp
 
-// Prefix declaration/visibility operators.
-opp.AddOperator(PrefixOperator("let", ws, 1, true, fun b -> let s = newScope() in Local(s, Declarative(s,b))))
-opp.AddOperator(PrefixOperator("public", ws, 1, true, fun b -> let s = newScope() in Publish(s, Public, b)))
-opp.AddOperator(PrefixOperator("private", ws, 1, true, fun b -> let s = newScope() in Publish(s, Private, b)))
-opp.AddOperator(PrefixOperator("protected", ws, 1, true, fun b -> let s = newScope() in Publish(s, Protected, b)))
-opp.AddOperator(PrefixOperator("internal", ws, 1, true, fun b -> let s = newScope() in Publish(s, Internal, b)))
+opp.AddOperator(PrefixOperator("let", ws, 1, true, fun b -> Declare b))
+opp.AddOperator(PrefixOperator("public", ws, 1, true, fun b -> Publish(Public, b)))
+opp.AddOperator(PrefixOperator("private", ws, 1, true, fun b -> Publish(Private, b)))
+opp.AddOperator(PrefixOperator("protected", ws, 1, true, fun b -> Publish(Protected, b)))
+opp.AddOperator(PrefixOperator("internal", ws, 1, true, fun b -> Publish(Internal, b)))
 
-// Control-flow and binding operators.
 opp.AddOperator(InfixOperator("in", ws, 5, Associativity.Right, referenceRightOperator "in"))
-
 opp.AddOperator(InfixOperator("=", ws, 10, Associativity.Left, referenceRightOperator "="))
-
 opp.AddOperator(InfixOperator("then", ws, 15, Associativity.Right, referenceRightOperator "then"))
 opp.AddOperator(InfixOperator("else", ws, 15, Associativity.Right, operator "else"))
-
 opp.AddOperator(InfixOperator("->", ws, 20, Associativity.Left, referenceRightOperator "->"))
 
-// Composition and pipeline operators.
 opp.AddOperator(InfixOperator(">>", ws, 30, Associativity.Left, operator ">>"))
 opp.AddOperator(InfixOperator("<<", ws, 30, Associativity.Left, operator "<<"))
-
 opp.AddOperator(InfixOperator("|>", ws, 30, Associativity.Left, operator "|>"))
 opp.AddOperator(InfixOperator("<|", ws, 30, Associativity.Left, operator "<|"))
 
-opp.AddOperator(InfixOperator("=>", ws, 40, Associativity.Right, declareLeftOperator "=>" ))
+opp.AddOperator(InfixOperator("=>", ws, 40, Associativity.Right, declareLeftOperator "=>"))
 
-opp.AddOperator(InfixOperator("./", ws, 70, Associativity.Left, fun a b -> let s = ExpressionScope a in Local(s, Referential(s,b))))
-opp.AddOperator(InfixOperator("../", ws, 70, Associativity.Left, fun a b -> let s = ExpressionMemberScope a in Local(s,Referential(s,b))))
+opp.AddOperator(InfixOperator("./", ws, 70, Associativity.Left, fun x y -> PushScope(x,y)))
+opp.AddOperator(InfixOperator("../", ws, 70, Associativity.Left, fun x y -> PushMemberScope(x,y)))
 
 opp.AddOperator(InfixOperator("catch", ws, 75, Associativity.Left, referenceRightOperator "catch"))
 opp.AddOperator(InfixOperator(@"\", ws, 80, Associativity.Left, declareLeftOperator @"\"))
 
-// Logical operators.
 opp.AddOperator(InfixOperator("|", ws, 90, Associativity.Left, operator "|"))
 opp.AddOperator(InfixOperator("||", ws, 90, Associativity.Left, operator "||"))
-
 opp.AddOperator(InfixOperator("&", ws, 100, Associativity.Left, operator "&"))
 opp.AddOperator(InfixOperator("&&", ws, 100, Associativity.Left, operator "&&"))
-
 opp.AddOperator(InfixOperator("?", ws, 103, Associativity.Left, referenceRightOperator "?"))
 opp.AddOperator(InfixOperator("??", ws, 103, Associativity.Left, referenceRightOperator "??"))
-
 opp.AddOperator(PrefixOperator("!", ws, 110, true, prefixOperator "!"))
 
-// Comparison and type-relation style operators.
 opp.AddOperator(InfixOperator(":", ws, 115, Associativity.None, referenceRightOperator ":"))
 opp.AddOperator(InfixOperator("::", ws, 115, Associativity.None, referenceRightOperator "::"))
 opp.AddOperator(InfixOperator(":::", ws, 115, Associativity.None, referenceRightOperator ":::"))
@@ -174,50 +161,37 @@ opp.AddOperator(InfixOperator(">=", ws, 115, Associativity.None, referenceRightO
 opp.AddOperator(InfixOperator(">", ws, 115, Associativity.None, referenceRightOperator ">"))
 opp.AddOperator(InfixOperator("==", ws, 115, Associativity.None, referenceRightOperator "=="))
 opp.AddOperator(InfixOperator("!=", ws, 115, Associativity.None, referenceRightOperator "!="))
-opp.AddOperator(InfixOperator("!:", ws, 115, Associativity.None, referenceRightOperator "!:"));
+opp.AddOperator(InfixOperator("!:", ws, 115, Associativity.None, referenceRightOperator "!:"))
 
-// Range operators.
 opp.AddOperator(InfixOperator("...", ws, 120, Associativity.None, operator "..."))
 opp.AddOperator(InfixOperator("...<", ws, 120, Associativity.None, operator "...<"))
 opp.AddOperator(InfixOperator("<...", ws, 120, Associativity.None, operator "<..."))
 opp.AddOperator(InfixOperator("<...<", ws, 120, Associativity.None, operator "<...<"))
 
-// Choice operators
 opp.AddOperator(InfixOperator(";", ws, 120, Associativity.Left, operator ";"))
 opp.AddOperator(InfixOperator(";;", ws, 120, Associativity.Left, operator ";;"))
 
-// Arithmetic operators by precedence.
 opp.AddOperator(InfixOperator("^^", ws, 125, Associativity.Left, operator "^^"))
 opp.AddOperator(InfixOperator("**", ws, 127, Associativity.Left, operator "**"))
-
 opp.AddOperator(InfixOperator("+", ws, 130, Associativity.Left, operator "+"))
 opp.AddOperator(InfixOperator("-", ws, 130, Associativity.Left, operator "-"))
-
 opp.AddOperator(InfixOperator("*", ws, 140, Associativity.Left, operator "*"))
 opp.AddOperator(InfixOperator("/", ws, 140, Associativity.Left, operator "/"))
 opp.AddOperator(InfixOperator("%", ws, 140, Associativity.Left, operator "%"))
 opp.AddOperator(InfixOperator("/%", ws, 140, Associativity.Left, operator "/%"))
-
 opp.AddOperator(InfixOperator("^", ws, 150, Associativity.Left, operator "^"))
 
-// Structural/type-shaping prefix operators.
-opp.AddOperator(PrefixOperator("record", ws, 155, true, fun b -> let s = newScope() in Record(s,[b])))
-opp.AddOperator(PrefixOperator("records", ws, 155, true, fun b -> let s = newScope() in Set([Record(s, [b])])))
-opp.AddOperator(PrefixOperator("tuple", ws, 155, true, fun b -> Tuple [b]))
-opp.AddOperator(PrefixOperator("tuples", ws, 155, true, fun b -> Set([Tuple [b]])))
+opp.AddOperator(PrefixOperator("record", ws, 155, true, fun b -> Record b))
+opp.AddOperator(PrefixOperator("records", ws, 155, true, fun b -> Set([ Record b ])))
+opp.AddOperator(PrefixOperator("tuple", ws, 155, true, fun b -> b))
+opp.AddOperator(PrefixOperator("tuples", ws, 155, true, fun b -> Set [b]))
 opp.AddOperator(PrefixOperator("fn", ws, 155, true, prefixOperator "fn"))
 opp.AddOperator(PrefixOperator("class", ws, 155, true, prefixOperator "class"))
 
+opp.AddOperator(InfixOperator(".", ws, 160, Associativity.Left, fun a b -> Projection(a,b)))
+opp.AddOperator(InfixOperator("..", ws, 160, Associativity.Left, fun a b -> MemberProjection(a,b)))
 
-// Projection operators have the highest precedence.
-opp.AddOperator(InfixOperator(".", ws, 160, Associativity.Left, fun  a b -> let s = newLocalScope() in Projection(s,a,Declarative(s, b))))
-opp.AddOperator(InfixOperator("..", ws, 160, Associativity.Left, fun a b -> let s = newLocalScope() in MemberProjection(s,a,Declarative(s, b))))
-
-// wire the forward reference for expressions (for parentheses etc.)
 exprRef := pExpr
 
-// Public expression parser that skips leading/trailing whitespace and expects EOF
 let parseExpression: Parser<Exp> = ws >>. pExpr .>> eof
-
-// Convenience API to run the parser over a string
 let tryParseExpression (input: string) = run parseExpression input
