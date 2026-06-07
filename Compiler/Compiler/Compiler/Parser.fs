@@ -25,7 +25,7 @@ let isNotDoubleQuote c = c <> '"'
 
 let keywords =
     System.Collections.Generic.HashSet<string>(
-        [| "this"; "void"; "let"; "public"; "private"; "internal"; "protected"; "in"; "catch"; "throw"; "then"; "else"; "true"; "false"; "record"; "records"; "tuple"; "tuples"; "fn"; "class" |]
+        [| "this"; "void"; "let"; "public"; "private"; "internal"; "protected"; "in"; "where"; "catch"; "throw"; "then"; "else"; "true"; "false"; "record"; "records"; "tuple"; "tuples"; "fn"; "class" |]
     )
 
 let pIdentifier: Parser<Exp> =
@@ -124,6 +124,8 @@ opp.AddOperator(PrefixOperator("public", ws, 1, true, fun b -> Publish(Public, b
 opp.AddOperator(PrefixOperator("private", ws, 1, true, fun b -> Publish(Private, b)))
 opp.AddOperator(PrefixOperator("protected", ws, 1, true, fun b -> Publish(Protected, b)))
 opp.AddOperator(PrefixOperator("internal", ws, 1, true, fun b -> Publish(Internal, b)))
+
+opp.AddOperator(InfixOperator("where", ws, 3, Associativity.Right, declareRightOperator "where"))
 
 opp.AddOperator(InfixOperator("in", ws, 5, Associativity.Right, referenceRightOperator "in"))
 opp.AddOperator(InfixOperator("=", ws, 10, Associativity.Left, referenceRightOperator "="))

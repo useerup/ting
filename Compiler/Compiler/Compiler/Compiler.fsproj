@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <None Include="..\syntax.md" />
+    <None Include="examples\where.ting" />
     <None Include="examples\assign_person_name.ting" />
     <None Include="examples\bang_a_in_expression.ting" />
     <None Include="examples\bang_let_arithmetic.ting" />
