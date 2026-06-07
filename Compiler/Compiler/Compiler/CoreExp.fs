@@ -1,29 +1,27 @@
 module CoreExp
 
+open System
 open Exp
 
-open System.Collections.Generic
 
-type BindingRole =
-    | Declarative of Scope list
-    | Referential of Scope list
-
-let bindingRole ((d,r):ScopeStack) : BindingRole =
-    if d.IsEmpty then BindingRole.Referential r
-    else Declarative d
-
+// Interpolated fragments used in identifiers and strings after analysis.
 type CoreInterpolatedPart =
     | TextPart of string
     | HolePart of CoreExp
 
+// Name table for a scope: declaration id -> analyzed name parts.
+and Names = System.Collections.Generic.Dictionary<Guid,CoreInterpolatedPart list>
+
+// Core, scope-annotated expression tree produced by Analyzer.markDeclarations.
 and CoreExp =
-    | Local of Scope * CoreExp 
+    | Local of Scope * CoreExp
     | Apply of CoreExp * CoreExp
     | Tuple of CoreExp list
-    | Record of Scope * CoreExp list
-    | Publish of Scope * AccessModifier * CoreExp
-    | Identifier of BindingRole * CoreInterpolatedPart list 
-    | Literal of Literal
+    | Record of Scope * CoreExp
+    | Publish of Scope * Exp.AccessModifier * CoreExp
+    | Identifier of BindingRole
+    | ScopeExp of Scope * CoreExp
+    | Literal of Exp.Literal
     | Set of CoreExp list
     | List of CoreExp list
     | InterpolatedString of CoreInterpolatedPart list
