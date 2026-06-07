@@ -7,3 +7,7 @@ build/
 
 # VS Code
 .vscode/
+
+# Ting compiler generated outputs
+Compiler/Compiler/examples/out/*.out
+**/examples/out/*.out
