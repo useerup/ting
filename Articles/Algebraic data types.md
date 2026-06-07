@@ -8,7 +8,9 @@ Reference: https://flix.dev/about/
 
     let 
         // An algebraic data type for shapes.
-        Shapes = class rec { Circle:float, Square:float, Rectangle:float*float }
+        Shapes = class records 
+            Area:float
+            Circumference:float
 
         // Computes the area of the given shape.
         Shapes..Area = fn {
@@ -26,11 +28,9 @@ Reference: https://flix.dev/about/
     let
 
         // An algebraic data type for binary trees where each leaf carries a value of type T.
-        Trees = Sets T => enum {
-            Leaf of T ? 
-                x => x.ToString override = $"Leaf {x}"
-            Node of Trees.Of T * Trees.Of T
-        }
+        Trees = set T => enums( Leaf of T, Node of Trees T * Trees T )
+
+        (Trees _).Node
 
         // A ToString instance for Tree.
         Sets all T=>(Trees T)..ToString override = {
@@ -40,7 +40,7 @@ Reference: https://flix.dev/about/
 
         // A higher-order function that transforms a tree with
         // elements of type T to a tree with elements of type U.
-        Trees..Map = let (Sets T, Sets U) in Tree T t \ ~{T+U} f \ t @ {
+        Trees..Map = this => (Leaf =>_)f   Tree T t \ ~{T+U} f \ t @ {
             Leaf x -> Leaf (f(x))
             Node (l, r) -> Node(This l, This r)
         }
