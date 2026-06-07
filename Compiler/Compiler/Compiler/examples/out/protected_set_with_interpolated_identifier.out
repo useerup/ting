@@ -1,0 +1,28 @@
+Input:
+protected { 1, 2, 3, $`a{zark}b` }
+
+Compilation succeeded.
+
+CoreExp:
+Publish
+  ((3d7c3916-00cd-4eab-8623-68be403ee799,
+    seq
+      [[1fcda8da-ddeb-4a29-bc55-d62dd48130e5, [TextPart "a"; HolePart
+  (Identifier
+     (Referential ([3d7c3916-00cd-4eab-8623-68be403ee799], [TextPart "zark"]))); TextPart "b"]]],
+    NamesScope), Protected,
+   Set
+     [Literal (Int32 1); Literal (Int32 2); Literal (Int32 3);
+      Identifier
+        (Declarative
+           (1fcda8da-ddeb-4a29-bc55-d62dd48130e5,
+            [TextPart "a";
+             HolePart
+               (Identifier
+                  (Referential
+                     ([3d7c3916-00cd-4eab-8623-68be403ee799], [TextPart "zark"])));
+             TextPart "b"]))])
+
+Scopes:
+[0] NamesScope           3d7c3916-00cd-4eab-8623-68be403ee799
+    names=[a{...}b]

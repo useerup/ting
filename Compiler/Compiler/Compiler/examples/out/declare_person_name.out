@@ -1,0 +1,28 @@
+Input:
+let person.Name = "Zaphod"
+
+Compilation succeeded.
+
+CoreExp:
+Local
+  ((c859f033-1907-4fef-8441-34ee4efe3995,
+    seq [[01df96c3-4792-4b58-86ce-ddccc69e4322, [TextPart "Name"]]], NamesScope),
+   Apply
+     (Identifier
+        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_=_"])),
+      Tuple
+        [Projection
+           ((d66b57f4-7cb9-41e7-b208-ad6270bb5b02, seq [], NamesScope),
+            Identifier
+              (Referential
+                 ([c859f033-1907-4fef-8441-34ee4efe3995], [TextPart "person"])),
+            Identifier
+              (Declarative
+                 (01df96c3-4792-4b58-86ce-ddccc69e4322, [TextPart "Name"])));
+         Literal (String "Zaphod")]))
+
+Scopes:
+[0] NamesScope           c859f033-1907-4fef-8441-34ee4efe3995
+    names=[Name]
+[1] NamesScope           d66b57f4-7cb9-41e7-b208-ad6270bb5b02
+    names=[]

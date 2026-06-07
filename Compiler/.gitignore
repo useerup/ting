@@ -452,3 +452,16 @@ bower_components
 
 ### WebSharper ###
 Scripts/
+
+# MkDocs build artifacts
+site/
+build/
+
+# Python virtual environments
+.venv/
+
+# VS Code
+.vscode/
+
+# Ting compiler generated outputs
+Compiler/examples/out/*.out

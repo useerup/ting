@@ -1,0 +1,37 @@
+Input:
+DateTime this => $"{Year}-{Month}-{Day}"
+
+Compilation succeeded.
+
+CoreExp:
+Local
+  ((ce6741ab-fa8e-4920-bfb2-b81b73adefa9,
+    seq [[9ad2ec16-5acf-41bc-a603-42b4238f002f, []]], NamesScope),
+   Apply
+     (Identifier
+        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_=>_"])),
+      Tuple
+        [Apply
+           (Identifier
+              (Referential
+                 ([ce6741ab-fa8e-4920-bfb2-b81b73adefa9], [TextPart "DateTime"])),
+            This (Declarative (9ad2ec16-5acf-41bc-a603-42b4238f002f, [])));
+         InterpolatedString
+           [HolePart
+              (Identifier
+                 (Referential
+                    ([ce6741ab-fa8e-4920-bfb2-b81b73adefa9], [TextPart "Year"])));
+            TextPart "-";
+            HolePart
+              (Identifier
+                 (Referential
+                    ([ce6741ab-fa8e-4920-bfb2-b81b73adefa9], [TextPart "Month"])));
+            TextPart "-";
+            HolePart
+              (Identifier
+                 (Referential
+                    ([ce6741ab-fa8e-4920-bfb2-b81b73adefa9], [TextPart "Day"])))]]))
+
+Scopes:
+[0] NamesScope           ce6741ab-fa8e-4920-bfb2-b81b73adefa9
+    names=[]

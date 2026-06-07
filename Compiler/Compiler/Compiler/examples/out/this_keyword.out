@@ -1,0 +1,10 @@
+Input:
+this
+
+Compilation succeeded.
+
+CoreExp:
+This (Referential ([], []))
+
+Scopes:
+No scopes collected.

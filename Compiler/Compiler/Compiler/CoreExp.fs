@@ -167,11 +167,64 @@ let private formatScopeNames ((_, names, _): Scope) =
     |> String.concat ", "
 
 //
+// Build a textual scope report used by console and file output.
+let renderAllScopes (exp: CoreExp) : string =
+    getAllScopes exp
+    |> List.mapi (fun i ((_, _, kind) as s) ->
+        let namesText = formatScopeNames s
+        [
+            $"[{i}] {scopeKindName kind, -20} {formatScope s}"
+            $"    names=[{namesText}]"
+        ])
+    |> List.concat
+    |> String.concat Environment.NewLine
+
 // Print each collected scope, its kind, and the names currently present in that scope.
 let printAllScopes (exp: CoreExp) : unit =
-    getAllScopes exp
-    |> List.iteri (fun i ((_, _, kind) as s) ->
-        let namesText = formatScopeNames s
-        printfn $"[{i}] {formatScope s}"
-        printfn $"    {namesText}")
+    printfn "%s" (renderAllScopes exp)
+
+// Render CoreExp in a cycle-safe way for diagnostics/output files.
+let rec private renderInterpolatedPart = function
+    | TextPart s -> s
+    | HolePart e -> $"{{{renderCoreExp e}}}"
+
+and private renderBindingRole = function
+    | Declarative (id, _) -> $"decl:{id}"
+    | Referential (scopeIds, _) ->
+        let scopesText = scopeIds |> List.map string |> String.concat ", "
+        $"ref:[{scopesText}]"
+
+and renderCoreExp (exp: CoreExp) : string =
+    match exp with
+    | Local (s, e) -> $"local[{formatScope s}] {renderCoreExp e}"
+    | Apply (f, a) -> $"({renderCoreExp f} {renderCoreExp a})"
+    | Tuple xs -> xs |> List.map renderCoreExp |> String.concat ", " |> fun s -> $"({s})"
+    | Record (s, e) -> $"record[{formatScope s}] {renderCoreExp e}"
+    | Publish (s, access, e) ->
+        let accessText =
+            match access with
+            | Exp.AccessModifier.Public -> "public"
+            | Exp.AccessModifier.Private -> "private"
+            | Exp.AccessModifier.Internal -> "internal"
+            | Exp.AccessModifier.Protected -> "protected"
+        $"{accessText}[{formatScope s}] {renderCoreExp e}"
+    | Identifier role -> $"id({renderBindingRole role})"
+    | ScopeExp (s, e) -> $"scope[{formatScope s}] {renderCoreExp e}"
+    | Literal lit ->
+        match lit with
+        | Exp.Int32 i -> string i
+        | Exp.Boolean b -> string b
+        | Exp.Float32 f -> string f
+        | Exp.Float64 d -> string d
+        | Exp.Decimal m -> string m
+        | Exp.String s -> $"\"{s}\""
+    | Set xs -> xs |> List.map renderCoreExp |> String.concat ", " |> fun s -> $"{{{s}}}"
+    | List xs -> xs |> List.map renderCoreExp |> String.concat ", " |> fun s -> $"[{s}]"
+    | InterpolatedString parts ->
+        parts |> List.map renderInterpolatedPart |> String.concat "" |> fun s -> $"$\"{s}\""
+    | Projection (s, e, m) -> $"({renderCoreExp e}).[{formatScope s}]({renderCoreExp m})"
+    | MemberProjection (s, e, m) -> $"({renderCoreExp e})..[{formatScope s}]({renderCoreExp m})"
+    | Equals (a, b) -> $"({renderCoreExp a} == {renderCoreExp b})"
+    | This role -> $"this[{renderBindingRole role}]"
+    | Void -> "void"
 

@@ -1,65 +1,52 @@
 ﻿module Program
 
+open System
+open System.IO
 open FParsec
 open Parser
 open Analyzer
-open Exp
 open CoreExp
 
 [<EntryPoint>]
 let main argv =
-    let inputs =
-        [
-            "x => x * 2m"
-            "`then` = 42"
-            "a==2 then a==3 then 0 else 1 else 2"
-            "DateTime this => $\"{Year}-{Month}-{Day}\""
-            "let answer=42 in $`Flollop{answer}`"
-            "Invoke true"
-            "{ true, false }"
-            "public { 1, 2, 3, `a` }"
-            "protected { 1, 2, 3, $`a{zark}b` }"
-            "protected internal { 1, 2, 3, a }"
-            "internal public { 1, 2, 3, a }"
-            "let x in y"
-            "person.(Name,Age)"
-            "let person.Name = \"Zaphod\""
-            "person.Name = \"Zaphod\""
-            "let x=21 in Answer = x*2"
-            "!a in b + c * d"
-            "!(let 42 / 6 - 1)"
-            "(x + y) * (a - b) in z"
-            "()"
-            "[]"
-            "{}"
-            "this"
-            "void"
-            "{ 1...10 }"
-            "invalid$char + 5"
-            "int^2 ^^ int"
-            "record(Answer:int) \ (Answer = 42)"
-            "flollop"
-            "$\"{Word name} = {int value}\" => (name->value)"
-            "\"zark\" => (name->value)"
-            "{ int x \ x % 2 == 0}"
-            "x => x + y => x + y + z => x"
-            "42./(wunder)"
-        ]
+    let examplesDir = Path.Combine(__SOURCE_DIRECTORY__, "examples")
+    let outputDir = Path.Combine(examplesDir, "out")
 
-    System.Console.Clear()
+    if not (Directory.Exists examplesDir) then
+        Directory.CreateDirectory examplesDir |> ignore
 
-    for input in inputs do
-        printfn "--------------------------------------------------------------------------------------------------------------------"
-        printfn $"{input}"
-        printfn "--------------------------------------------------------------------------------------------------------------------"
+    if not (Directory.Exists outputDir) then
+        Directory.CreateDirectory outputDir |> ignore
 
-        match tryParseExpression input with
-        | Success(result, _, _) ->
-            let res = markDeclarations result ([], [])
-            printAllScopes res
-            printfn "......................................."
-            printfn "%s\n\n" (res.ToString())
-        | Failure(errorMsg, _, _) ->
-            printfn "Error: %s\n" errorMsg
+    let exampleFiles =
+        Directory.GetFiles(examplesDir, "*.ting")
+        |> Array.sort
+
+    Console.Clear()
+
+    for exampleFile in exampleFiles do
+        let fileName = Path.GetFileName(exampleFile)
+        let input = File.ReadAllText(exampleFile)
+
+        let outputFileName = Path.ChangeExtension(fileName, ".out")
+        let outputPath = Path.Combine(outputDir, outputFileName)
+
+        let output =
+            match tryParseExpression input with
+            | Success(result, _, _) ->
+                let res = markDeclarations result ([], [])
+                let scopes = renderAllScopes res
+                let coreExp = res.ToString()
+                let scopesSection =
+                    if String.IsNullOrWhiteSpace scopes then
+                        "No scopes collected."
+                    else
+                        scopes
+                $"Input:\n{input}\n\nCompilation succeeded.\n\nCoreExp:\n{coreExp}\n\nScopes:\n{scopesSection}"
+            | Failure(errorMsg, _, _) ->
+                $"Input:\n{input}\n\nCompilation failed.\nError: {errorMsg}"
+
+        File.WriteAllText(outputPath, output)
+        printfn "Wrote %s" outputFileName
 
     0

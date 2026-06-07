@@ -1,0 +1,1 @@
+$"{Word name} = {int value}" => (name->value)

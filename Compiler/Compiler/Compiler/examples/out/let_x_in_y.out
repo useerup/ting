@@ -1,0 +1,21 @@
+Input:
+let x in y
+
+Compilation succeeded.
+
+CoreExp:
+Local
+  ((8922ec24-2b0a-4cbd-b41b-c99d750823d1,
+    seq [[075ef188-5c80-4ece-8668-dd8cd99166d7, [TextPart "x"]]], NamesScope),
+   Apply
+     (Identifier
+        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_in_"])),
+      Tuple
+        [Identifier
+           (Declarative (075ef188-5c80-4ece-8668-dd8cd99166d7, [TextPart "x"]));
+         Identifier
+           (Referential ([8922ec24-2b0a-4cbd-b41b-c99d750823d1], [TextPart "y"]))]))
+
+Scopes:
+[0] NamesScope           8922ec24-2b0a-4cbd-b41b-c99d750823d1
+    names=[x]

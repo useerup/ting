@@ -1,0 +1,52 @@
+Input:
+$"{Word name} = {int value}" => (name->value)
+
+Compilation succeeded.
+
+CoreExp:
+Local
+  ((1a3a8906-5f9b-4258-aa94-46f0726b6c95,
+    seq
+      [[08407fff-6aa1-4b62-9514-f7d081293bf8, [TextPart "name"]];
+       [9d278335-99bc-46f4-a60b-327eea2401f3, [TextPart "value"]]], NamesScope),
+   Apply
+     (Identifier
+        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_=>_"])),
+      Tuple
+        [InterpolatedString
+           [HolePart
+              (Apply
+                 (Identifier
+                    (Referential
+                       ([1a3a8906-5f9b-4258-aa94-46f0726b6c95],
+                        [TextPart "Word"])),
+                  Identifier
+                    (Declarative
+                       (08407fff-6aa1-4b62-9514-f7d081293bf8, [TextPart "name"]))));
+            TextPart " = ";
+            HolePart
+              (Apply
+                 (Identifier
+                    (Referential
+                       ([1a3a8906-5f9b-4258-aa94-46f0726b6c95], [TextPart "int"])),
+                  Identifier
+                    (Declarative
+                       (9d278335-99bc-46f4-a60b-327eea2401f3, [TextPart "value"]))))];
+         Tuple
+           [Apply
+              (Identifier
+                 (Referential
+                    ([00000000-0000-0000-0000-000000000000], [TextPart "_->_"])),
+               Tuple
+                 [Identifier
+                    (Referential
+                       ([1a3a8906-5f9b-4258-aa94-46f0726b6c95],
+                        [TextPart "name"]));
+                  Identifier
+                    (Referential
+                       ([1a3a8906-5f9b-4258-aa94-46f0726b6c95],
+                        [TextPart "value"]))])]]))
+
+Scopes:
+[0] NamesScope           1a3a8906-5f9b-4258-aa94-46f0726b6c95
+    names=[name, value]

@@ -15,6 +15,40 @@
 
   <ItemGroup>
     <None Include="..\syntax.md" />
+    <None Include="examples\assign_person_name.ting" />
+    <None Include="examples\bang_a_in_expression.ting" />
+    <None Include="examples\bang_let_arithmetic.ting" />
+    <None Include="examples\boolean_set.ting" />
+    <None Include="examples\datetime_this_interpolation.ting" />
+    <None Include="examples\declare_person_name.ting" />
+    <None Include="examples\empty_list.ting" />
+    <None Include="examples\empty_set.ting" />
+    <None Include="examples\empty_tuple.ting" />
+    <None Include="examples\grouped_arithmetic_in_z.ting" />
+    <None Include="examples\internal_public_set.ting" />
+    <None Include="examples\interpolated_string_lambda.ting" />
+    <None Include="examples\invalid_dollar_identifier.ting" />
+    <None Include="examples\invoke_true.ting" />
+    <None Include="examples\lambda_double.ting" />
+    <None Include="examples\let_answer_equals_expression.ting" />
+    <None Include="examples\let_in_interpolated_identifier.ting" />
+    <None Include="examples\let_x_in_y.ting" />
+    <None Include="examples\nested_lambdas.ting" />
+    <None Include="examples\nested_then_else.ting" />
+    <None Include="examples\person_projection_tuple.ting" />
+    <None Include="examples\power_xor_expression.ting" />
+    <None Include="examples\protected_internal_set.ting" />
+    <None Include="examples\protected_set_with_interpolated_identifier.ting" />
+    <None Include="examples\public_set_with_quoted_identifier.ting" />
+    <None Include="examples\push_scope_wunder.ting" />
+    <None Include="examples\quoted_keyword_assignment.ting" />
+    <None Include="examples\range_set.ting" />
+    <None Include="examples\record_with_assignment.ting" />
+    <None Include="examples\set_with_filter.ting" />
+    <None Include="examples\single_identifier.ting" />
+    <None Include="examples\string_lambda.ting" />
+    <None Include="examples\this_keyword.ting" />
+    <None Include="examples\void_keyword.ting" />
   </ItemGroup>
 
   <ItemGroup>

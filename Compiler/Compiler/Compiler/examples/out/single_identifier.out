@@ -1,0 +1,10 @@
+Input:
+flollop
+
+Compilation succeeded.
+
+CoreExp:
+Identifier (Referential ([], [TextPart "flollop"]))
+
+Scopes:
+No scopes collected.

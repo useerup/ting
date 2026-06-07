@@ -1,0 +1,31 @@
+Input:
+!a in b + c * d
+
+Compilation succeeded.
+
+CoreExp:
+Apply
+  (Identifier
+     (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_in_"])),
+   Tuple
+     [Apply
+        (Identifier
+           (Referential
+              ([00000000-0000-0000-0000-000000000000], [TextPart "!_"])),
+         Identifier (Referential ([], [TextPart "a"])));
+      Apply
+        (Identifier
+           (Referential
+              ([00000000-0000-0000-0000-000000000000], [TextPart "_+_"])),
+         Tuple
+           [Identifier (Referential ([], [TextPart "b"]));
+            Apply
+              (Identifier
+                 (Referential
+                    ([00000000-0000-0000-0000-000000000000], [TextPart "_*_"])),
+               Tuple
+                 [Identifier (Referential ([], [TextPart "c"]));
+                  Identifier (Referential ([], [TextPart "d"]))])])])
+
+Scopes:
+No scopes collected.

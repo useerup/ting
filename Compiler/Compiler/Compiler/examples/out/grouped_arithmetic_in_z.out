@@ -1,0 +1,35 @@
+Input:
+(x + y) * (a - b) in z
+
+Compilation succeeded.
+
+CoreExp:
+Apply
+  (Identifier
+     (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_in_"])),
+   Tuple
+     [Apply
+        (Identifier
+           (Referential
+              ([00000000-0000-0000-0000-000000000000], [TextPart "_*_"])),
+         Tuple
+           [Tuple
+              [Apply
+                 (Identifier
+                    (Referential
+                       ([00000000-0000-0000-0000-000000000000], [TextPart "_+_"])),
+                  Tuple
+                    [Identifier (Referential ([], [TextPart "x"]));
+                     Identifier (Referential ([], [TextPart "y"]))])];
+            Tuple
+              [Apply
+                 (Identifier
+                    (Referential
+                       ([00000000-0000-0000-0000-000000000000], [TextPart "_-_"])),
+                  Tuple
+                    [Identifier (Referential ([], [TextPart "a"]));
+                     Identifier (Referential ([], [TextPart "b"]))])]]);
+      Identifier (Referential ([], [TextPart "z"]))])
+
+Scopes:
+No scopes collected.

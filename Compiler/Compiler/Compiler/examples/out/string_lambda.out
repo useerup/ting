@@ -1,0 +1,31 @@
+Input:
+"zark" => (name->value)
+
+Compilation succeeded.
+
+CoreExp:
+Local
+  ((1c4feef5-3017-4cfc-a269-c1de0c5f3554, seq [], NamesScope),
+   Apply
+     (Identifier
+        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_=>_"])),
+      Tuple
+        [Literal (String "zark");
+         Tuple
+           [Apply
+              (Identifier
+                 (Referential
+                    ([00000000-0000-0000-0000-000000000000], [TextPart "_->_"])),
+               Tuple
+                 [Identifier
+                    (Referential
+                       ([1c4feef5-3017-4cfc-a269-c1de0c5f3554],
+                        [TextPart "name"]));
+                  Identifier
+                    (Referential
+                       ([1c4feef5-3017-4cfc-a269-c1de0c5f3554],
+                        [TextPart "value"]))])]]))
+
+Scopes:
+[0] NamesScope           1c4feef5-3017-4cfc-a269-c1de0c5f3554
+    names=[]

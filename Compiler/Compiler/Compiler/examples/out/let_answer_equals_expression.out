@@ -1,0 +1,43 @@
+Input:
+let x=21 in Answer = x*2
+
+Compilation succeeded.
+
+CoreExp:
+Local
+  ((10ecb3a0-4b53-4f0c-bf18-88287b5f2e75,
+    seq [[c2584876-ed10-4f79-b3f1-e374d3f3517b, [TextPart "x"]]], NamesScope),
+   Apply
+     (Identifier
+        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_in_"])),
+      Tuple
+        [Apply
+           (Identifier
+              (Referential
+                 ([00000000-0000-0000-0000-000000000000], [TextPart "_=_"])),
+            Tuple
+              [Identifier
+                 (Declarative
+                    (c2584876-ed10-4f79-b3f1-e374d3f3517b, [TextPart "x"]));
+               Literal (Int32 21)]);
+         Apply
+           (Identifier
+              (Referential
+                 ([00000000-0000-0000-0000-000000000000], [TextPart "_=_"])),
+            Tuple
+              [Identifier
+                 (Referential
+                    ([10ecb3a0-4b53-4f0c-bf18-88287b5f2e75], [TextPart "Answer"]));
+               Apply
+                 (Identifier
+                    (Referential
+                       ([00000000-0000-0000-0000-000000000000], [TextPart "_*_"])),
+                  Tuple
+                    [Identifier
+                       (Referential
+                          ([10ecb3a0-4b53-4f0c-bf18-88287b5f2e75],
+                           [TextPart "x"])); Literal (Int32 2)])])]))
+
+Scopes:
+[0] NamesScope           10ecb3a0-4b53-4f0c-bf18-88287b5f2e75
+    names=[x]

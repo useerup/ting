@@ -1,0 +1,28 @@
+Input:
+x => x * 2m
+
+Compilation succeeded.
+
+CoreExp:
+Local
+  ((d43592db-0c86-4618-ae88-4fc9d939ed2a,
+    seq [[00e94c81-12ff-40b4-82a4-fbe1fa17c781, [TextPart "x"]]], NamesScope),
+   Apply
+     (Identifier
+        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_=>_"])),
+      Tuple
+        [Identifier
+           (Declarative (00e94c81-12ff-40b4-82a4-fbe1fa17c781, [TextPart "x"]));
+         Apply
+           (Identifier
+              (Referential
+                 ([00000000-0000-0000-0000-000000000000], [TextPart "_*_"])),
+            Tuple
+              [Identifier
+                 (Referential
+                    ([d43592db-0c86-4618-ae88-4fc9d939ed2a], [TextPart "x"]));
+               Literal (Decimal 2M)])]))
+
+Scopes:
+[0] NamesScope           d43592db-0c86-4618-ae88-4fc9d939ed2a
+    names=[x]

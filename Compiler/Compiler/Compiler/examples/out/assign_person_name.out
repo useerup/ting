@@ -1,0 +1,19 @@
+Input:
+person.Name = "Zaphod"
+
+Compilation succeeded.
+
+CoreExp:
+Apply
+  (Identifier
+     (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_=_"])),
+   Tuple
+     [Projection
+        ((994dff7b-a040-47b5-bf2a-52f00cf36d65, seq [], NamesScope),
+         Identifier (Referential ([], [TextPart "person"])),
+         Identifier (Referential ([], [TextPart "Name"])));
+      Literal (String "Zaphod")])
+
+Scopes:
+[0] NamesScope           994dff7b-a040-47b5-bf2a-52f00cf36d65
+    names=[]

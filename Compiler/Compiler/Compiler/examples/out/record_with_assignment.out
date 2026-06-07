@@ -1,0 +1,49 @@
+Input:
+record(Answer:int) \ (Answer = 42)
+
+Compilation succeeded.
+
+CoreExp:
+Local
+  ((9543820d-74a8-42c0-a2ba-2e42180b771a,
+    seq [[305a78a8-ff4e-4de2-8d98-277e16944609, [TextPart "Answer"]]],
+    NamesScope),
+   Apply
+     (Identifier
+        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_\_"])),
+      Tuple
+        [Record
+           ((db6cf9a1-67cb-4c9f-8055-6f18666ebe63,
+             seq [[305a78a8-ff4e-4de2-8d98-277e16944609, [TextPart "Answer"]]],
+             NamesScope),
+            Tuple
+              [Apply
+                 (Identifier
+                    (Referential
+                       ([00000000-0000-0000-0000-000000000000], [TextPart "_:_"])),
+                  Tuple
+                    [Identifier
+                       (Declarative
+                          (305a78a8-ff4e-4de2-8d98-277e16944609,
+                           [TextPart "Answer"]));
+                     Identifier
+                       (Referential
+                          ([db6cf9a1-67cb-4c9f-8055-6f18666ebe63;
+                            9543820d-74a8-42c0-a2ba-2e42180b771a],
+                           [TextPart "int"]))])]);
+         Tuple
+           [Apply
+              (Identifier
+                 (Referential
+                    ([00000000-0000-0000-0000-000000000000], [TextPart "_=_"])),
+               Tuple
+                 [Identifier
+                    (Referential
+                       ([9543820d-74a8-42c0-a2ba-2e42180b771a],
+                        [TextPart "Answer"])); Literal (Int32 42)])]]))
+
+Scopes:
+[0] NamesScope           9543820d-74a8-42c0-a2ba-2e42180b771a
+    names=[Answer]
+[1] NamesScope           db6cf9a1-67cb-4c9f-8055-6f18666ebe63
+    names=[Answer]
