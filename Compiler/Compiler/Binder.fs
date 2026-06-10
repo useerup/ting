@@ -1,4 +1,4 @@
-module Analyzer
+module Binder
 
 open Exp
 open CoreExp
@@ -92,7 +92,3 @@ module private Marking =
         | InterpolatedPart.HolePart exp -> CoreInterpolatedPart.HolePart(markDeclarations exp scopes)
 
 let markDeclarations = Marking.markDeclarations
-
-
-
-

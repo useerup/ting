@@ -12,7 +12,7 @@
     <Compile Include="CoreExp.ScopeTraversal.fs" />
     <Compile Include="CoreExp.Rendering.fs" />
     <Compile Include="Parser.fs" />
-    <Compile Include="Analyzer.fs" />
+    <Compile Include="Binder.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

@@ -4,7 +4,7 @@ open System
 open System.IO
 open FParsec
 open Parser
-open Analyzer
+open Binder
 open CoreExp
 open CoreExpDiagnostics
 
