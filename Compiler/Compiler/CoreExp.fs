@@ -30,14 +30,28 @@ and CoreExp =
     | Equals of CoreExp * CoreExp
     | This of BindingRole
     | Void
-and Scope = Guid * Names * ScopeKind
 
-// Kind of scope carried by CoreExp nodes.
-and ScopeKind =
-    | NamesScope
-    | ExpressionScope of CoreExp
-    | ExpressionMemberScope of CoreExp
-    | RootScope
+// Scope hierarchy.
+and [<AbstractClass>] Scope(id: Guid, names: Names) =
+    member _.Id = id
+    member _.Names = names
+
+and RootScope() =
+    inherit Scope(Guid.Empty, new Names())
+
+and [<AbstractClass>] ChildScope(id: Guid) =
+    inherit Scope(id, new Names())
+
+and LocalScope(id: Guid) =
+    inherit ChildScope(id)
+
+and ExpressionScope(id: Guid, expression: CoreExp) =
+    inherit ChildScope(id)
+    member _.Expression = expression
+
+and ExpressionMemberScope(id: Guid, expression: CoreExp) =
+    inherit ChildScope(id)
+    member _.Expression = expression
 
 // Declarative carries declaration identity; referential carries candidate scope ids + name pattern.
 and BindingRole =
@@ -47,20 +61,20 @@ and BindingRole =
 type ScopeStack = Scope list * Scope list
 
 
-let scopeId (id, _, _) = id
+let scopeId (s: Scope) = s.Id
 
-let newNamesScope () = Scope(Guid.NewGuid(), new Names(), NamesScope)
+let newNamesScope () = LocalScope(Guid.NewGuid()) :> Scope
 
-let newExpressionScope (e: CoreExp) = Scope(Guid.NewGuid(), new Names(), ExpressionScope e)
+let newExpressionScope (e: CoreExp) = ExpressionScope(Guid.NewGuid(), e) :> Scope
 
-let newExpressionMemberScope (e: CoreExp) = Scope(Guid.NewGuid(), new Names(), ExpressionMemberScope e)
+let newExpressionMemberScope (e: CoreExp) = ExpressionMemberScope(Guid.NewGuid(), e) :> Scope
 
-let rootScope = Scope(Guid.Empty, new Names(), RootScope)
+let rootScope = RootScope() :> Scope
 
 // Add the same declaration id/name into each declarative scope.
 let declareName (id: Guid) (name: CoreInterpolatedPart list) (decls: Scope list) : unit =
-    for (_, names, _) in decls do
-        names.Add(id, name) |> ignore
+    for s in decls do
+        s.Names.Add(id, name) |> ignore
 
 // Minimal name formatting for scope diagnostics.
 let private formatInterpolatedPartForScope = function
@@ -72,26 +86,30 @@ let private formatNameParts (parts: CoreInterpolatedPart list) =
     |> List.map formatInterpolatedPartForScope
     |> String.concat ""
 
-let private formatScopeKind = function
-    | NamesScope -> "names"
-    | ExpressionScope _ -> "expr"
-    | ExpressionMemberScope _ -> "member-expr"
-    | RootScope -> "root"
+let private formatScopeKind (s: Scope) =
+    match s with
+    | :? LocalScope -> "names"
+    | :? ExpressionScope -> "expr"
+    | :? ExpressionMemberScope -> "member-expr"
+    | :? RootScope -> "root"
+    | _ -> "unknown"
 
-let private formatScope (id, _, kind) =
-    $"{id}"
+let private formatScope (s: Scope) =
+    $"{s.Id}"
 
 // Traverse interpolation holes to find nested scope-defining expressions.
 let rec private collectDefinitionScopesFromPart (acc: ResizeArray<Scope>) = function
     | TextPart _ -> ()
     | HolePart e -> collectDefinitionScopes acc e
 
-// If a scope kind carries an expression, traverse it as well.
-and private collectDefinitionScopesFromScopeKind (acc: ResizeArray<Scope>) = function
-    | NamesScope -> ()
-    | ExpressionScope e -> collectDefinitionScopes acc e
-    | ExpressionMemberScope e -> collectDefinitionScopes acc e
-    | RootScope -> ()
+// If a scope carries an expression, traverse it as well.
+and private collectDefinitionScopesFromScope (acc: ResizeArray<Scope>) (s: Scope) =
+    match s with
+    | :? LocalScope -> ()
+    | :? ExpressionScope as k -> collectDefinitionScopes acc k.Expression
+    | :? ExpressionMemberScope as k -> collectDefinitionScopes acc k.Expression
+    | :? RootScope -> ()
+    | _ -> ()
 
 // Referential roles are traversed only through interpolated name holes.
 and private collectDefinitionScopesFromRole (acc: ResizeArray<Scope>) = function
@@ -101,14 +119,15 @@ and private collectDefinitionScopesFromRole (acc: ResizeArray<Scope>) = function
             collectDefinitionScopesFromPart acc p
 
 // Collect only scope kinds requested for reporting.
-and private addDefinitionScope (acc: ResizeArray<Scope>) ((_, _, kind) as s) =
-    match kind with
-    | NamesScope
-    | ExpressionScope _
-    | ExpressionMemberScope _ ->
+and private addDefinitionScope (acc: ResizeArray<Scope>) (s: Scope) =
+    match s with
+    | :? LocalScope
+    | :? ExpressionScope
+    | :? ExpressionMemberScope ->
         acc.Add s
-        collectDefinitionScopesFromScopeKind acc kind
-    | RootScope -> ()
+        collectDefinitionScopesFromScope acc s
+    | :? RootScope -> ()
+    | _ -> ()
 
 // Walk the CoreExp tree and collect relevant scopes into acc.
 and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: CoreExp) : unit =
@@ -155,14 +174,16 @@ let getAllScopes (exp: CoreExp) : Scope list =
     collectDefinitionScopes acc exp
     acc |> Seq.toList
 
-let private scopeKindName = function
-    | NamesScope -> "NamesScope"
-    | ExpressionScope _ -> "ExpressionScope"
-    | ExpressionMemberScope _ -> "ExpressionMemberScope"
-    | RootScope -> "RootScope"
+let private scopeKindName (s: Scope) =
+    match s with
+    | :? LocalScope -> "NamesScope"
+    | :? ExpressionScope -> "ExpressionScope"
+    | :? ExpressionMemberScope -> "ExpressionMemberScope"
+    | :? RootScope -> "RootScope"
+    | _ -> "UnknownScope"
 
-let private formatScopeNames ((_, names, _): Scope) =
-    names
+let private formatScopeNames (s: Scope) =
+    s.Names
     |> Seq.map (fun kvp -> formatNameParts kvp.Value)
     |> String.concat ", "
 
@@ -170,10 +191,10 @@ let private formatScopeNames ((_, names, _): Scope) =
 // Build a textual scope report used by console and file output.
 let renderAllScopes (exp: CoreExp) : string =
     getAllScopes exp
-    |> List.mapi (fun i ((_, _, kind) as s) ->
+    |> List.mapi (fun i s ->
         let namesText = formatScopeNames s
         [
-            $"[{i}] {scopeKindName kind, -20} {formatScope s}"
+            $"[{i}] {scopeKindName s, -20} {formatScope s}"
             $"    names=[{namesText}]"
         ])
     |> List.concat
