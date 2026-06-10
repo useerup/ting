@@ -8,6 +8,9 @@
   <ItemGroup>
     <Compile Include="Exp.fs" />
     <Compile Include="CoreExp.fs" />
+    <Compile Include="CoreExp.Scope.fs" />
+    <Compile Include="CoreExp.ScopeTraversal.fs" />
+    <Compile Include="CoreExp.Rendering.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Analyzer.fs" />
     <Compile Include="Program.fs" />

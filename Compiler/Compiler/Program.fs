@@ -6,6 +6,7 @@ open FParsec
 open Parser
 open Analyzer
 open CoreExp
+open CoreExpDiagnostics
 
 [<EntryPoint>]
 let main argv =
@@ -35,7 +36,7 @@ let main argv =
             match tryParseExpression input with
             | Success(result, _, _) ->
                 let res = markDeclarations result ([], [])
-                let scopes = renderAllScopes res
+                let scopes = renderScopeReport res
                 let coreExp = res.ToString()
                 let scopesSection =
                     if String.IsNullOrWhiteSpace scopes then
