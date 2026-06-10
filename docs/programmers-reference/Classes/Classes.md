@@ -2,21 +2,24 @@
 
 A class is based on a *candidate set*. A class contains elements from the candidate set that have been returned by the *class constructor*. Thus, members of a class **must** be explicitly created as members of that class.
 
-A regular set is *inclusive* in that it has as elements any value that satisfies the set condition. A class is *exclusive* in that it contains only those elements that have been explicitly created through its constructor.
+A regular set is *inclusive* in that it has as elements any value that satisfies the set condition. A class is *exclusive* in that it contains only those elements that have been explicitly created as instances of the class.
 
-> Note: Unlike many object-oriented languages a *class* does not have to be name-structured. You can create a class based on any set, including built-in sets like `int`. 
+> Note: Unlike many object-oriented languages a *class* does not have to be name-structured. You can create a class based on any set, including built-in sets like `int` sets of tuples or other classes. 
 
 ### The `class` operator
 
-The `class` prefix operator creates a new class based on a *constructor* function.
-
-    `class_` = Class.FromConstructor ctr => `class` >> Func ctr
+The `class` operator is used to create new classes. It accepts a function as its operand. The *candidate* set of the class is the codomain of the function. The function itself becomes the *constructor* of the class.
 
 Examples
 
-    Amount = class decimal d => d    
+    Amount = class decimal
 
-    Person = class (string firstName, string lastName) => record(FirstName=firstName, LastName=lastName)
+    Complex = class { public(float Real, float Img) }
+
+    Person = class { record}
+
+
+
 
 Because any set can act as a function it is also possible to shortcut the class definition
 

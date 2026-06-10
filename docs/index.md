@@ -14,7 +14,7 @@ Ting - like most other logic programming languages - embraces nondeterminism: Th
 
 But constraints programming is not just for solving quadratic equations or indeed methematical equations. The layout engine of your browser is a typical constraint problem: How to flow text into a box is a problem of fitting as many words as possible per line without overflowing the width.
 
-But how does Ting know how to solve a quadratic equation? As you may suspect from the line `import Math.Polynomials`, it doesn't. The Ting compiler knows about nondeterminism, bindings of variables and "truth values", which means the values `true` and `false`. Solving a quadratic equation is a feature implemented by a library. The Ting compiler knows how to *search* for solutions. Somwhere in the `Math.Polynomials` there is an *axiom* like this:
+But how does Ting know how to solve a quadratic equation? As you may suspect from the line `import Math.Polynomials`, it doesn't. The Ting compiler knows about nondeterminism, bindings of variables and "truth values" `true` and `false`. Solving a quadratic equation is a feature implemented by a library. The Ting compiler knows how to *search* for solutions. Somwhere in the `Math.Polynomials` there is an *axiom* like this:
 
     (bound float a, bound float b, bound float c, free float x) \ a*x^2 + b*x + c == 0  axiom
         let 

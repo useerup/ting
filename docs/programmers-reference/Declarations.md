@@ -1,6 +1,31 @@
 ## Declarations
 
-Ting has no dedicated declaration syntax. Identifiers are declared *inline* within expressions when those expressions appear in a *declarative scope*. Whether an identifier is being declared or referenced depends entirely on the scope in which it appears.
+Ting has no dedicated declaration syntax. Identifiers are declared *inline* within the expressions where they appear.
+
+    let a=21 in a*2
+
+If you know other languages with "let-bindings" this may look familar. But this is deceptive, and will become clear once we place the implied paranthesis:
+
+    let ( (a=21) in (a*2) )
+
+This expression is the same as the above. The parenthesis simply illustrate how the expression is parsed when considering operator precedence.
+
+In other words, there is no rule that `let` ... `in` has to sorround an "assignment". In fact, `let` is its own (prefix) operator, `in` is a separate binary infix operator, and `a=21` is not an assignment; rather it is a relational expression which compares `a` to the value `21`. 
+
+`=` ("identical to", or "same as") is a *relational operator*. Relational operators compares two values in some way and returns a `bool` value. Other examples of relational operators are `<`, `<=`, `>=`, `>`, `!=`, `==` ("equal to"), `:` ("member of") etc.
+
+When one or more scopes declarative scopes covers an expression, the expression is said to be *declarative*. When only referential scopes cover an expression, the expression is said to be *referential*.
+
+`let` creates a new local scope
+
+
+    let (q=626 in q+a) => q*a
+
+    a => a+b => a+b+c => c
+
+
+
+when those expressions appear in a *declarative scope*. Whether an identifier is being declared or referenced depends entirely on the scope in which it appears.
 
 ### Declarative and referential scopes
 
