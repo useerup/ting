@@ -19,6 +19,9 @@ let main argv =
     if not (Directory.Exists outputDir) then
         Directory.CreateDirectory outputDir |> ignore
 
+    for outFile in Directory.GetFiles(outputDir, "*.out") do
+        File.Delete(outFile)
+
     let exampleFiles =
         Directory.GetFiles(examplesDir, "*.ting")
         |> Array.sort
