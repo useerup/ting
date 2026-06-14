@@ -87,6 +87,7 @@ and renderExpression (exp: CoreExp) : string =
         parts |> List.map renderInterpolatedPart |> String.concat "" |> fun s -> $"$\"{s}\""
     | Projection (s, e, m) -> $"({renderExpression e}).[{formatScope s}]({renderExpression m})"
     | MemberProjection (s, e, m) -> $"({renderExpression e})..[{formatScope s}]({renderExpression m})"
-    | Equals (a, b) -> $"({renderExpression a} == {renderExpression b})"
+    | StructuralEquals (a, b) -> $"({renderExpression a} = {renderExpression b})"
+    | IdentityEquals (a, b) -> $"({renderExpression a} == {renderExpression b})"
     | This role -> $"this[{renderBindingRole role}]"
     | Void -> "void"
