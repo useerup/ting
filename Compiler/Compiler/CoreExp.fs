@@ -26,8 +26,8 @@ and CoreExp =
     | InterpolatedString of CoreInterpolatedPart list
     | Projection of Scope * CoreExp * CoreExp
     | MemberProjection of Scope * CoreExp * CoreExp
-    | StructuralEquals of CoreExp * CoreExp
-    | IdentityEquals of CoreExp * CoreExp
+    | Equals of CoreExp * CoreExp
+    | ValueEquals of CoreExp * CoreExp
     | This of BindingRole
     | Void
 

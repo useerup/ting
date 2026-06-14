@@ -69,8 +69,8 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: CoreExp) : u
         addDefinitionScope acc s
         collectDefinitionScopes acc e
         collectDefinitionScopes acc m
-    | StructuralEquals (a, b)
-    | IdentityEquals (a, b) ->
+    | Equals (a, b)
+    | ValueEquals (a, b) ->
         collectDefinitionScopes acc a
         collectDefinitionScopes acc b
 
