@@ -22,12 +22,11 @@ let private scopeKindName (s: Scope) =
     | :? LocalScope -> "NamesScope"
     | :? ExpressionScope -> "ExpressionScope"
     | :? ExpressionMemberScope -> "ExpressionMemberScope"
-    | :? RootScope -> "RootScope"
     | _ -> "UnknownScope"
 
 let private formatScopeNames (s: Scope) =
     s.Names
-    |> Seq.map (fun kvp -> formatNameParts kvp.Value)
+    |> Seq.map (fun kvp -> formatNameParts (fst kvp.Value))
     |> String.concat ", "
 
 // Build a textual scope report used by console and file output.
@@ -91,3 +90,4 @@ and renderExpression (exp: CoreExp) : string =
     | ValueEquals (a, b) -> $"({renderExpression a} == {renderExpression b})"
     | This role -> $"this[{renderBindingRole role}]"
     | Void -> "void"
+    | Unknown -> "???"

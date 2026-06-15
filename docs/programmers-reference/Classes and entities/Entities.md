@@ -59,7 +59,7 @@ If the compiler's escape analysis determines that an entity value may cross a pr
 
 The stable identity is declared as part of the entity definition:
 
-    Persons = entity records(Name:string, BirthYear:int) \ identity : Guid
+    Persons = entity records(Name:string, BirthYear:int) \  identity : Guid
 
 Here `uuid` specifies the type of the stable ID field. When constructing a member that will escape, the ID must be supplied explicitly:
 

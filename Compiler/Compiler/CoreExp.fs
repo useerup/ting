@@ -8,8 +8,10 @@ type CoreInterpolatedPart =
     | TextPart of string
     | HolePart of CoreExp
 
+and NameEntry = CoreInterpolatedPart list * CoreExp
+
 // Name table for a scope: declaration id -> analyzed name parts.
-and Names = System.Collections.Generic.Dictionary<Guid, CoreInterpolatedPart list>
+and Names = System.Collections.Generic.Dictionary<Guid,NameEntry>
 
 // Core, scope-annotated expression tree produced by Analyzer.markDeclarations.
 and CoreExp =
@@ -30,20 +32,22 @@ and CoreExp =
     | ValueEquals of CoreExp * CoreExp
     | This of BindingRole
     | Void
+    | Unknown
 
 // Scope hierarchy.
 and [<AbstractClass>] Scope(id: Guid, names: Names) =
     member _.Id = id
     member _.Names = names
-
-and RootScope() =
-    inherit Scope(Guid.Empty, new Names())
+    member this.defineName (id:Guid, name: string, exp:CoreExp) : unit =
+        this.Names.Add(id, NameEntry([TextPart name], exp))
+    member this.defineName (id:Guid, name: CoreInterpolatedPart list, exp:CoreExp) : unit =
+        this.Names.Add(id, NameEntry(name, exp))
 
 and [<AbstractClass>] ChildScope(id: Guid) =
     inherit Scope(id, new Names())
 
 and LocalScope(id: Guid) =
-    inherit ChildScope(id)
+    inherit Scope(id, new Names())
 
 and ExpressionScope(id: Guid, expression: CoreExp) =
     inherit ChildScope(id)
@@ -61,4 +65,5 @@ and BindingRole =
 type ScopeStack = Scope list * Scope list
 
 let scopeId (s: Scope) = s.Id
+
 

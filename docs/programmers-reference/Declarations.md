@@ -19,7 +19,7 @@ When one or more scopes declarative scopes covers an expression, the expression 
 `let` creates a new local scope
 
 
-    let (q=626 in q+a) => q*a
+    let (q=626 in q+a) => q * a
 
     a => a+b => a+b+c => c
 

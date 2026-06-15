@@ -68,7 +68,7 @@ module private Marking =
             let parts = List.map (fun p -> markDeclarationsPart p (makeReferential scopes)) parts
             CoreExp.Identifier(bindingRole scopes parts)
         | Exp.BuiltIn name ->
-            CoreExp.Identifier(BindingRole.Referential([ scopeId root ], [ CoreInterpolatedPart.TextPart name ]))
+            CoreExp.Identifier(BindingRole.Referential([ System.Guid.Empty ], [ CoreInterpolatedPart.TextPart name ]))
         | Exp.Literal lit ->
             CoreExp.Literal lit
         | Exp.Set items ->

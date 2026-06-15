@@ -13,7 +13,6 @@ and private collectDefinitionScopesFromScope (acc: ResizeArray<Scope>) (s: Scope
     | :? LocalScope -> ()
     | :? ExpressionScope as k -> collectDefinitionScopes acc k.Expression
     | :? ExpressionMemberScope as k -> collectDefinitionScopes acc k.Expression
-    | :? RootScope -> ()
     | _ -> ()
 
 // Referential roles are traversed only through interpolated name holes.
@@ -31,7 +30,6 @@ and private addDefinitionScope (acc: ResizeArray<Scope>) (s: Scope) =
     | :? ExpressionMemberScope ->
         acc.Add s
         collectDefinitionScopesFromScope acc s
-    | :? RootScope -> ()
     | _ -> ()
 
 // Walk the CoreExp tree and collect relevant scopes into acc.
@@ -73,6 +71,7 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: CoreExp) : u
     | ValueEquals (a, b) ->
         collectDefinitionScopes acc a
         collectDefinitionScopes acc b
+    | Unknown -> ()
 
 // Public helper to collect scopes from a CoreExp.
 let collectAllScopes (exp: CoreExp) : Scope list =
