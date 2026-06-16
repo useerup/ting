@@ -3,6 +3,7 @@ module CoreExp
 open System
 open Exp
 
+
 // Interpolated fragments used in identifiers and strings after analysis.
 type CoreInterpolatedPart =
     | TextPart of string
@@ -28,11 +29,15 @@ and CoreExp =
     | InterpolatedString of CoreInterpolatedPart list
     | Projection of Scope * CoreExp * CoreExp
     | MemberProjection of Scope * CoreExp * CoreExp
-    | Equals of CoreExp * CoreExp
-    | ValueEquals of CoreExp * CoreExp
     | This of BindingRole
     | Void
     | Unknown
+    | Throw of CoreExp
+    | Catch of CoreExp * CoreExp
+    | IsDefined of CoreExp
+    | Equals of CoreExp * CoreExp
+    | ValueEquals of CoreExp * CoreExp
+
 
 // Scope hierarchy.
 and [<AbstractClass>] Scope(id: Guid, names: Names) =

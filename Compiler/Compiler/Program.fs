@@ -7,6 +7,7 @@ open Parser
 open Binder
 open CoreExp
 open CoreExpDiagnostics
+open CoreExpScopes
 
 [<EntryPoint>]
 let main argv =
@@ -38,7 +39,75 @@ let main argv =
         let output =
             match tryParseExpression input with
             | Success(result, _, _) ->
-                let res = markDeclarations result ([], [])
+                let rootScope = CoreExp.LocalScope(Guid.Empty) :> CoreExp.Scope
+                rootScope.defineName(Guid.NewGuid(), "_=>_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_==_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_=_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_&_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_|_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_&&_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_||_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_&&&_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_|||_", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "bool", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "string", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "char", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "float", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "double", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "int", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "uint", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "byte", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "sbyte", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "short", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "ushort", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "long", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "ulong", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "half", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "decimal", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "DateTime", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "DateTimeOffset", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "set", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "any", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "Func", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "_all_", Unknown)
+
+                rootScope.defineName(Guid.NewGuid(), "_in_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_+_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_-_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_*_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_/_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_%_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_/%_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_^_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_->_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_^^_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_^_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_then_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_else_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_..._", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_<..._", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_...<_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_<...<_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_:_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_::_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_:::_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_<_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_>_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_>=_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_\_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_?_", Unknown)
+                rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
+                
+                let res = markDeclarations rootScope result ([], [rootScope])
                 let scopes = renderScopeReport res
                 let coreExp = res.ToString()
                 let scopesSection =
