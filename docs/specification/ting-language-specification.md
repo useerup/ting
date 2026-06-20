@@ -282,8 +282,20 @@ TODO: describe an implicit promotion from set values to identity functions when 
 - Used for inclusive/exclusive interval generation and set/list expansion.
 
 ### 7.7 Property and projection
-- `.` selects or introduces properties depending on context.
-- `..` projects member properties over collection elements.
+Ting distinguishes between two property operators:
+
+#### 7.7.1 `.` property operator
+- In **referential context**, `whole.part` references the property `part` of `whole`.
+- In **declarative context**, `whole.part` declares a property `part` directly on `whole`.
+- The right operand is always declarative. It declares the properties that is selected from `whole`.
+- A referential `.` expression used in prefix position evaluates to a function of the form `whole => whole.part`.
+
+#### 7.7.2 `..` member property operator
+- In **referential context**, `some..prop` references the property `prop` of each member of the set `some` and yields a function from members of `some` to their `prop` property.
+- In **declarative context**, `some..prop` declares the property `prop` on every member of the set `some`.
+- The left operand must be a set.
+- The right operand is always declarative.
+- A referential `..` expression used in prefix position evaluates to a function from members of the left-hand set to the corresponding property on each member.
 
 ### 7.8 Exception operators
 - `throw` raises exceptions.
