@@ -156,7 +156,7 @@ let private updateMarkdownWithCompilerOutput (markdown: string) =
                 result.Add(line)
                 rewriteRegion (idx + 1) endIdx hasOutput compilerOutput
 
-    let rec process idx =
+    let rec rewriteMarkdown idx =
         if idx >= lines.Length then
             ()
         else
@@ -175,12 +175,12 @@ let private updateMarkdownWithCompilerOutput (markdown: string) =
                 let compilerOutput = compileTingProgram (String.concat Environment.NewLine tingContent)
                 let regionEnd = findNextTing (min (closeIdx + 1) lines.Length)
                 rewriteRegion (min (closeIdx + 1) lines.Length) regionEnd false compilerOutput
-                process regionEnd
+                rewriteMarkdown regionEnd
             else
                 result.Add(line)
-                process (idx + 1)
+                rewriteMarkdown (idx + 1)
 
-    process 0
+    rewriteMarkdown 0
     String.concat Environment.NewLine result
 
 [<EntryPoint>]
