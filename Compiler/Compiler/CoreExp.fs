@@ -9,9 +9,17 @@ type CoreInterpolatedPart =
     | TextPart of string
     | HolePart of CoreExp
 
-and NameEntry = CoreInterpolatedPart list * CoreExp
+and NameHost =
+    | DirectPropertyHost of CoreExp
+    | MemberPropertyHost of CoreExp
 
-// Name table for a scope: declaration id -> analyzed name parts.
+and NameEntry = {
+    NameParts: CoreInterpolatedPart list
+    Expression: CoreExp
+    Host: NameHost option
+}
+
+// Name table for a scope: declaration id -> analyzed name entry.
 and Names = System.Collections.Generic.Dictionary<Guid,NameEntry>
 
 // Core, scope-annotated expression tree produced by Analyzer.markDeclarations.
@@ -44,9 +52,11 @@ and [<AbstractClass>] Scope(id: Guid, names: Names) =
     member _.Id = id
     member _.Names = names
     member this.defineName (id:Guid, name: string, exp:CoreExp) : unit =
-        this.Names.Add(id, NameEntry([TextPart name], exp))
+        this.Names.Add(id, { NameParts = [TextPart name]; Expression = exp; Host = None })
     member this.defineName (id:Guid, name: CoreInterpolatedPart list, exp:CoreExp) : unit =
-        this.Names.Add(id, NameEntry(name, exp))
+        this.Names.Add(id, { NameParts = name; Expression = exp; Host = None })
+    member this.defineName (id:Guid, name: CoreInterpolatedPart list, exp:CoreExp, host: NameHost) : unit =
+        this.Names.Add(id, { NameParts = name; Expression = exp; Host = Some host })
 
 and [<AbstractClass>] ChildScope(id: Guid) =
     inherit Scope(id, new Names())
