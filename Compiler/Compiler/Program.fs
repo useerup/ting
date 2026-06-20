@@ -98,79 +98,94 @@ let private compileTingProgram (input: string) : string =
                 "No scopes collected."
             else
                 scopes
-        $"Input:\n{input}\n\nCompilation succeeded.\n\nCoreExp:\n{coreExp}\n\nScopes:\n{scopesSection}"
+        $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}"
     | Failure(errorMsg, _, _) ->
-        $"Input:\n{input}\n\nCompilation failed.\nError: {errorMsg}"
+        $"Compilation failed.\nError: {errorMsg}"
 
 let private updateMarkdownWithCompilerOutput (markdown: string) =
-    let lines = markdown.Replace("\r\n", "\n").Split('\n') |> Array.toList
+    let lines = markdown.Replace("\r\n", "\n").Split('\n')
+    let result = ResizeArray<string>()
 
-    let rec readUntilClosingFence acc idx =
+    let rec findClosingFence idx =
         if idx >= lines.Length then
-            List.rev acc, idx
+            idx
         elif lines[idx].TrimStart() = "```" then
-            List.rev acc, idx
+            idx
         else
-            readUntilClosingFence (lines[idx] :: acc) (idx + 1)
+            findClosingFence (idx + 1)
 
-    let readFenceBlock idx =
-        let blockContent, closeIdx = readUntilClosingFence [] (idx + 1)
-        ([ lines[idx] ] @ blockContent @ [ "```" ]), closeIdx + 1
-
-    let renderOutputBlock (output: string) =
-        [
-            "```ting-output"
-            yield! output.Replace("\r\n", "\n").Split('\n') |> Array.toList
-            "```"
-        ]
-
-    let rec process idx (acc: string list) =
+    let rec findNextTing idx =
         if idx >= lines.Length then
-            acc |> List.rev |> String.concat Environment.NewLine
+            lines.Length
+        elif extractFenceInfo lines[idx] = "ting" then
+            idx
+        else
+            findNextTing (idx + 1)
+
+    let appendOutputBlock (compilerOutput: string) =
+        result.Add("```ting-output")
+        for line in compilerOutput.Replace("\r\n", "\n").Split('\n') do
+            result.Add(line)
+        result.Add("```")
+
+    let rec copyFenceBlock idx =
+        let closeIdx = findClosingFence (idx + 1)
+        for i in idx .. min closeIdx (lines.Length - 1) do
+            result.Add(lines[i])
+        min (closeIdx + 1) lines.Length
+
+    let rec rewriteRegion idx endIdx hasOutput compilerOutput =
+        if idx >= endIdx then
+            if not hasOutput then appendOutputBlock compilerOutput
         else
             let line = lines[idx]
             let info = extractFenceInfo line
-            if info = "ting" then
-                let tingBlock, afterTingClose = readFenceBlock idx
-                let tingContent = tingBlock |> List.skip 1 |> List.take (tingBlock.Length - 2)
-                let input = String.concat Environment.NewLine tingContent
-                let output = compileTingProgram input
-
-                let rec rewriteRegion regionIdx replaced regionAcc =
-                    if regionIdx >= lines.Length then
-                        if replaced then
-                            List.rev regionAcc, regionIdx
-                        else
-                            (renderOutputBlock output @ List.rev regionAcc), regionIdx
-                    else
-                        let current = lines[regionIdx]
-                        let currentInfo = extractFenceInfo current
-                        if currentInfo = "ting" then
-                            if replaced then
-                                List.rev regionAcc, regionIdx
-                            else
-                                (renderOutputBlock output @ List.rev regionAcc), regionIdx
-                        elif currentInfo = "ting-output" then
-                            let rawBlock, nextIdx = readFenceBlock regionIdx
-                            let rewrittenBlock = if replaced then rawBlock else renderOutputBlock output
-                            rewriteRegion nextIdx true (List.rev rewrittenBlock @ regionAcc)
-                        elif isFenceLine current then
-                            let rawBlock, nextIdx = readFenceBlock regionIdx
-                            rewriteRegion nextIdx replaced (List.rev rawBlock @ regionAcc)
-                        else
-                            rewriteRegion (regionIdx + 1) replaced (current :: regionAcc)
-
-                let regionLines, nextIdx = rewriteRegion afterTingClose false []
-                let rewritten = tingBlock @ regionLines
-                process nextIdx (List.rev rewritten @ acc)
+            if info = "ting-output" then
+                let closeIdx = findClosingFence (idx + 1)
+                if not hasOutput then
+                    appendOutputBlock compilerOutput
+                    rewriteRegion (min (closeIdx + 1) lines.Length) endIdx true compilerOutput
+                else
+                    for i in idx .. min closeIdx (lines.Length - 1) do
+                        result.Add(lines[i])
+                    rewriteRegion (min (closeIdx + 1) lines.Length) endIdx true compilerOutput
+            elif isFenceLine line then
+                let nextIdx = copyFenceBlock idx
+                rewriteRegion nextIdx endIdx hasOutput compilerOutput
             else
-                process (idx + 1) (line :: acc)
+                result.Add(line)
+                rewriteRegion (idx + 1) endIdx hasOutput compilerOutput
 
-    process 0 []
+    let rec process idx =
+        if idx >= lines.Length then
+            ()
+        else
+            let line = lines[idx]
+            if extractFenceInfo line = "ting" then
+                let closeIdx = findClosingFence (idx + 1)
+                for i in idx .. min closeIdx (lines.Length - 1) do
+                    result.Add(lines[i])
+
+                let tingContent =
+                    if closeIdx > idx + 1 then
+                        lines.[idx + 1 .. closeIdx - 1]
+                    else
+                        [||]
+
+                let compilerOutput = compileTingProgram (String.concat Environment.NewLine tingContent)
+                let regionEnd = findNextTing (min (closeIdx + 1) lines.Length)
+                rewriteRegion (min (closeIdx + 1) lines.Length) regionEnd false compilerOutput
+                process regionEnd
+            else
+                result.Add(line)
+                process (idx + 1)
+
+    process 0
+    String.concat Environment.NewLine result
 
 [<EntryPoint>]
 let main argv =
-    let examplesDir = Path.Combine(__SOURCE_DIRECTORY__, "examples")
+    let examplesDir = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "..", "..", "test-examples"))
 
     if not (Directory.Exists examplesDir) then
         Directory.CreateDirectory examplesDir |> ignore
