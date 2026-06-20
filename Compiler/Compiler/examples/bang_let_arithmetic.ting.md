@@ -27,6 +27,6 @@ Apply
                Literal (Int32 1)]))])
 
 Scopes:
-[0] NamesScope           9021a41a-14d2-4edf-8960-f3905ef71300
+[0] NamesScope           ec256c5e-82d1-4335-aa60-3aca686cadba
     names=[]
 ```

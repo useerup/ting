@@ -17,29 +17,29 @@ Local
         [Apply
            (Identifier
               (Referential
-                 ([506da57f-0a54-4d40-870b-b56147e48140;
+                 ([b0c5b352-1c4e-424a-90bb-00691bd2e1a3;
                    00000000-0000-0000-0000-000000000000], [TextPart "DateTime"])),
-            This (Declarative (2440a6e1-9aa3-4f1e-85ae-5d996304e8fd, [])));
+            This (Declarative (6e517f6f-91ed-47cb-8841-8fa259f0a8af, [])));
          InterpolatedString
            [HolePart
               (Identifier
                  (Referential
-                    ([506da57f-0a54-4d40-870b-b56147e48140;
+                    ([b0c5b352-1c4e-424a-90bb-00691bd2e1a3;
                       00000000-0000-0000-0000-000000000000], [TextPart "Year"])));
             TextPart "-";
             HolePart
               (Identifier
                  (Referential
-                    ([506da57f-0a54-4d40-870b-b56147e48140;
+                    ([b0c5b352-1c4e-424a-90bb-00691bd2e1a3;
                       00000000-0000-0000-0000-000000000000], [TextPart "Month"])));
             TextPart "-";
             HolePart
               (Identifier
                  (Referential
-                    ([506da57f-0a54-4d40-870b-b56147e48140;
+                    ([b0c5b352-1c4e-424a-90bb-00691bd2e1a3;
                       00000000-0000-0000-0000-000000000000], [TextPart "Day"])))]]))
 
 Scopes:
-[0] NamesScope           506da57f-0a54-4d40-870b-b56147e48140
+[0] NamesScope           b0c5b352-1c4e-424a-90bb-00691bd2e1a3
     names=[<name>]
 ```

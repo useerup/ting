@@ -15,11 +15,11 @@ Publish
       Set
         [Literal (Int32 1); Literal (Int32 2); Literal (Int32 3);
          Identifier
-           (Declarative (0da9eac3-c38b-498a-91cf-6a0dbccd14b7, [TextPart "a"]))]))
+           (Declarative (07470c5c-7c80-4a71-9461-3ba020d0e3ce, [TextPart "a"]))]))
 
 Scopes:
-[0] NamesScope           8dd8ecb9-0840-439c-837d-b417c6adc30f
+[0] NamesScope           ecfcd769-cbd2-4942-8805-f1694c1378e2
     names=[a<name>]
-[1] NamesScope           07383e31-9596-4b16-ab2d-2dd2636a2ba3
+[1] NamesScope           36fb1e6c-870d-4f0e-b0c7-32153f9de46f
     names=[a<name>]
 ```

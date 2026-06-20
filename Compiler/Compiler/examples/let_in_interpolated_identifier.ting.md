@@ -21,21 +21,21 @@ Local
             Tuple
               [Identifier
                  (Declarative
-                    (e26300bf-739e-4545-a4d8-6689fe95869c, [TextPart "answer"]));
+                    (387a67d7-387b-43de-8115-56a65cb9a250, [TextPart "answer"]));
                Literal (Int32 42)]);
          Identifier
            (Referential
-              ([ddbc25ef-a011-4205-ab8b-653cb1a99ee5;
+              ([f3654bd9-6ca7-4cef-b930-93af630f49ad;
                 00000000-0000-0000-0000-000000000000],
                [TextPart "Flollop";
                 HolePart
                   (Identifier
                      (Referential
-                        ([ddbc25ef-a011-4205-ab8b-653cb1a99ee5;
+                        ([f3654bd9-6ca7-4cef-b930-93af630f49ad;
                           00000000-0000-0000-0000-000000000000],
                          [TextPart "answer"])))]))]))
 
 Scopes:
-[0] NamesScope           ddbc25ef-a011-4205-ab8b-653cb1a99ee5
+[0] NamesScope           f3654bd9-6ca7-4cef-b930-93af630f49ad
     names=[answer<name>]
 ```

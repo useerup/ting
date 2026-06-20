@@ -24,12 +24,12 @@ Local
                   Tuple
                     [Identifier
                        (Declarative
-                          (b57b7cef-3448-41f9-a5f8-83f68308bafb,
+                          (72086fcf-a68b-4955-8a59-4ddcfdcb295c,
                            [TextPart "Answer"]));
                      Identifier
                        (Referential
-                          ([535284f2-0bb4-440f-b4f4-60c24b435a9e;
-                            59e669e2-c4b3-4974-b796-7e92b7012c4d;
+                          ([f50fd1ba-583c-474f-9ece-6a775574be07;
+                            a4310fe6-2fe8-4450-9b9f-6758dff93fd1;
                             00000000-0000-0000-0000-000000000000],
                            [TextPart "int"]))])]);
          Tuple
@@ -40,13 +40,13 @@ Local
                Tuple
                  [Identifier
                     (Referential
-                       ([59e669e2-c4b3-4974-b796-7e92b7012c4d;
+                       ([a4310fe6-2fe8-4450-9b9f-6758dff93fd1;
                          00000000-0000-0000-0000-000000000000],
                         [TextPart "Answer"])); Literal (Int32 42)])]]))
 
 Scopes:
-[0] NamesScope           59e669e2-c4b3-4974-b796-7e92b7012c4d
+[0] NamesScope           a4310fe6-2fe8-4450-9b9f-6758dff93fd1
     names=[Answer<name>]
-[1] NamesScope           535284f2-0bb4-440f-b4f4-60c24b435a9e
+[1] NamesScope           f50fd1ba-583c-474f-9ece-6a775574be07
     names=[Answer<name>]
 ```

@@ -23,16 +23,16 @@ Local
                Tuple
                  [Identifier
                     (Referential
-                       ([e6d33214-d341-4be4-8220-e1d146c47747;
+                       ([429202df-f2eb-41cd-a866-4e1b59c5e0c5;
                          00000000-0000-0000-0000-000000000000],
                         [TextPart "name"]));
                   Identifier
                     (Referential
-                       ([e6d33214-d341-4be4-8220-e1d146c47747;
+                       ([429202df-f2eb-41cd-a866-4e1b59c5e0c5;
                          00000000-0000-0000-0000-000000000000],
                         [TextPart "value"]))])]]))
 
 Scopes:
-[0] NamesScope           e6d33214-d341-4be4-8220-e1d146c47747
+[0] NamesScope           429202df-f2eb-41cd-a866-4e1b59c5e0c5
     names=[]
 ```

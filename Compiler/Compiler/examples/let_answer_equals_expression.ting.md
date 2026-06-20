@@ -21,7 +21,7 @@ Local
             Tuple
               [Identifier
                  (Declarative
-                    (9000ecf5-8db7-4add-8481-7201165725ae, [TextPart "x"]));
+                    (4eeab16a-60f8-459e-9662-fc54eface60c, [TextPart "x"]));
                Literal (Int32 21)]);
          Apply
            (Identifier
@@ -30,7 +30,7 @@ Local
             Tuple
               [Identifier
                  (Referential
-                    ([5be6e7b5-6c3f-4a57-8296-40f1a1e3e680;
+                    ([01395a04-8b3e-4995-ab8b-d4906b68bdfd;
                       00000000-0000-0000-0000-000000000000], [TextPart "Answer"]));
                Apply
                  (Identifier
@@ -39,11 +39,11 @@ Local
                   Tuple
                     [Identifier
                        (Referential
-                          ([5be6e7b5-6c3f-4a57-8296-40f1a1e3e680;
+                          ([01395a04-8b3e-4995-ab8b-d4906b68bdfd;
                             00000000-0000-0000-0000-000000000000],
                            [TextPart "x"])); Literal (Int32 2)])])]))
 
 Scopes:
-[0] NamesScope           5be6e7b5-6c3f-4a57-8296-40f1a1e3e680
+[0] NamesScope           01395a04-8b3e-4995-ab8b-d4906b68bdfd
     names=[x<name>]
 ```

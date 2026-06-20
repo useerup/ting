@@ -23,6 +23,6 @@ Apply
       Literal (String "Zaphod")])
 
 Scopes:
-[0] NamesScope           66ad2256-753e-4b07-89e0-06d95fcdbb4d
+[0] NamesScope           5b49dc8b-39c3-426c-9758-aaed794611e8
     names=[]
 ```

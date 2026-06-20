@@ -19,22 +19,22 @@ Local
               (Apply
                  (Identifier
                     (Referential
-                       ([462c914f-dac9-4fde-88fa-2e7c01c657ba;
+                       ([a7b45eb2-e51d-4f7d-ad44-659a72c1710b;
                          00000000-0000-0000-0000-000000000000],
                         [TextPart "Word"])),
                   Identifier
                     (Declarative
-                       (ee6aaf87-d26d-4462-b641-2743cc11151e, [TextPart "name"]))));
+                       (909cb479-ba29-4d9f-90f2-e709412795cf, [TextPart "name"]))));
             TextPart " = ";
             HolePart
               (Apply
                  (Identifier
                     (Referential
-                       ([462c914f-dac9-4fde-88fa-2e7c01c657ba;
+                       ([a7b45eb2-e51d-4f7d-ad44-659a72c1710b;
                          00000000-0000-0000-0000-000000000000], [TextPart "int"])),
                   Identifier
                     (Declarative
-                       (73285875-65db-4f78-974f-206e7b4eb594, [TextPart "value"]))))];
+                       (4988cb49-9f61-4645-baf2-4a3bedddcff5, [TextPart "value"]))))];
          Tuple
            [Apply
               (Identifier
@@ -43,16 +43,16 @@ Local
                Tuple
                  [Identifier
                     (Referential
-                       ([462c914f-dac9-4fde-88fa-2e7c01c657ba;
+                       ([a7b45eb2-e51d-4f7d-ad44-659a72c1710b;
                          00000000-0000-0000-0000-000000000000],
                         [TextPart "name"]));
                   Identifier
                     (Referential
-                       ([462c914f-dac9-4fde-88fa-2e7c01c657ba;
+                       ([a7b45eb2-e51d-4f7d-ad44-659a72c1710b;
                          00000000-0000-0000-0000-000000000000],
                         [TextPart "value"]))])]]))
 
 Scopes:
-[0] NamesScope           462c914f-dac9-4fde-88fa-2e7c01c657ba
+[0] NamesScope           a7b45eb2-e51d-4f7d-ad44-659a72c1710b
     names=[name<name>, value<name>]
 ```

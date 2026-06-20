@@ -15,7 +15,7 @@ Local
         (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_=>_"])),
       Tuple
         [Identifier
-           (Declarative (16e97de2-30e5-42b1-8c92-b30f42498292, [TextPart "x"]));
+           (Declarative (819dbc9f-2fdf-4ca7-a627-2b900296f2c5, [TextPart "x"]));
          Apply
            (Identifier
               (Referential
@@ -23,11 +23,11 @@ Local
             Tuple
               [Identifier
                  (Referential
-                    ([6d02b79c-74dd-46d5-803c-603e2171616b;
+                    ([7f4a072d-c7b9-4863-bb79-9551471ac0e4;
                       00000000-0000-0000-0000-000000000000], [TextPart "x"]));
                Literal (Decimal 2M)])]))
 
 Scopes:
-[0] NamesScope           6d02b79c-74dd-46d5-803c-603e2171616b
+[0] NamesScope           7f4a072d-c7b9-4863-bb79-9551471ac0e4
     names=[x<name>]
 ```
