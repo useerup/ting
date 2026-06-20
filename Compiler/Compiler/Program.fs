@@ -194,12 +194,16 @@ let main argv =
         Directory.GetFiles(examplesDir, "*.ting.md")
         |> Array.sort
 
-    Console.Clear()
+    if Environment.UserInteractive then
+        try
+            Console.Clear()
+        with
+        | :? IOException -> ()
 
     for exampleFile in exampleFiles do
         let markdown = File.ReadAllText(exampleFile)
         let updated = updateMarkdownWithCompilerOutput markdown
         File.WriteAllText(exampleFile, updated)
-        printfn "Updated %s" (Path.GetFileName(exampleFile))
+        File.SetLastWriteTimeUtc(exampleFile, DateTime.UtcNow)
 
     0
