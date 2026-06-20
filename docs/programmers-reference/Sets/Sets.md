@@ -59,7 +59,7 @@ Some expressions evaluate to sets even though they are not written with braces.
 
 Subsets
 
-    int ?? >= 0         // The set of 32-bit integers greater than or equal to zero
+    int.Where(>=0)         // The set of 32-bit integers greater than or equal to zero
 
 Product sets
 
@@ -72,20 +72,53 @@ Product sets
 
 A set definition returns an ordered set by default. The default order is the order of definition. The set `{ 1, 4, 2, 8, 5, 7 }` is thus ordered **not** numerically but rather in that sequence.
 
-An ordered set has the following extension mathods:
+An ordered set has the following extension methods:
 
 - `Following`
 - `FollowingCyclic`
 - `Previous`
 - `PreviousCyclic`
 
+Example: ordered set from a Collatz sequence
+
+    IsEven = x => x%2==0
+
+    CollatzSet = int start?>0 => { 
+        let f = fn { 
+            1 -> 1,
+            let n ? IsEven -> n ; f(n/2)
+            let n -> n ; f(3*n+1) 
+        } in f start
+    }
+
+For example, `CollatzSet 6` evaluates to the ordered set `{ 6, 3, 10, 5, 16, 8, 4, 2, 1 }`.
+
 
 ### Enumerable sets
 
-An enumerable set is a set whose members can be enumerated
+An enumerable set is a set whose members can be enumerated.
 
 
 ### Infinite sets
 
 
+
+
+### Multisets
+
+Regular sets may only contain *unique* elements. *Multisets* on the other hand can contain the same element multiple times.
+
+Multisets are defined using the `{*` ... `*}` set definition
+
+    {* 0, 1, 1, 2, 3 *}     // multiset which contains 5 elements
+
+### Ordered multisets
+
+Multisets can also be ordered. If they are generated from *choices* they contain elements in the order they are generated.
+
+Examples of ordered multisets:
+
+    {* let fib = (int a, int b) => a ; fib(b,a+b) in fib(0,1) *}
+
+This example defines an ordered multiset of the Fibonacci numbers. The set is infinite (in principle), but will throw an overflow exception is enumerated past the `int` range.
 

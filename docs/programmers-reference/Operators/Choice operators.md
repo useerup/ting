@@ -8,7 +8,7 @@ The `;` *choice* operator creates a choice between two values
 
 The value of `a ; b` is nondeterministically `a` or `b`. At any one time the expression can be only one of the values, but backtracking can cause the expression to choose the other value. The operator introduces *ordered nondeterminism* in that it will choose the value of `a` until backtracking forces it to choose the value of `b`
 
-If any of the operands are undefined they are disregarded. Only if both operands are undefined is the value of the expression undefined.
+If any of the operands are undefined the they are disregarded. Only if both operands are undefined is the value of the expression undefined.
 
 Choice operator is handy when defining *generator functions* together with set- or list definitions to produce an procedurally defined set or list.
 
@@ -16,7 +16,7 @@ Choice operator is handy when defining *generator functions* together with set- 
 
 The following is an example of a list of Fibonacci numbers:
 
-    [ let fib = (a,b)=>a;fib(b,a+b) in fib(0,1) ]
+    {* let fib = (a,b)=>a;fib(b,a+b) in fib(0,1) *}
 
 The list evaluates to `[0, 1, 1, 2, 3, 5, …]`, i.e. the Fibonacci sequence, because successive backtracking steps force each new choice produced by the generator. The list is - in principle - infinite, as no upper bound has been specified. This means that the numbers will be generated on-demand. However, the `int` set is a 32-bit signed integer and the generator *will* cause an overflow when the list is enumerated past the overflow point.
 
@@ -30,11 +30,11 @@ Step-by-step:
 
 
 
-#### The `;;` *exclusive choice* operator
+#### The `;;` *alternative choice* operator 
 
-The value of `a ;; b` is that of `a` *unless* `a` is undefined in which case it is `b`.
+The value of `a ;; b` is `a` *unless* `a` is undefined in which case it is `b`.
 
 An `;;` expression will not by itself introduce nondeterminism, though `a` and `b` may themselves be nondeterministic expressions.
 
-`a ;; b` is essentially equivalent to `(a catch UndefinedExpressionException _ => b)`, i.e. evaluate `a` and if an `UndefinedExpressionException` is raised from that evaluation then return the value of `b` instead.
+`a ;; b` is essentially equivalent to `(a catch UndefinedException _ => b)`, i.e. evaluate `a` and if an `UndefinedException` is raised from that evaluation then return the value of `b` instead.
 

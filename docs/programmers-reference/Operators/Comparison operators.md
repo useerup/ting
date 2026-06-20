@@ -10,6 +10,6 @@
 
 #### `>` greater than
 
-#### `!=`
+#### `!=` not equals by value
 
 

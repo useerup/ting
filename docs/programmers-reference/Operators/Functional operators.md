@@ -8,13 +8,13 @@ An ordered pair is constructed with the infix operator `->`. It produces an orde
 
 #### `**` "fusion" operator
 
-#### `-->` "set of functions" operator
+#### `^^` "set of functions" operator
 
-`-->` creates a set of functions from LHS set to RHS set. Both LHS and RHS must be sets.
+`^^` creates a set of functions from LHS set to RHS set. Both LHS and RHS must be sets.
 
 Example:
 
-    int-->string    // the set of functions from `int` to `string`
+    int^^string     // the set of functions from `int` to `string`
 
 #### `>>` and `<<` "pipeline" operators
 
@@ -25,13 +25,11 @@ The pipeline operators `>>` and `<<` are used to compose functions, passing the 
 
 Example:
 
-```ting
-let add1 x = x + 1
-let double x = x * 2
+    let add1 x = x + 1
+    let double x = x * 2
 
-let addThenDouble = add1 >> double
-addThenDouble(3) // evaluates to 8
-```
+    let addThenDouble = add1 >> double
+    addThenDouble(3) // evaluates to 8
 
 These operators help build complex function pipelines in a readable, declarative style.
 
