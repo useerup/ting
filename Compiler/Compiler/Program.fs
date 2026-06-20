@@ -113,6 +113,17 @@ let private updateMarkdownWithCompilerOutput (markdown: string) =
         else
             readUntilClosingFence (lines[idx] :: acc) (idx + 1)
 
+    let readFenceBlock idx =
+        let blockContent, closeIdx = readUntilClosingFence [] (idx + 1)
+        ([ lines[idx] ] @ blockContent @ [ "```" ]), closeIdx + 1
+
+    let renderOutputBlock (output: string) =
+        [
+            "```ting-output"
+            yield! output.Replace("\r\n", "\n").Split('\n') |> Array.toList
+            "```"
+        ]
+
     let rec process idx (acc: string list) =
         if idx >= lines.Length then
             acc |> List.rev |> String.concat Environment.NewLine
@@ -120,40 +131,38 @@ let private updateMarkdownWithCompilerOutput (markdown: string) =
             let line = lines[idx]
             let info = extractFenceInfo line
             if info = "ting" then
-                let tingOpen = line
-                let tingContent, tingCloseIndex = readUntilClosingFence [] (idx + 1)
-                let afterTingClose = tingCloseIndex + 1
-
-                let hasExistingOutputBlock =
-                    afterTingClose < lines.Length && extractFenceInfo lines[afterTingClose] = "ting-output"
-
-                let input = tingContent |> String.concat Environment.NewLine
+                let tingBlock, afterTingClose = readFenceBlock idx
+                let tingContent = tingBlock |> List.skip 1 |> List.take (tingBlock.Length - 2)
+                let input = String.concat Environment.NewLine tingContent
                 let output = compileTingProgram input
-                let outputLines = output.Replace("\r\n", "\n").Split('\n') |> Array.toList
 
-                if hasExistingOutputBlock then
-                    let outputContent, outputCloseIndex = readUntilClosingFence [] (afterTingClose + 1)
-                    let rewritten =
-                        [
-                            tingOpen
-                            yield! tingContent
-                            "```"
-                            "```ting-output"
-                            yield! outputLines
-                            "```"
-                        ]
-                    process (outputCloseIndex + 1) ((List.rev rewritten) @ acc)
-                else
-                    let inserted =
-                        [
-                            tingOpen
-                            yield! tingContent
-                            "```"
-                            "```ting-output"
-                            yield! outputLines
-                            "```"
-                        ]
-                    process afterTingClose ((List.rev inserted) @ acc)
+                let rec rewriteRegion regionIdx replaced regionAcc =
+                    if regionIdx >= lines.Length then
+                        if replaced then
+                            List.rev regionAcc, regionIdx
+                        else
+                            (renderOutputBlock output @ List.rev regionAcc), regionIdx
+                    else
+                        let current = lines[regionIdx]
+                        let currentInfo = extractFenceInfo current
+                        if currentInfo = "ting" then
+                            if replaced then
+                                List.rev regionAcc, regionIdx
+                            else
+                                (renderOutputBlock output @ List.rev regionAcc), regionIdx
+                        elif currentInfo = "ting-output" then
+                            let rawBlock, nextIdx = readFenceBlock regionIdx
+                            let rewrittenBlock = if replaced then rawBlock else renderOutputBlock output
+                            rewriteRegion nextIdx true (List.rev rewrittenBlock @ regionAcc)
+                        elif isFenceLine current then
+                            let rawBlock, nextIdx = readFenceBlock regionIdx
+                            rewriteRegion nextIdx replaced (List.rev rawBlock @ regionAcc)
+                        else
+                            rewriteRegion (regionIdx + 1) replaced (current :: regionAcc)
+
+                let regionLines, nextIdx = rewriteRegion afterTingClose false []
+                let rewritten = tingBlock @ regionLines
+                process nextIdx (List.rev rewritten @ acc)
             else
                 process (idx + 1) (line :: acc)
 
