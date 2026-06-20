@@ -1,1 +1,0 @@
-DateTime this => $"{Year}-{Month}-{Day}"

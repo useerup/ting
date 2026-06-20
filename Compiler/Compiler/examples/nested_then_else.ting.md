@@ -1,0 +1,53 @@
+```ting
+a==2 then a==3 then 0 else 1 else 2
+```
+```ting-output
+Input:
+a==2 then a==3 then 0 else 1 else 2
+
+Compilation succeeded.
+
+CoreExp:
+Apply
+  (Identifier
+     (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "_then_"])),
+   Tuple
+     [Apply
+        (Identifier
+           (Referential
+              ([00000000-0000-0000-0000-000000000000], [TextPart "_==_"])),
+         Tuple
+           [Identifier
+              (Referential
+                 ([00000000-0000-0000-0000-000000000000], [TextPart "a"]));
+            Literal (Int32 2)]);
+      Apply
+        (Identifier
+           (Referential
+              ([00000000-0000-0000-0000-000000000000], [TextPart "_then_"])),
+         Tuple
+           [Apply
+              (Identifier
+                 (Referential
+                    ([00000000-0000-0000-0000-000000000000], [TextPart "_==_"])),
+               Tuple
+                 [Identifier
+                    (Referential
+                       ([00000000-0000-0000-0000-000000000000], [TextPart "a"]));
+                  Literal (Int32 3)]);
+            Apply
+              (Identifier
+                 (Referential
+                    ([00000000-0000-0000-0000-000000000000], [TextPart "_else_"])),
+               Tuple
+                 [Literal (Int32 0);
+                  Apply
+                    (Identifier
+                       (Referential
+                          ([00000000-0000-0000-0000-000000000000],
+                           [TextPart "_else_"])),
+                     Tuple [Literal (Int32 1); Literal (Int32 2)])])])])
+
+Scopes:
+No scopes collected.
+```

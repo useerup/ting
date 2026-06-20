@@ -1,0 +1,15 @@
+```ting
+{ true, false }
+```
+```ting-output
+Input:
+{ true, false }
+
+Compilation succeeded.
+
+CoreExp:
+Set [Literal (Boolean true); Literal (Boolean false)]
+
+Scopes:
+No scopes collected.
+```
