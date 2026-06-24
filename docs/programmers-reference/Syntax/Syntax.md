@@ -5,13 +5,14 @@ A Ting program or module is an expression.
 An expression can be
 
 - a function application, such as `Math.Sin 0.7`. 
-- an infix binary operator
+- an infix binary operator expression, such as `a + b`
 - a prefix operator expression, such as `!IsVisible`
-- a postfix operator expression
+- a literal such as `"Zaphod Beeblebrox"`, `42` or `667_776.65f[m/s^2]`. 
 - a parenthesis grouping 
-- a literal such as `"Zaphod Beeblebrox"`, `42` or `667_776.65f[m/s^2]`. Literals are covered in [*Literals*](Literals.md)
-- Folds
+- a set definition
+- a list literal
 
+Literals are covered in [*Literals*](Literals.md)
 
 ### Tokens
 
