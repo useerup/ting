@@ -81,7 +81,7 @@ Some operators, when appearing in a declarative scope, keep the declarative scop
 |---|---|
 | `=` |  |
 | `==` |  |
-| `!=` |  |
+| `!==` |  |
 | `<` |  |
 | `<=` |  |
 | `>` |  |
@@ -90,10 +90,8 @@ Some operators, when appearing in a declarative scope, keep the declarative scop
 | `::` |  |
 | `:::` |  |
 | `in` |  |
-| `` |  |
 
 
-`=`, `==`, `!=`, `<=`, `<`, `>`, `>=`, `:`, `::`, `:::`, `in`
 
 This is why `public y = x * 2` works as expected: `public` establishes a declarative scope; `=` keeps that declarative scope for `y` (which is declared) but switches to referential for `x * 2` (where `x` must already be known).
 

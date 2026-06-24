@@ -285,9 +285,16 @@ TODO: describe an implicit promotion from set values to identity functions when 
 Ting distinguishes between two property operators:
 
 #### 7.7.1 `.` property operator
-- In **referential context**, `whole.part` references the property `part` of `whole`.
-- In **declarative context**, `whole.part` declares a property `part` directly on `whole`.
-- The right operand is always declarative. It declares the properties that is selected from `whole`.
+
+The right operand is always declarative. It declares the properties that is selected from `whole`.
+
+In **referential context**, `whole.part` references the property `part` of `whole`.
+
+
+In **declarative context**, `whole.part` declares a property `part` directly on `whole`.
+
+
+- 
 - A referential `.` expression used in prefix position evaluates to a function of the form `whole => whole.part`.
 
 #### 7.7.2 `..` member property operator
