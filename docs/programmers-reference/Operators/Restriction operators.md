@@ -1,9 +1,0 @@
-### Restriction operators
-
-#### `?`
-
-#### `\` "such that"
-
-#### `??`
-
-
