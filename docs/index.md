@@ -1,6 +1,8 @@
 # Ting Programming Language
 
-Ting is a logic programming language. It unifies logic constraint programming with object-oriented- and functional programming. Constraint programming means that you define the bounds (constraints) of the problem and let the compiler with its associated libraries figure out a solution. An example of a simple program is one that prints out the solutions to a quadratic equation:
+Ting is a logic programming language with a strong first-order flavor. It is not a propositional language where expressions are only truth-valued atoms. In Ting, programs describe relations over values, and those relations can be constrained, queried, and composed with functional and object-oriented constructs.
+
+You can think of Ting as unifying constraint logic programming with functional and object-oriented programming. Constraint programming means you describe bounds and relations, then let the compiler and libraries search for values that satisfy them. A simple example is printing the solutions to a quadratic equation:
 
     import Math.Polynomials
     float x \ 2*x^2 + 10*x - 48 == 0
@@ -10,11 +12,11 @@ When run, this program will output
     3
     -8
 
-Ting - like most other logic programming languages - embraces nondeterminism: The value of an expression may not be a single value, it may multiple values at the same time. 
+Like many logic programming languages, Ting embraces nondeterminism: the value of an expression may be a set of possible values rather than exactly one value.
 
-But constraints programming is not just for solving quadratic equations or indeed methematical equations. The layout engine of your browser is a typical constraint problem: How to flow text into a box is a problem of fitting as many words as possible per line without overflowing the width.
+Constraint programming is not limited to algebraic equations. A browser layout engine is also a constraint problem: flow text into a box while fitting as many words as possible per line without overflowing width.
 
-But how does Ting know how to solve a quadratic equation? As you may suspect from the line `import Math.Polynomials`, it doesn't. The Ting compiler knows about nondeterminism, bindings of variables and "truth values" `true` and `false`. Solving a quadratic equation is a feature implemented by a library. The Ting compiler knows how to *search* for solutions. Somwhere in the `Math.Polynomials` there is an *axiom* like this:
+How does Ting solve a quadratic equation? As the line `import Math.Polynomials` suggests, the solver behavior comes from libraries. The compiler itself provides the core machinery: variable binding, truth-valued constraints, nondeterministic search, and evaluation rules. A library such as `Math.Polynomials` contributes domain-specific axioms, for example:
 
     (bound float a, bound float b, bound float c, free float x) \ a*x^2 + b*x + c == 0  axiom
         let 
@@ -31,14 +33,14 @@ But how does Ting know how to solve a quadratic equation? As you may suspect fro
 
 
 
-But there is more going on in the above example
+There is more going on in the example above.
 
-Let's up the ante a bit a and create a program which does not solve the equation at compile time buth rather compiled to a program which solves quadratic equations:
+Now consider a program that compiles to a function for solving quadratic equations at runtime:
 
     import Math.Polynomials
     [float a, float b, float c] => float x \ a*x^2 + b*x + c == 0
 
-This time the pogram is a function that maps a list of 3 `float` values to a quadratic equation using those 3 `float`s as coefficients.
+This time the program is a function that maps a list of three `float` values to a quadratic constraint using those values as coefficients.
 
 
 ## Nondeterminism
