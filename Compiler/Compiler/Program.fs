@@ -133,7 +133,11 @@ let private compileTingProgramRaw (input: string) : string =
                     |> List.map (fun d -> $"- {Resolver.formatDiagnostic d}")
                     |> String.concat "\n"
                 $"\n\nDiagnostics:\n{lines}"
-        $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}{diagnosticsSection}"
+        let valueSection =
+            match Evaluator.evaluate rootScope resolved with
+            | Some v when Evaluator.isDisplayable v -> $"\n\nValue:\n{Evaluator.render v}"
+            | _ -> ""
+        $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}{diagnosticsSection}{valueSection}"
     | Failure(errorMsg, _, _) ->
         $"Compilation failed.\nError: {errorMsg}"
 
