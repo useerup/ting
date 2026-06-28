@@ -66,11 +66,91 @@ let private buildRegistry (rootScope: Scope) (exp: CoreExp) : Dictionary<Guid, S
             registry[s.Id] <- s
     registry
 
-let private resolveRole
-    (registry: Dictionary<Guid, Scope>)
-    (diags: ResizeArray<Diagnostic>)
-    (role: BindingRole)
-    : BindingRole =
+let private nameOfRole (role: BindingRole) : CoreInterpolatedPart list =
+    match role with
+    | Declarative (_, p)
+    | Referential (_, p)
+    | Resolved (_, p) -> p
+
+// Map a declaration id to the expression it is bound to by `=` (e.g. the record
+// value in `let person = record(Name:string)`). Only `_=_` applications whose
+// left operand is a declarative identifier introduce a binding; comparison uses
+// of `=` (where the left operand is, say, a projection) are ignored. This is the
+// minimal structural knowledge needed to resolve member projections.
+let private buildBindingMap (exp: CoreExp) : Dictionary<Guid, CoreExp> =
+    let map = Dictionary<Guid, CoreExp>()
+
+    let isEqOp e =
+        match e with
+        | Identifier role -> namePartsEqual (nameOfRole role) [ TextPart "_=_" ]
+        | _ -> false
+
+    let rec walk e =
+        match e with
+        | Apply (op, Tuple [ left; right ]) ->
+            if isEqOp op then
+                match left with
+                | Identifier (Declarative (id, _)) ->
+                    if not (map.ContainsKey id) then
+                        map.Add(id, right)
+                | _ -> ()
+            walk op
+            walk left
+            walk right
+        | Apply (f, a) ->
+            walk f
+            walk a
+        | Local (_, e)
+        | Record (_, e)
+        | Publish (_, _, e)
+        | ScopeExp (_, e)
+        | Throw e
+        | IsDefined e -> walk e
+        | Tuple xs
+        | Set xs
+        | List xs -> List.iter walk xs
+        | Projection (_, a, b)
+        | MemberProjection (_, a, b)
+        | Catch (a, b)
+        | Equals (a, b)
+        | ValueEquals (a, b) ->
+            walk a
+            walk b
+        | InterpolatedString parts ->
+            parts
+            |> List.iter (function
+                | HolePart e -> walk e
+                | TextPart _ -> ())
+        | Identifier _
+        | This _
+        | Literal _
+        | Void
+        | Unknown -> ()
+
+    walk exp
+    map
+
+// Shared state threaded through the resolution pass.
+type private Context =
+    { Registry: Dictionary<Guid, Scope>
+      BindingMap: Dictionary<Guid, CoreExp>
+      Diags: ResizeArray<Diagnostic> }
+
+// Resolve a binding role to a single declaration id, where possible. Used when
+// following a receiver (e.g. `person`) to the value it denotes.
+let private tryResolveRoleToDecl (ctx: Context) (role: BindingRole) : Guid option =
+    match role with
+    | Resolved (id, _)
+    | Declarative (id, _) -> Some id
+    | Referential (cands, name) when not (nameHasHole name) ->
+        cands
+        |> List.tryPick (fun sid ->
+            match ctx.Registry.TryGetValue sid with
+            | true, (:? LocalScope as scope) -> lookupInScope scope name
+            | _ -> None)
+    | _ -> None
+
+let private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
     match role with
     | Declarative _
     | Resolved _ -> role
@@ -85,7 +165,7 @@ let private resolveRole
             let mutable hasDeferredScope = false
 
             for sid in candidates do
-                match registry.TryGetValue sid with
+                match ctx.Registry.TryGetValue sid with
                 | true, scope ->
                     match scope with
                     | :? LocalScope ->
@@ -107,21 +187,18 @@ let private resolveRole
                     hasDeferredScope <- true
 
             if declaringLocalScopes.Count >= 2 then
-                diags.Add(IllegalShadowing(formatName name))
+                ctx.Diags.Add(IllegalShadowing(formatName name))
 
             match resolved with
             | Some declId -> Resolved(declId, name)
             | None ->
                 if not hasDeferredScope then
-                    diags.Add(UnresolvedName(formatName name))
+                    ctx.Diags.Add(UnresolvedName(formatName name))
                 role
 
-let rec private resolveExp
-    (registry: Dictionary<Guid, Scope>)
-    (diags: ResizeArray<Diagnostic>)
-    (exp: CoreExp)
-    : CoreExp =
-    let go = resolveExp registry diags
+let rec private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
+    let go = resolveExp ctx
+
     let goPart =
         function
         | TextPart _ as p -> p
