@@ -180,7 +180,7 @@ let private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
                 | true, scope ->
                     match scope with
                     | :? LocalScope ->
-                        match lookupInScope scope name with
+                        match lookupUnhostedInScope scope name with
                         | Some declId ->
                             if resolved.IsNone then
                                 resolved <- Some declId
