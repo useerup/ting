@@ -9,6 +9,31 @@ open CoreExp
 open CoreExpDiagnostics
 open CoreExpScopes
 
+// Declarations receive a fresh Guid on every compilation, so raw output is not
+// stable across runs. Rewrite each distinct non-empty Guid to a sequential
+// placeholder (#0, #1, ...) in order of first appearance. This keeps snapshots
+// stable while preserving identity relationships (same Guid -> same placeholder).
+let private guidRegex =
+    System.Text.RegularExpressions.Regex(
+        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+let private normalizeGuids (text: string) : string =
+    let mapping = System.Collections.Generic.Dictionary<string, string>()
+    let empty = Guid.Empty.ToString()
+    guidRegex.Replace(
+        text,
+        fun m ->
+            let g = m.Value
+            if g = empty then
+                g
+            else
+                match mapping.TryGetValue g with
+                | true, placeholder -> placeholder
+                | _ ->
+                    let placeholder = $"#{mapping.Count}"
+                    mapping.Add(g, placeholder)
+                    placeholder)
+
 let private extractFenceInfo (line: string) =
     let trimmed = line.TrimStart()
     if trimmed.StartsWith("```") then
@@ -19,7 +44,7 @@ let private extractFenceInfo (line: string) =
 let private isFenceLine (line: string) =
     line.TrimStart().StartsWith("```")
 
-let private compileTingProgram (input: string) : string =
+let private compileTingProgramRaw (input: string) : string =
     match tryParseExpression input with
     | Success(result, _, _) ->
         let rootScope = CoreExp.LocalScope(Guid.Empty) :> CoreExp.Scope
