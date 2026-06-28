@@ -299,20 +299,38 @@ let rec private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
     | Equals (a, b) -> Equals(go a, go b)
     | ValueEquals (a, b) -> ValueEquals(go a, go b)
 
-// Resolve `receiver.member`. If the receiver's value is statically a record,
-// resolve the member against that record's member scope; otherwise defer (no
-// lexical fallback: member names are not lexically scoped).
+// Resolve `receiver.member`. The member is resolved against (a) the record
+// structure of the receiver, then (b) hosted extension properties/members whose
+// host matches the receiver. There is no lexical fallback: member names are not
+// lexically scoped. If the receiver's structure is unknown, defer silently.
 and private resolveMember (ctx: Context) (receiver: CoreExp) (memberExp: CoreExp) : CoreExp =
     match memberExp with
-    | Identifier (Referential (_, name)) when not (nameHasHole name) ->
-        match recordScopeOf ctx (HashSet<Guid>()) receiver with
-        | Some recScope ->
-            match lookupInScope recScope name with
-            | Some fieldId -> Identifier(Resolved(fieldId, name))
+    | Identifier (Referential (cands, name)) when not (nameHasHole name) ->
+        let recScopeOpt = recordScopeOf ctx (HashSet<Guid>()) receiver
+        let fieldHit = recScopeOpt |> Option.bind (fun rs -> lookupInScope rs name)
+
+        let hostedHit =
+            match fieldHit with
+            | Some _ -> None
             | None ->
-                ctx.Diags.Add(UnresolvedMember(formatName name))
-                memberExp
-        | None -> memberExp
+                let receiverIdentity = exprIdentity ctx receiver
+                let receiverType = receiverTypeIdentity ctx receiver
+                cands
+                |> List.tryPick (fun sid ->
+                    match ctx.Registry.TryGetValue sid with
+                    | true, scope -> lookupHostedInScope ctx scope name receiverIdentity receiverType
+                    | _ -> None)
+
+        match fieldHit |> Option.orElse hostedHit with
+        | Some id -> Identifier(Resolved(id, name))
+        | None ->
+            // A field was sought on a known record but not found: a real error.
+            // Otherwise the receiver structure is unknown, so defer.
+            match recScopeOpt with
+            | Some _ -> ctx.Diags.Add(UnresolvedMember(formatName name))
+            | None -> ()
+
+            memberExp
     | _ -> resolveExp ctx memberExp
 
 // Find the record scope denoted by an expression, following identifier bindings
