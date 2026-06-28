@@ -69,9 +69,13 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: CoreExp) : u
         collectDefinitionScopes acc e
         collectDefinitionScopes acc m
     | Equals (a, b)
-    | ValueEquals (a, b) ->
+    | ValueEquals (a, b)
+    | Catch (a, b) ->
         collectDefinitionScopes acc a
         collectDefinitionScopes acc b
+    | Throw e
+    | IsDefined e ->
+        collectDefinitionScopes acc e
     | Unknown -> ()
 
 // Public helper to collect scopes from a CoreExp.
