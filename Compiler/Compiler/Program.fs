@@ -219,29 +219,55 @@ let private updateMarkdownWithCompilerOutput (markdown: string) =
                 rewriteMarkdown (idx + 1)
 
     rewriteMarkdown 0
-    String.concat Environment.NewLine result
+    String.concat "\n" result
 
 [<EntryPoint>]
 let main argv =
-    let examplesDir = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "..", "..", "test-examples"))
+    // Modes:
+    //   (default)  check  - compile each example and compare against the committed
+    //                       ```ting-output``` snapshot; report mismatches, fail on any.
+    //   --update          - regenerate snapshots in place (previous behaviour).
+    // An optional positional argument overrides the examples directory.
+    let update = argv |> Array.exists (fun a -> a = "--update" || a = "-u")
+    let pathArg = argv |> Array.tryFind (fun a -> not (a.StartsWith "-"))
+
+    let examplesDir =
+        match pathArg with
+        | Some p -> Path.GetFullPath p
+        | None -> Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "..", "..", "test-examples"))
 
     if not (Directory.Exists examplesDir) then
-        Directory.CreateDirectory examplesDir |> ignore
+        eprintfn "Examples directory not found: %s" examplesDir
+        1
+    else
 
     let exampleFiles =
         Directory.GetFiles(examplesDir, "*.ting.md")
         |> Array.sort
 
-    if Environment.UserInteractive then
-        try
-            Console.Clear()
-        with
-        | :? IOException -> ()
+    if update then
+        for exampleFile in exampleFiles do
+            let markdown = File.ReadAllText(exampleFile)
+            let updated = updateMarkdownWithCompilerOutput markdown
+            if updated <> markdown.Replace("\r\n", "\n") then
+                File.WriteAllText(exampleFile, updated)
+                File.SetLastWriteTimeUtc(exampleFile, DateTime.UtcNow)
+        printfn "Updated %d example(s) in %s" exampleFiles.Length examplesDir
+        0
+    else
+        let mutable failures = 0
+        for exampleFile in exampleFiles do
+            let markdown = File.ReadAllText(exampleFile)
+            let expected = markdown.Replace("\r\n", "\n")
+            let actual = updateMarkdownWithCompilerOutput markdown
+            if actual <> expected then
+                failures <- failures + 1
+                printfn "FAIL %s" (Path.GetFileName exampleFile)
 
-    for exampleFile in exampleFiles do
-        let markdown = File.ReadAllText(exampleFile)
-        let updated = updateMarkdownWithCompilerOutput markdown
-        File.WriteAllText(exampleFile, updated)
-        File.SetLastWriteTimeUtc(exampleFile, DateTime.UtcNow)
-
-    0
+        printfn ""
+        if failures = 0 then
+            printfn "All %d example(s) passed." exampleFiles.Length
+            0
+        else
+            printfn "%d of %d example(s) failed. Run with --update to regenerate snapshots." failures exampleFiles.Length
+            1
