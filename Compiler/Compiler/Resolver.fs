@@ -161,6 +161,63 @@ let private tryResolveRoleToDecl (ctx: Context) (role: BindingRole) : Guid optio
             | _ -> None)
     | _ -> None
 
+// The declaration id an expression denotes, for host matching. Follows the
+// identifier of the host/receiver (e.g. `int` -> int's declaration id).
+let rec private exprIdentity (ctx: Context) (exp: CoreExp) : Guid option =
+    match exp with
+    | Identifier role -> tryResolveRoleToDecl ctx role
+    | Local (_, e)
+    | Publish (_, _, e)
+    | ScopeExp (_, e) -> exprIdentity ctx e
+    | _ -> None
+
+// The type a receiver is a member of, for `..` (member-property) host matching.
+// Currently known for primitive literals (e.g. `21 : int`).
+let private receiverTypeIdentity (ctx: Context) (receiver: CoreExp) : Guid option =
+    match receiver with
+    | Literal lit ->
+        let typeName =
+            match lit with
+            | Exp.Int32 _ -> Some "int"
+            | Exp.Boolean _ -> Some "bool"
+            | Exp.Float32 _ -> Some "float"
+            | Exp.Float64 _ -> Some "double"
+            | Exp.Decimal _ -> Some "decimal"
+            | Exp.String _ -> Some "string"
+        typeName
+        |> Option.bind (fun n ->
+            match ctx.Registry.TryGetValue Guid.Empty with
+            | true, root -> lookupInScope root [ TextPart n ]
+            | _ -> None)
+    | _ -> None
+
+// Find a hosted name in a scope whose host matches the receiver:
+//   DirectPropertyHost h  matches when the receiver *is* h        (e.g. int.Zero)
+//   MemberPropertyHost h  matches when the receiver is a member of h (e.g. 21.Double)
+let private lookupHostedInScope
+    (ctx: Context)
+    (scope: Scope)
+    (name: CoreInterpolatedPart list)
+    (receiverIdentity: Guid option)
+    (receiverType: Guid option)
+    : Guid option =
+    scope.Names
+    |> Seq.tryPick (fun kvp ->
+        let entry = kvp.Value
+        if namePartsEqual entry.NameParts name then
+            match entry.Host with
+            | Some (DirectPropertyHost h) ->
+                match exprIdentity ctx h, receiverIdentity with
+                | Some hostId, Some rid when hostId = rid -> Some kvp.Key
+                | _ -> None
+            | Some (MemberPropertyHost h) ->
+                match exprIdentity ctx h, receiverType with
+                | Some hostId, Some rt when hostId = rt -> Some kvp.Key
+                | _ -> None
+            | None -> None
+        else
+            None)
+
 let private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
     match role with
     | Declarative _
