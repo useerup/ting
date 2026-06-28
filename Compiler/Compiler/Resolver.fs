@@ -210,15 +210,19 @@ let rec private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
     | Tuple xs -> Tuple(List.map go xs)
     | Record (s, e) -> Record(s, go e)
     | Publish (s, access, e) -> Publish(s, access, go e)
-    | Identifier role -> Identifier(resolveRole registry diags role)
+    | Identifier role -> Identifier(resolveRole ctx role)
     | ScopeExp (s, e) -> ScopeExp(s, go e)
     | Literal _ -> exp
     | Set xs -> Set(List.map go xs)
     | List xs -> List(List.map go xs)
     | InterpolatedString parts -> InterpolatedString(List.map goPart parts)
-    | Projection (s, e, m) -> Projection(s, go e, go m)
+    | Projection (s, e, m) ->
+        // The member of `receiver.member` is resolved against the record structure
+        // of the receiver, not the enclosing lexical scopes.
+        let receiver = go e
+        Projection(s, receiver, resolveMember ctx receiver m)
     | MemberProjection (s, e, m) -> MemberProjection(s, go e, go m)
-    | This role -> This(resolveRole registry diags role)
+    | This role -> This(resolveRole ctx role)
     | Void -> exp
     | Unknown -> exp
     | Throw e -> Throw(go e)
@@ -227,15 +231,52 @@ let rec private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
     | Equals (a, b) -> Equals(go a, go b)
     | ValueEquals (a, b) -> ValueEquals(go a, go b)
 
+// Resolve `receiver.member`. If the receiver's value is statically a record,
+// resolve the member against that record's member scope; otherwise defer (no
+// lexical fallback: member names are not lexically scoped).
+and private resolveMember (ctx: Context) (receiver: CoreExp) (memberExp: CoreExp) : CoreExp =
+    match memberExp with
+    | Identifier (Referential (_, name)) when not (nameHasHole name) ->
+        match recordScopeOf ctx (HashSet<Guid>()) receiver with
+        | Some recScope ->
+            match lookupInScope recScope name with
+            | Some fieldId -> Identifier(Resolved(fieldId, name))
+            | None ->
+                ctx.Diags.Add(UnresolvedMember(formatName name))
+                memberExp
+        | None -> memberExp
+    | _ -> resolveExp ctx memberExp
+
+// Find the record scope denoted by an expression, following identifier bindings
+// (e.g. `person` -> `record(Name:string)`) with cycle protection.
+and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: CoreExp) : Scope option =
+    match exp with
+    | Record (recScope, _) -> Some recScope
+    | Local (_, e)
+    | Publish (_, _, e)
+    | ScopeExp (_, e) -> recordScopeOf ctx visited e
+    | Identifier role ->
+        match tryResolveRoleToDecl ctx role with
+        | Some id when visited.Add id ->
+            match ctx.BindingMap.TryGetValue id with
+            | true, def -> recordScopeOf ctx visited def
+            | _ -> None
+        | _ -> None
+    | _ -> None
+
 // Resolve referential occurrences against the program's scopes.
 // Returns the rewritten tree and any diagnostics collected along the way.
 let resolve (rootScope: Scope) (exp: CoreExp) : CoreExp * Diagnostic list =
-    let registry = buildRegistry rootScope exp
-    let diags = ResizeArray<Diagnostic>()
-    let resolved = resolveExp registry diags exp
-    resolved, List.ofSeq diags
+    let ctx =
+        { Registry = buildRegistry rootScope exp
+          BindingMap = buildBindingMap exp
+          Diags = ResizeArray<Diagnostic>() }
+
+    let resolved = resolveExp ctx exp
+    resolved, List.ofSeq ctx.Diags
 
 let formatDiagnostic =
     function
     | UnresolvedName name -> $"unresolved name '{name}'"
+    | UnresolvedMember name -> $"unresolved member '{name}'"
     | IllegalShadowing name -> $"illegal shadowing of '{name}' in nested local scope"
