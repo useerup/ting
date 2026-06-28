@@ -91,16 +91,29 @@ let private compileTingProgram (input: string) : string =
         rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
 
         let res = markDeclarations rootScope result ([], [rootScope])
-        let scopes = renderScopeReport res
-        let coreExp = res.ToString()
+        let resolved, diagnostics = Resolver.resolve rootScope res
+        let scopes = renderScopeReport resolved
+        let coreExp = resolved.ToString()
         let scopesSection =
             if String.IsNullOrWhiteSpace scopes then
                 "No scopes collected."
             else
                 scopes
-        $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}"
+        let diagnosticsSection =
+            if List.isEmpty diagnostics then
+                ""
+            else
+                let lines =
+                    diagnostics
+                    |> List.map (fun d -> $"- {Resolver.formatDiagnostic d}")
+                    |> String.concat "\n"
+                $"\n\nDiagnostics:\n{lines}"
+        $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}{diagnosticsSection}"
     | Failure(errorMsg, _, _) ->
         $"Compilation failed.\nError: {errorMsg}"
+
+let private compileTingProgram (input: string) : string =
+    normalizeGuids (compileTingProgramRaw input)
 
 let private updateMarkdownWithCompilerOutput (markdown: string) =
     let lines = markdown.Replace("\r\n", "\n").Split('\n')
