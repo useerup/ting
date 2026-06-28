@@ -141,10 +141,11 @@ let private buildBindingMap (exp: CoreExp) : Dictionary<Guid, CoreExp> =
     walk exp
     map
 
-// Map the scope that introduces a typed `this` parameter to the parameter's type
-// expression. A parameter written as `Type this` appears as `Apply(Type, This id)`;
-// the members of `Type` (e.g. the fields of the record `Type` denotes) are then
+// Map the scope that introduces a `this` parameter to the parameter's set
+// expression. A parameter written as `S this` appears as `Apply(S, This id)`;
+// the members of the set `S` (e.g. the fields of the record `S` denotes) are then
 // implicitly in scope in the lambda body as members of `this`.
+// (Ting has no types of its own; `S` denotes a set, e.g. `DateTime`.)
 let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: CoreExp) : Dictionary<Guid, CoreExp> =
     // declaration id -> id of the scope that declares it.
     let declToScope = Dictionary<Guid, Guid>()
@@ -228,8 +229,8 @@ let rec private exprIdentity (ctx: Context) (exp: CoreExp) : Guid option =
     | ScopeExp (_, e) -> exprIdentity ctx e
     | _ -> None
 
-// The type a receiver is a member of, for `..` (member-property) host matching.
-// Currently known for primitive literals (e.g. `21 : int`).
+// The set a receiver is a member of, for `..` (member-property) host matching.
+// Currently known for primitive literals (e.g. `21` is a member of `int`).
 let private receiverTypeIdentity (ctx: Context) (receiver: CoreExp) : Guid option =
     match receiver with
     | Literal lit ->
@@ -303,7 +304,7 @@ let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
                         | None -> ()
                     | :? ExpressionScope
                     | :? ExpressionMemberScope ->
-                        // Members of an expression scope depend on the expression's type,
+                        // Members of an expression scope depend on the expression's set,
                         // which is not computed yet. Defer rather than report unresolved.
                         hasDeferredScope <- true
                     | _ -> ()
@@ -317,9 +318,10 @@ let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
             match resolved with
             | Some declId -> Resolved(declId, name)
             | None ->
-                // Fallback: a bare name may be an implicit member of a typed `this`
-                // parameter in scope (e.g. `Type this => ...Year...` where `Year` is a
-                // field of the record `Type`). Resolve it against that type's members.
+                // Fallback: a bare name may be an implicit member of a `this`
+                // parameter whose set is known in scope (e.g. `S this => ...Year...`
+                // where `Year` is a field of the record `S`, such as `DateTime`).
+                // Resolve it against that set's members.
                 let thisHit =
                     candidates
                     |> List.tryPick (fun sid ->

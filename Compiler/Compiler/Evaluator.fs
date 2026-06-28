@@ -100,7 +100,7 @@ let private literalValue (lit: Exp.Literal) : Value =
     | Exp.String s -> VString s
 
 // Evaluate a resolved CoreExp to a value, when it denotes a computable value.
-// Returns None when evaluation cannot proceed (unresolved names, types, records
+// Returns None when evaluation cannot proceed (unresolved names, sets, records
 // without values, unsupported forms). Evaluation is intentionally partial.
 let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
     // Map declaration id -> name entry, so hosted members can be distinguished
