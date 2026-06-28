@@ -73,9 +73,11 @@ and ExpressionMemberScope(id: Guid, expression: CoreExp) =
     member _.Expression = expression
 
 // Declarative carries declaration identity; referential carries candidate scope ids + name pattern.
+// Resolved carries the declaration id a referential occurrence was bound to during name resolution.
 and BindingRole =
     | Declarative of Guid * CoreInterpolatedPart list
     | Referential of Guid list * CoreInterpolatedPart list
+    | Resolved of Guid * CoreInterpolatedPart list
 
 type ScopeStack = Scope list * Scope list
 

@@ -135,6 +135,7 @@ let rec private renderInterpolatedPart = function
 
 and private renderBindingRole = function
     | Declarative (id, _) -> $"decl:{id}"
+    | Resolved (id, _) -> $"resolved:{id}"
     | Referential (scopeIds, _) ->
         let scopesText = scopeIds |> List.map string |> String.concat ", "
         $"ref:[{scopesText}]"

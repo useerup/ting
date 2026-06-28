@@ -18,6 +18,7 @@ and private collectDefinitionScopesFromScope (acc: ResizeArray<Scope>) (s: Scope
 // Referential roles are traversed only through interpolated name holes.
 and private collectDefinitionScopesFromRole (acc: ResizeArray<Scope>) = function
     | Declarative _ -> ()
+    | Resolved _ -> ()
     | Referential (_, nameParts) ->
         for p in nameParts do
             collectDefinitionScopesFromPart acc p
