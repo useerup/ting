@@ -22,7 +22,7 @@ Where more than one token could match, only the longest matching token matches. 
 
 ### Infix binary operators
 
-### Prefix and postfix unary operators
+### Prefix unary operators
 
 ### Literals
 
