@@ -57,6 +57,17 @@ let private lookupInScope (scope: Scope) (name: CoreInterpolatedPart list) : Gui
         else
             None)
 
+// As lookupInScope, but ignores hosted names. Hosted names (extension
+// properties/members declared via `int.Zero` / `int..Double`) are only reachable
+// through a projection on their host, never as bare lexical names.
+let private lookupUnhostedInScope (scope: Scope) (name: CoreInterpolatedPart list) : Guid option =
+    scope.Names
+    |> Seq.tryPick (fun kvp ->
+        if kvp.Value.Host.IsNone && namePartsEqual kvp.Value.NameParts name then
+            Some kvp.Key
+        else
+            None)
+
 // Map every scope id reachable from the program (plus the root scope) to its Scope.
 let private buildRegistry (rootScope: Scope) (exp: CoreExp) : Dictionary<Guid, Scope> =
     let registry = Dictionary<Guid, Scope>()
