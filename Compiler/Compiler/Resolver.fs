@@ -20,6 +20,7 @@ open CoreExpScopeAnalysis
 
 type Diagnostic =
     | UnresolvedName of string
+    | UnresolvedMember of string
     | IllegalShadowing of string
 
 // Compare two name patterns. Only fully textual names participate in static
