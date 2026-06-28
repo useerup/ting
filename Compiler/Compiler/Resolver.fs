@@ -141,10 +141,67 @@ let private buildBindingMap (exp: CoreExp) : Dictionary<Guid, CoreExp> =
     walk exp
     map
 
+// Map the scope that introduces a typed `this` parameter to the parameter's type
+// expression. A parameter written as `Type this` appears as `Apply(Type, This id)`;
+// the members of `Type` (e.g. the fields of the record `Type` denotes) are then
+// implicitly in scope in the lambda body as members of `this`.
+let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: CoreExp) : Dictionary<Guid, CoreExp> =
+    // declaration id -> id of the scope that declares it.
+    let declToScope = Dictionary<Guid, Guid>()
+
+    for kvp in registry do
+        let scope = kvp.Value
+        for n in scope.Names do
+            if not (declToScope.ContainsKey n.Key) then
+                declToScope[n.Key] <- scope.Id
+
+    let map = Dictionary<Guid, CoreExp>()
+
+    let rec walk e =
+        match e with
+        | Apply (typeExpr, This (Declarative (thisId, _))) ->
+            match declToScope.TryGetValue thisId with
+            | true, sid when not (map.ContainsKey sid) -> map[sid] <- typeExpr
+            | _ -> ()
+            walk typeExpr
+        | Apply (f, a) ->
+            walk f
+            walk a
+        | Local (_, e)
+        | Record (_, e)
+        | Publish (_, _, e)
+        | ScopeExp (_, e)
+        | Throw e
+        | IsDefined e -> walk e
+        | Tuple xs
+        | Set xs
+        | List xs -> List.iter walk xs
+        | Projection (_, a, b)
+        | MemberProjection (_, a, b)
+        | Catch (a, b)
+        | Equals (a, b)
+        | ValueEquals (a, b) ->
+            walk a
+            walk b
+        | InterpolatedString parts ->
+            parts
+            |> List.iter (function
+                | HolePart e -> walk e
+                | TextPart _ -> ())
+        | Identifier _
+        | This _
+        | Literal _
+        | Void
+        | Unknown -> ()
+
+    walk exp
+    map
+
 // Shared state threaded through the resolution pass.
 type private Context =
     { Registry: Dictionary<Guid, Scope>
       BindingMap: Dictionary<Guid, CoreExp>
+      ThisTypes: Dictionary<Guid, CoreExp>
       Diags: ResizeArray<Diagnostic> }
 
 // Resolve a binding role to a single declaration id, where possible. Used when
@@ -218,7 +275,7 @@ let private lookupHostedInScope
         else
             None)
 
-let private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
+let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
     match role with
     | Declarative _
     | Resolved _ -> role
@@ -260,11 +317,26 @@ let private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
             match resolved with
             | Some declId -> Resolved(declId, name)
             | None ->
-                if not hasDeferredScope then
-                    ctx.Diags.Add(UnresolvedName(formatName name))
-                role
+                // Fallback: a bare name may be an implicit member of a typed `this`
+                // parameter in scope (e.g. `Type this => ...Year...` where `Year` is a
+                // field of the record `Type`). Resolve it against that type's members.
+                let thisHit =
+                    candidates
+                    |> List.tryPick (fun sid ->
+                        match ctx.ThisTypes.TryGetValue sid with
+                        | true, typeExpr ->
+                            recordScopeOf ctx (HashSet<Guid>()) typeExpr
+                            |> Option.bind (fun recScope -> lookupInScope recScope name)
+                        | _ -> None)
 
-let rec private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
+                match thisHit with
+                | Some declId -> Resolved(declId, name)
+                | None ->
+                    if not hasDeferredScope then
+                        ctx.Diags.Add(UnresolvedName(formatName name))
+                    role
+
+and private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
     let go = resolveExp ctx
 
     let goPart =
@@ -338,6 +410,7 @@ and private resolveMember (ctx: Context) (receiver: CoreExp) (memberExp: CoreExp
 and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: CoreExp) : Scope option =
     match exp with
     | Record (recScope, _) -> Some recScope
+    | Set [ single ] -> recordScopeOf ctx visited single
     | Local (_, e)
     | Publish (_, _, e)
     | ScopeExp (_, e) -> recordScopeOf ctx visited e
@@ -353,9 +426,12 @@ and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: CoreExp)
 // Resolve referential occurrences against the program's scopes.
 // Returns the rewritten tree and any diagnostics collected along the way.
 let resolve (rootScope: Scope) (exp: CoreExp) : CoreExp * Diagnostic list =
+    let registry = buildRegistry rootScope exp
+
     let ctx =
-        { Registry = buildRegistry rootScope exp
+        { Registry = registry
           BindingMap = buildBindingMap exp
+          ThisTypes = buildThisTypes registry exp
           Diags = ResizeArray<Diagnostic>() }
 
     let resolved = resolveExp ctx exp
