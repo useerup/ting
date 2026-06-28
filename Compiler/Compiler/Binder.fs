@@ -129,9 +129,17 @@ module private Marking =
         | Exp.InterpolatedString parts ->
             CoreExp.InterpolatedString(List.map (fun p -> markDeclarationsPart rootScope p scopes) parts)
         | Exp.Projection (e, m) ->
-            let s = createNamesScope() in CoreExp.Projection(s, markDeclarations rootScope e (makeReferential scopes), markDeclarations rootScope m scopes)
+            let s = createNamesScope()
+            let receiver = markDeclarations rootScope e (makeReferential scopes)
+            let memberCore = markDeclarations rootScope m scopes
+            attachHost (fst scopes) (DirectPropertyHost receiver) memberCore
+            CoreExp.Projection(s, receiver, memberCore)
         | Exp.MemberProjection (e, m) ->
-            let s = createNamesScope() in CoreExp.MemberProjection(s, markDeclarations rootScope e (makeReferential scopes), markDeclarations rootScope m scopes)
+            let s = createNamesScope()
+            let receiver = markDeclarations rootScope e (makeReferential scopes)
+            let memberCore = markDeclarations rootScope m scopes
+            attachHost (fst scopes) (MemberPropertyHost receiver) memberCore
+            CoreExp.MemberProjection(s, receiver, memberCore)
         | Exp.This ->
             CoreExp.This(bindingRole scopes [])
         | Exp.Void ->
