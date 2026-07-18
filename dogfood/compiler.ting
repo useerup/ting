@@ -1,0 +1,8 @@
+
+
+    PrefixOperators = { }
+    BinaryOperators = {"||", " }
+
+    `_||_` = (Exp.Of bool lhs,Exp.Of bool rhs) => Env env => let a = lhs env | rhs catch_undef_if _?lhs=>x
+
+    private BinaryOperators all x => $`_{x}_` = Symbol x
