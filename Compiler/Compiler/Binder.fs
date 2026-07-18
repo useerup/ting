@@ -30,6 +30,57 @@ module private Marking =
     open ScopeStackOps
     open Binding
 
+    // Collect the declaration ids introduced by a (member) expression so their
+    // host can be recorded after binding. Used for `int.Zero = ...` (a single
+    // declarative member) and destructuring members like `int.(a, b) = ...`.
+    let private collectDeclarativeIds (exp: CoreExp) : System.Guid list =
+        let acc = ResizeArray<System.Guid>()
+
+        let rec walk e =
+            match e with
+            | Identifier (Declarative (id, _)) -> acc.Add id
+            | Apply (f, a) ->
+                walk f
+                walk a
+            | Tuple xs
+            | Set xs
+            | List xs -> List.iter walk xs
+            | Local (_, x)
+            | Record (_, x)
+            | Publish (_, _, x)
+            | ScopeExp (_, x)
+            | Throw x
+            | IsDefined x -> walk x
+            | Projection (_, _, m)
+            | MemberProjection (_, _, m) -> walk m
+            | Catch (a, b)
+            | Equals (a, b)
+            | ValueEquals (a, b) ->
+                walk a
+                walk b
+            | InterpolatedString parts ->
+                parts
+                |> List.iter (function
+                    | HolePart e -> walk e
+                    | TextPart _ -> ())
+            | Identifier _
+            | This _
+            | Literal _
+            | Void
+            | Unknown -> ()
+
+        walk exp
+        acc |> List.ofSeq
+
+    // Record where a projection-declared name lives: e.g. `int.Zero` hosts `Zero`
+    // directly on `int`, and `int..Double` hosts `Double` on the members of `int`.
+    let private attachHost (declScopes: Scope list) (host: NameHost) (memberCore: CoreExp) : unit =
+        for id in collectDeclarativeIds memberCore do
+            for s in declScopes do
+                match s.Names.TryGetValue id with
+                | true, entry -> s.Names.[id] <- { entry with Host = Some host }
+                | _ -> ()
+
     let rec markDeclarations (rootScope: Scope) (exp: Exp) (scopes: ScopeStack) : CoreExp =
         match exp with
         | Exp.Declare e ->
@@ -78,9 +129,17 @@ module private Marking =
         | Exp.InterpolatedString parts ->
             CoreExp.InterpolatedString(List.map (fun p -> markDeclarationsPart rootScope p scopes) parts)
         | Exp.Projection (e, m) ->
-            let s = createNamesScope() in CoreExp.Projection(s, markDeclarations rootScope e (makeReferential scopes), markDeclarations rootScope m scopes)
+            let s = createNamesScope()
+            let receiver = markDeclarations rootScope e (makeReferential scopes)
+            let memberCore = markDeclarations rootScope m scopes
+            attachHost (fst scopes) (DirectPropertyHost receiver) memberCore
+            CoreExp.Projection(s, receiver, memberCore)
         | Exp.MemberProjection (e, m) ->
-            let s = createNamesScope() in CoreExp.MemberProjection(s, markDeclarations rootScope e (makeReferential scopes), markDeclarations rootScope m scopes)
+            let s = createNamesScope()
+            let receiver = markDeclarations rootScope e (makeReferential scopes)
+            let memberCore = markDeclarations rootScope m scopes
+            attachHost (fst scopes) (MemberPropertyHost receiver) memberCore
+            CoreExp.MemberProjection(s, receiver, memberCore)
         | Exp.This ->
             CoreExp.This(bindingRole scopes [])
         | Exp.Void ->

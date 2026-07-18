@@ -30,6 +30,26 @@ let private declarationKindText (entry: NameEntry) =
     | Some (DirectPropertyHost _) -> "property"
     | Some (MemberPropertyHost _) -> "member-property"
 
+// Short display of a host expression: the host's name plus the access marker
+// (`.` for direct properties, `..` for member properties). Proves the host was
+// recorded in the scope, e.g. `host=int.` or `host=int..`.
+let private formatHostSuffix (entry: NameEntry) =
+    let rec hostName e =
+        match e with
+        | Identifier (Declarative (_, parts))
+        | Identifier (Referential (_, parts))
+        | Identifier (Resolved (_, parts)) -> formatNameParts parts
+        | Local (_, x)
+        | Record (_, x)
+        | ScopeExp (_, x)
+        | Publish (_, _, x) -> hostName x
+        | _ -> "?"
+
+    match entry.Host with
+    | None -> ""
+    | Some (DirectPropertyHost e) -> $" host={hostName e}."
+    | Some (MemberPropertyHost e) -> $" host={hostName e}.."
+
 let private collectProjectedDeclarationKinds (exp: CoreExp) =
     let kinds = System.Collections.Generic.Dictionary<Guid, string>()
 
@@ -108,7 +128,7 @@ let private formatScopeNames (projectedKinds: System.Collections.Generic.Diction
             match projectedKinds.TryGetValue kvp.Key with
             | true, projectedKind -> projectedKind
             | _ -> declarationKindText entry
-        $"{formatNameParts entry.NameParts}<{kindText}>")
+        $"{formatNameParts entry.NameParts}<{kindText}>{formatHostSuffix entry}")
     |> String.concat ", "
 
 // Build a textual scope report used by console and file output.
@@ -135,6 +155,7 @@ let rec private renderInterpolatedPart = function
 
 and private renderBindingRole = function
     | Declarative (id, _) -> $"decl:{id}"
+    | Resolved (id, _) -> $"resolved:{id}"
     | Referential (scopeIds, _) ->
         let scopesText = scopeIds |> List.map string |> String.concat ", "
         $"ref:[{scopesText}]"
@@ -171,6 +192,9 @@ and renderExpression (exp: CoreExp) : string =
     | MemberProjection (s, e, m) -> $"({renderExpression e})..[{formatScope s}]({renderExpression m})"
     | Equals (a, b) -> $"({renderExpression a} = {renderExpression b})"
     | ValueEquals (a, b) -> $"({renderExpression a} == {renderExpression b})"
+    | Throw e -> $"throw {renderExpression e}"
+    | Catch (a, b) -> $"({renderExpression a} catch {renderExpression b})"
+    | IsDefined e -> $"defined?({renderExpression e})"
     | This role -> $"this[{renderBindingRole role}]"
     | Void -> "void"
     | Unknown -> "???"

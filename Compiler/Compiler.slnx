@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Compiler/Compiler.fsproj" />
+  <Project Path="TingCompilerCli/TingCompilerCli.fsproj" />
+  <Project Path="Examples.Tests/Examples.Tests.fsproj" />
+  <Project Path="Examples.Tools/Examples.Tools.fsproj" />
+</Solution>

@@ -18,6 +18,7 @@ and private collectDefinitionScopesFromScope (acc: ResizeArray<Scope>) (s: Scope
 // Referential roles are traversed only through interpolated name holes.
 and private collectDefinitionScopesFromRole (acc: ResizeArray<Scope>) = function
     | Declarative _ -> ()
+    | Resolved _ -> ()
     | Referential (_, nameParts) ->
         for p in nameParts do
             collectDefinitionScopesFromPart acc p
@@ -68,9 +69,13 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: CoreExp) : u
         collectDefinitionScopes acc e
         collectDefinitionScopes acc m
     | Equals (a, b)
-    | ValueEquals (a, b) ->
+    | ValueEquals (a, b)
+    | Catch (a, b) ->
         collectDefinitionScopes acc a
         collectDefinitionScopes acc b
+    | Throw e
+    | IsDefined e ->
+        collectDefinitionScopes acc e
     | Unknown -> ()
 
 // Public helper to collect scopes from a CoreExp.

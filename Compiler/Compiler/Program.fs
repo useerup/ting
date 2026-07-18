@@ -1,4 +1,4 @@
-﻿module Program
+﻿module CompilerEngine
 
 open System
 open System.IO
@@ -8,6 +8,31 @@ open Binder
 open CoreExp
 open CoreExpDiagnostics
 open CoreExpScopes
+
+// Declarations receive a fresh Guid on every compilation, so raw output is not
+// stable across runs. Rewrite each distinct non-empty Guid to a sequential
+// placeholder (#0, #1, ...) in order of first appearance. This keeps snapshots
+// stable while preserving identity relationships (same Guid -> same placeholder).
+let private guidRegex =
+    System.Text.RegularExpressions.Regex(
+        "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+let private normalizeGuids (text: string) : string =
+    let mapping = System.Collections.Generic.Dictionary<string, string>()
+    let empty = Guid.Empty.ToString()
+    guidRegex.Replace(
+        text,
+        fun m ->
+            let g = m.Value
+            if g = empty then
+                g
+            else
+                match mapping.TryGetValue g with
+                | true, placeholder -> placeholder
+                | _ ->
+                    let placeholder = $"#{mapping.Count}"
+                    mapping.Add(g, placeholder)
+                    placeholder)
 
 let private extractFenceInfo (line: string) =
     let trimmed = line.TrimStart()
@@ -19,7 +44,7 @@ let private extractFenceInfo (line: string) =
 let private isFenceLine (line: string) =
     line.TrimStart().StartsWith("```")
 
-let private compileTingProgram (input: string) : string =
+let private compileTingProgramRaw (input: string) : string =
     match tryParseExpression input with
     | Success(result, _, _) ->
         let rootScope = CoreExp.LocalScope(Guid.Empty) :> CoreExp.Scope
@@ -91,16 +116,33 @@ let private compileTingProgram (input: string) : string =
         rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
 
         let res = markDeclarations rootScope result ([], [rootScope])
-        let scopes = renderScopeReport res
-        let coreExp = res.ToString()
+        let resolved, diagnostics = Resolver.resolve rootScope res
+        let scopes = renderScopeReport resolved
+        let coreExp = resolved.ToString()
         let scopesSection =
             if String.IsNullOrWhiteSpace scopes then
                 "No scopes collected."
             else
                 scopes
-        $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}"
+        let diagnosticsSection =
+            if List.isEmpty diagnostics then
+                ""
+            else
+                let lines =
+                    diagnostics
+                    |> List.map (fun d -> $"- {Resolver.formatDiagnostic d}")
+                    |> String.concat "\n"
+                $"\n\nDiagnostics:\n{lines}"
+        let valueSection =
+            match Evaluator.evaluate rootScope resolved with
+            | Some v when Evaluator.isDisplayable v -> $"\n\nValue:\n{Evaluator.render v}"
+            | _ -> ""
+        $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}{diagnosticsSection}{valueSection}"
     | Failure(errorMsg, _, _) ->
         $"Compilation failed.\nError: {errorMsg}"
+
+let compileTingProgram (input: string) : string =
+    normalizeGuids (compileTingProgramRaw input)
 
 let private updateMarkdownWithCompilerOutput (markdown: string) =
     let lines = markdown.Replace("\r\n", "\n").Split('\n')
@@ -181,29 +223,23 @@ let private updateMarkdownWithCompilerOutput (markdown: string) =
                 rewriteMarkdown (idx + 1)
 
     rewriteMarkdown 0
-    String.concat Environment.NewLine result
+    String.concat "\n" result
 
-[<EntryPoint>]
-let main argv =
-    let examplesDir = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "..", "..", "test-examples"))
+let updateMarkdownExamples (markdown: string) : string =
+    updateMarkdownWithCompilerOutput markdown
 
-    if not (Directory.Exists examplesDir) then
-        Directory.CreateDirectory examplesDir |> ignore
+let processMarkdownFile (filePath: string) : bool =
+    let markdown = File.ReadAllText(filePath)
+    let updated = updateMarkdownWithCompilerOutput markdown
+    if updated <> markdown.Replace("\r\n", "\n") then
+        File.WriteAllText(filePath, updated)
+        File.SetLastWriteTimeUtc(filePath, DateTime.UtcNow)
+        true
+    else
+        false
 
-    let exampleFiles =
-        Directory.GetFiles(examplesDir, "*.ting.md")
-        |> Array.sort
-
-    if Environment.UserInteractive then
-        try
-            Console.Clear()
-        with
-        | :? IOException -> ()
-
-    for exampleFile in exampleFiles do
-        let markdown = File.ReadAllText(exampleFile)
-        let updated = updateMarkdownWithCompilerOutput markdown
-        File.WriteAllText(exampleFile, updated)
-        File.SetLastWriteTimeUtc(exampleFile, DateTime.UtcNow)
-
-    0
+let verifyMarkdownFile (filePath: string) : bool =
+    let markdown = File.ReadAllText(filePath)
+    let expected = markdown.Replace("\r\n", "\n")
+    let actual = updateMarkdownWithCompilerOutput markdown
+    actual = expected

@@ -1,9 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FParsec" Version="1.1.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="Exp.fs" />
@@ -13,6 +16,8 @@
     <Compile Include="CoreExp.Rendering.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Binder.fs" />
+    <Compile Include="Resolver.fs" />
+    <Compile Include="Evaluator.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -46,21 +51,13 @@
     <None Include="examples\push_scope_wunder.ting" />
     <None Include="examples\quoted_keyword_assignment.ting" />
     <None Include="examples\range_set.ting" />
-    <None Include="examples\record_with_assignment.ting" />
-    <None Include="examples\set_with_filter.ting" />
-    <None Include="examples\single_identifier.ting" />
-    <None Include="examples\string_lambda.ting" />
-    <None Include="examples\this_keyword.ting" />
-    <None Include="examples\void_keyword.ting" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="FParsec" Version="1.1.1" />
-    <PackageReference Include="Markdig" Version="0.37.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Compiler\" />
+    <None Include="examples\set_in_set_in_set.ting" />
+    <None Include="examples\set_in_set.ting" />
+    <None Include="examples\set.ting" />
+    <None Include="examples\string_interpolated_bang_bang.ting" />
+    <None Include="examples\string_interpolated.ting" />
+    <None Include="examples\this_call.ting" />
+    <None Include="examples\until_operator.ting" />
   </ItemGroup>
 
 </Project>
