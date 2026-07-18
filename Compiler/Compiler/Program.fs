@@ -2,8 +2,8 @@
 
 open System
 open System.IO
-open FParsec
 open Parser
+open ParseResult
 open Binder
 open CoreExp
 open CoreExpDiagnostics
@@ -45,8 +45,8 @@ let private isFenceLine (line: string) =
     line.TrimStart().StartsWith("```")
 
 let private compileTingProgramRaw (input: string) : string =
-    match tryParseExpression input with
-    | Success(result, _, _) ->
+    match parse input with
+    | ParseSucceeded result ->
         let rootScope = CoreExp.LocalScope(Guid.Empty) :> CoreExp.Scope
         rootScope.defineName(Guid.NewGuid(), "_=>_", Unknown)
         rootScope.defineName(Guid.NewGuid(), "_==_", Unknown)
@@ -138,7 +138,7 @@ let private compileTingProgramRaw (input: string) : string =
             | Some v when Evaluator.isDisplayable v -> $"\n\nValue:\n{Evaluator.render v}"
             | _ -> ""
         $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}{diagnosticsSection}{valueSection}"
-    | Failure(errorMsg, _, _) ->
+    | ParseFailed errorMsg ->
         $"Compilation failed.\nError: {errorMsg}"
 
 let compileTingProgram (input: string) : string =
