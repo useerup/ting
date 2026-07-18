@@ -1,4 +1,4 @@
-﻿module Program
+﻿module CompilerEngine
 
 open System
 open System.IO
@@ -141,7 +141,7 @@ let private compileTingProgramRaw (input: string) : string =
     | Failure(errorMsg, _, _) ->
         $"Compilation failed.\nError: {errorMsg}"
 
-let private compileTingProgram (input: string) : string =
+let compileTingProgram (input: string) : string =
     normalizeGuids (compileTingProgramRaw input)
 
 let private updateMarkdownWithCompilerOutput (markdown: string) =
@@ -225,60 +225,21 @@ let private updateMarkdownWithCompilerOutput (markdown: string) =
     rewriteMarkdown 0
     String.concat "\n" result
 
-[<EntryPoint>]
-let main argv =
-    // Modes:
-    //   (default)  update - compile each example and rewrite its ```ting-output```
-    //                       snapshot in place, reporting which files changed. This
-    //                       lets you follow progress directly in the files.
-    //   --check           - compile each example and compare against the committed
-    //                       snapshot WITHOUT writing; report mismatches, fail on any.
-    // An optional positional argument overrides the examples directory.
-    let check = argv |> Array.exists (fun a -> a = "--check")
-    let pathArg = argv |> Array.tryFind (fun a -> not (a.StartsWith "-"))
+let updateMarkdownExamples (markdown: string) : string =
+    updateMarkdownWithCompilerOutput markdown
 
-    let examplesDir =
-        match pathArg with
-        | Some p -> Path.GetFullPath p
-        | None -> Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, "..", "..", "..", "test-examples"))
-
-    if not (Directory.Exists examplesDir) then
-        eprintfn "Examples directory not found: %s" examplesDir
-        1
+let processMarkdownFile (filePath: string) : bool =
+    let markdown = File.ReadAllText(filePath)
+    let updated = updateMarkdownWithCompilerOutput markdown
+    if updated <> markdown.Replace("\r\n", "\n") then
+        File.WriteAllText(filePath, updated)
+        File.SetLastWriteTimeUtc(filePath, DateTime.UtcNow)
+        true
     else
+        false
 
-    let exampleFiles =
-        Directory.GetFiles(examplesDir, "*.ting.md")
-        |> Array.sort
-
-    if check then
-        let mutable failures = 0
-        for exampleFile in exampleFiles do
-            let markdown = File.ReadAllText(exampleFile)
-            let expected = markdown.Replace("\r\n", "\n")
-            let actual = updateMarkdownWithCompilerOutput markdown
-            if actual <> expected then
-                failures <- failures + 1
-                printfn "FAIL %s" (Path.GetFileName exampleFile)
-
-        printfn ""
-        if failures = 0 then
-            printfn "All %d example(s) passed." exampleFiles.Length
-            0
-        else
-            printfn "%d of %d example(s) failed." failures exampleFiles.Length
-            1
-    else
-        let mutable changed = 0
-        for exampleFile in exampleFiles do
-            let markdown = File.ReadAllText(exampleFile)
-            let updated = updateMarkdownWithCompilerOutput markdown
-            if updated <> markdown.Replace("\r\n", "\n") then
-                File.WriteAllText(exampleFile, updated)
-                File.SetLastWriteTimeUtc(exampleFile, DateTime.UtcNow)
-                changed <- changed + 1
-                printfn "updated %s" (Path.GetFileName exampleFile)
-
-        printfn ""
-        printfn "Regenerated %d of %d example(s) in %s" changed exampleFiles.Length examplesDir
-        0
+let verifyMarkdownFile (filePath: string) : bool =
+    let markdown = File.ReadAllText(filePath)
+    let expected = markdown.Replace("\r\n", "\n")
+    let actual = updateMarkdownWithCompilerOutput markdown
+    actual = expected
