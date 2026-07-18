@@ -3,6 +3,7 @@ module Parser
 open System
 open FParsec
 open Exp
+open ParseResult
 
 // Parser implementation for Ting grammar.
 // Uses FParsec's operator precedence parser for infix/prefix handling.
@@ -197,3 +198,10 @@ exprRef := pExpr
 
 let parseExpression: Parser<Exp> = ws >>. pExpr .>> eof
 let tryParseExpression (input: string) = run parseExpression input
+
+// Parser-neutral entry point. This is the contract the compiler consumes, so
+// no FParsec type leaks past this library and the parser can be swapped later.
+let parse (input: string) : ParseResult =
+    match tryParseExpression input with
+    | Success(result, _, _) -> ParseSucceeded result
+    | Failure(errorMsg, _, _) -> ParseFailed errorMsg
