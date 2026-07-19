@@ -1,31 +1,24 @@
 ## Declarations
 
-Ting has no dedicated declaration syntax. Identifiers are declared *inline* within the expressions where they appear.
+Ting has no dedicated declaration syntax. Identifiers are declared inline, by appearing in a declarative scope.
 
-    let a=21 in a*2
+    let a = 21 in a * 2     // expression value is 42
 
-If you know other languages with "let-bindings" this may look familar. But this is deceptive, and will become clear once we place the implied paranthesis:
+If you know other languages with "let bindings", this may look familiar. In Ting, though, the important part is not the surface form. The important part is scope.
 
-    let ( (a=21) in (a*2) )
+`=` is not an assignment operator here; it is a relational operator. The left-hand identifier is only declared because it appears in a declarative position.
 
-This expression is the same as the above. The parenthesis simply illustrate how the expression is parsed when considering operator precedence.
+When one or more declarative scopes cover an expression, the expression is said to be declarative. When only referential scopes cover an expression, the expression is said to be referential.
 
-In other words, there is no rule that `let` ... `in` has to sorround an "assignment". In fact, `let` is its own (prefix) operator, `in` is a separate binary infix operator, and `a=21` is not an assignment; rather it is a relational expression which compares `a` to the value `21`. 
+Whether an identifier is being declared or referenced depends entirely on the scope in which it appears.
 
-`=` ("identical to", or "same as") is a *relational operator*. Relational operators compares two values in some way and returns a `bool` value. Other examples of relational operators are `<`, `<=`, `>=`, `>`, `!=`, `==` ("equal to"), `:` ("member of") etc.
+So in the above example this is what goes on: 
+- `let` introduces a new local scope (covers only the `let` expression itself) and makes its operand *declarative*
+- `in` splits this declarative expression into a declarative left side `a = 21` and a referential right side `a * 2`.
+- `=` further splits the declarative left side from `in` into a declarative left side `a` and a referential right side `21`.
 
-When one or more scopes declarative scopes covers an expression, the expression is said to be *declarative*. When only referential scopes cover an expression, the expression is said to be *referential*.
+So the expression declares a variable `a` *locally within the expression*, binds it to the value `21` and the entire expression is then the value `a * 2`, i.e. `42`.
 
-`let` creates a new local scope
-
-
-    let (q=626 in q+a) => q * a
-
-    a => a+b => a+b+c => c
-
-
-
-when those expressions appear in a *declarative scope*. Whether an identifier is being declared or referenced depends entirely on the scope in which it appears.
 
 ### Declarative and referential scopes
 
@@ -46,6 +39,16 @@ contains both declarative and referential sub-expressions:
 - `x` to the left of `=` is *declarative* — it is being declared here.
 - The `x`'s after `in` are *referential* — they reference the `x` declared above.
 
+`let` is a local scope operator. It often appears together with `in`, but it does not require `in`.
+
+`in` is a separate operator. It is right-referential, so when it appears in a declarative scope the left side stays declarative and the right side becomes referential.
+
+`in` is still useful in purely referential positions, because constrains the value of the right operand to those that satisfy the left operand proposition. `x>0 in x` means that the value of this expression (which is just `x`) is only defined if x is greater than zero.
+
+    let int a = x * 2 & a = y * 3
+
+This uses `let` without `in`. It constrains `x` and `y` to combinations of values for which there exists an integer `a` such that `a = x * 2` and `a = y * 3`. In that sense, `let` behaves like an existential constraint over a local scope.
+
 ### Declaring operators
 
 The following unary operators establish a new declarative scope over their operand:
@@ -55,20 +58,20 @@ The following unary operators establish a new declarative scope over their opera
 | `public` | Module-level with public visibility |
 | `private` | Module-level with private visibility |
 | `protected` | Module-level with protected visibility |
-| `local` | Module-level with local (file-scoped) visibility |
-| `record` | |
-| `records` | |
-| `tuple` | |
-| `tuples` | |
-| `fn` | |
+| `local` | Module-level with file-scoped visibility |
+| `record` | Record scope over its operand |
+| `records` | Record scope over each record in the resulting set |
+| `tuple` | Tuple scope over its operand |
+| `tuples` | Tuple scope over each tuple in the resulting set |
+| `fn` | Function-definition scope over its operand |
 
 ### Local declarative operators
 
-The following binary operators establish a new declarative local scope over both operands (i.e. for the entire expression). Because these operators are also right-referential that scope is only declarative for their left operand:
+The following binary operators establish a new declarative local scope over both operands. Because these operators are also right-referential, the scope is only declarative for the left operand:
 
 | Operator | Description |
 |---|---|
-| `let` |  |
+| `let` | Local scope introducer |
 | `=>` | Lambda function |
 | `\` | Such that |
 
@@ -95,21 +98,29 @@ Some operators, when appearing in a declarative scope, keep the declarative scop
 
 This is why `public y = x * 2` works as expected: `public` establishes a declarative scope; `=` keeps that declarative scope for `y` (which is declared) but switches to referential for `x * 2` (where `x` must already be known).
 
+The same rule explains why `let x = 5 in x + 2` works: `let` opens the local declarative scope, `x = 5` declares `x`, and `in` makes the right-hand expression referential with respect to that binding.
+
 ### Operator reference
 
 #### `let`
 
-`let` creates a new declarative local scope spanning its operand. Bindings introduced by `let` are not visible outside the expression. It is typically paired with `in` to delimit where the bindings are available:
+`let` creates a new declarative local scope. Bindings introduced by `let` are not visible outside the expression. It is often paired with `in`, but it does not have to be:
 
     let answer = 42 in $"The answer is {answer}"    // "The answer is 42"
 
-`let` also supports recursive bindings via `?=` (see [`?=`](#-unify) below):
+`let` also supports recursive bindings via `?=` (see `?=` below):
 
     let f ?= fn{ 0 -> 1, int n?>0 -> n * f(n-1) }
     in  f 5    // 120  (5!)
 
     // Quicksort
     let qs ~ Span.Of Comparable a => let p=a.[0] in qs(a??<p) + (a??==p) + qs(a??>p)
+
+`let` can also act as an existential-style constraint when it is combined with a right- or left-referential operator instead of `in`:
+
+    let int a = x * 2 & a = y * 3
+
+Here `let` does not introduce a binding that escapes. It only establishes a local scope in which the constraint can be satisfied.
 
 #### `public`, `private`, `protected`, `local`
 
@@ -119,7 +130,7 @@ These visibility modifiers declare identifiers in the enclosing module or record
 
 #### `in`
 
-`in` is a right-referential operator typically combined with `let` to scope bindings over the right-hand expression:
+`in` is a right-referential operator. It is typically combined with `let` to scope bindings over the right-hand expression, but it is not part of `let` itself:
 
     let f = (0=>1)||(x=>x*f(x-1))
     in  f 5    // 120  (5!)
@@ -204,4 +215,4 @@ The following function parses a string:
 
     $"{Word name} = {int value}" => (name,value)
 
-How it works:
+The parameter pattern is declarative: it declares `name` and `value` inside the lambda body. The body is referential, so it can return the declared names as a tuple.

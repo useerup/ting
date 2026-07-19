@@ -36,11 +36,11 @@ let pIdentifier: Parser<Exp> =
             if keywords.Contains(name) then
                 fail $"'{name}' is a reserved keyword"
             else
-                preturn (Exp.Identifier [ TextPart name ]))
+                preturn (Exp.Identifier(Unbound [ TextPart name ])))
 
     let pQuoted =
         between (skipChar '`') (skipChar '`') (many1Satisfy (fun c -> c <> '`'))
-        |>> (fun name -> Exp.Identifier [ TextPart name ])
+        |>> (fun name -> Exp.Identifier(Unbound [ TextPart name ]))
 
     (attempt pQuoted <|> pPlain) .>> ws
 
@@ -59,7 +59,7 @@ let pNumber: Parser<Exp> =
 let pBool: Parser<Exp> =
     (keyword "true" >>% Literal(Boolean true)) <|> (keyword "false" >>% Literal(Boolean false))
 
-let pThis: Parser<Exp> = keyword "this" >>% This
+let pThis: Parser<Exp> = keyword "this" >>% This(Unbound [])
 let pVoid: Parser<Exp> = keyword "void" >>% Void
 
 let expr, exprRef = createParserForwardedToRef<Exp, UserState>()
@@ -80,14 +80,14 @@ let pInterpolatedString: Parser<Exp> =
     let exprPart: Parser<InterpolatedPart> = between (skipChar '{') (skipChar '}') expr |>> HolePart
     let part: Parser<InterpolatedPart> = attempt exprPart <|> literalPart
     (skipChar '$' >>. between (skipSatisfy isDoubleQuote) (skipSatisfy isDoubleQuote) (many part)
-    |>> fun parts -> Exp.InterpolatedString parts) .>> ws
+    |>> fun parts -> Exp.StringLiteral parts) .>> ws
 
 let pInterpolatedIdentifier: Parser<Exp> =
     let literalPart: Parser<InterpolatedPart> = many1Satisfy (fun c -> c <> '`' && c <> '{') |>> TextPart
     let exprPart: Parser<InterpolatedPart> = between (skipChar '{') (skipChar '}') expr |>> HolePart
     let part: Parser<InterpolatedPart> = attempt exprPart <|> literalPart
     (skipChar '$' >>. between (skipChar '`') (skipChar '`') (many part)
-    |>> fun parts -> Exp.Identifier parts) .>> ws
+    |>> fun parts -> Exp.Identifier(Unbound parts)) .>> ws
 
 let pTerm: Parser<Exp> =
     choice [
@@ -121,10 +121,10 @@ let pApp: Parser<Exp> = many1 (attempt pTerm) |>> List.reduce (fun f x -> Apply(
 opp.TermParser <- pApp
 
 opp.AddOperator(PrefixOperator("let", ws, 1, true, fun b -> Declare b))
-opp.AddOperator(PrefixOperator("public", ws, 1, true, fun b -> Publish(Public, b)))
-opp.AddOperator(PrefixOperator("private", ws, 1, true, fun b -> Publish(Private, b)))
-opp.AddOperator(PrefixOperator("protected", ws, 1, true, fun b -> Publish(Protected, b)))
-opp.AddOperator(PrefixOperator("internal", ws, 1, true, fun b -> Publish(Internal, b)))
+opp.AddOperator(PrefixOperator("public", ws, 1, true, fun b -> Publish(ExpScopes.createNamesScope(), Public, b)))
+opp.AddOperator(PrefixOperator("private", ws, 1, true, fun b -> Publish(ExpScopes.createNamesScope(), Private, b)))
+opp.AddOperator(PrefixOperator("protected", ws, 1, true, fun b -> Publish(ExpScopes.createNamesScope(), Protected, b)))
+opp.AddOperator(PrefixOperator("internal", ws, 1, true, fun b -> Publish(ExpScopes.createNamesScope(), Internal, b)))
 
 opp.AddOperator(InfixOperator("where", ws, 3, Associativity.Right, declareRightOperator "where"))
 
@@ -184,15 +184,15 @@ opp.AddOperator(InfixOperator("%", ws, 140, Associativity.Left, operator "%"))
 opp.AddOperator(InfixOperator("/%", ws, 140, Associativity.Left, operator "/%"))
 opp.AddOperator(InfixOperator("^", ws, 150, Associativity.Left, operator "^"))
 
-opp.AddOperator(PrefixOperator("record", ws, 155, true, fun b -> Record b))
-opp.AddOperator(PrefixOperator("records", ws, 155, true, fun b -> Set([ Record b ])))
+opp.AddOperator(PrefixOperator("record", ws, 155, true, fun b -> Record(ExpScopes.createNamesScope(), b)))
+opp.AddOperator(PrefixOperator("records", ws, 155, true, fun b -> Set([ Record(ExpScopes.createNamesScope(), b) ])))
 opp.AddOperator(PrefixOperator("tuple", ws, 155, true, fun b -> b))
 opp.AddOperator(PrefixOperator("tuples", ws, 155, true, fun b -> Set [b]))
 opp.AddOperator(PrefixOperator("fn", ws, 155, true, prefixOperator "fn"))
 opp.AddOperator(PrefixOperator("class", ws, 155, true, prefixOperator "class"))
 
-opp.AddOperator(InfixOperator(".", ws, 160, Associativity.Left, fun a b -> Projection(a,b)))
-opp.AddOperator(InfixOperator("..", ws, 160, Associativity.Left, fun a b -> MemberProjection(a,b)))
+opp.AddOperator(InfixOperator(".", ws, 160, Associativity.Left, fun a b -> Projection(ExpScopes.createNamesScope(), a, b)))
+opp.AddOperator(InfixOperator("..", ws, 160, Associativity.Left, fun a b -> MemberProjection(ExpScopes.createNamesScope(), a, b)))
 
 exprRef := pExpr
 
@@ -201,7 +201,14 @@ let tryParseExpression (input: string) = run parseExpression input
 
 // Parser-neutral entry point. This is the contract the compiler consumes, so
 // no FParsec type leaks past this library and the parser can be swapped later.
-let parse (input: string) : ParseResult =
+//
+// Parsing produces the analyzed AST directly: the raw parse tree is annotated
+// by the Binder before it is returned, so declarative identifiers already
+// carry their declaration ids (recorded in the declarative scopes) and
+// referential identifiers carry their ordered candidate scope-id lists.
+// `rootScope` is the outermost (usually builtin-populated) scope, which is the
+// last referential candidate for every free name.
+let parse (rootScope: Scope) (input: string) : ParseResult =
     match tryParseExpression input with
-    | Success(result, _, _) -> ParseSucceeded result
+    | Success(result, _, _) -> ParseSucceeded(Binder.markDeclarations rootScope result ([], [ rootScope ]))
     | Failure(errorMsg, _, _) -> ParseFailed errorMsg

@@ -2,12 +2,13 @@ module Resolver
 
 open System
 open System.Collections.Generic
-open CoreExp
-open CoreExpScopeAnalysis
+open Exp
+open ExpScopeAnalysis
 
 // Name resolution pass.
 //
-// markDeclarations (Binder) produces a CoreExp where every referential occurrence
+// markDeclarations (Binder, run as part of parsing) produces an analyzed Exp
+// where every referential occurrence
 // carries the ordered list of candidate scope ids (nearest enclosing scope first,
 // root/published scope last). This pass walks that list, finds the nearest scope
 // that declares a matching name, and rewrites the occurrence to BindingRole.Resolved
@@ -25,7 +26,7 @@ type Diagnostic =
 
 // Compare two name patterns. Only fully textual names participate in static
 // resolution; any interpolation hole makes the name dynamic and unresolved here.
-let private namePartsEqual (a: CoreInterpolatedPart list) (b: CoreInterpolatedPart list) =
+let private namePartsEqual (a: InterpolatedParts) (b: InterpolatedParts) =
     a.Length = b.Length
     && List.forall2
         (fun x y ->
@@ -35,13 +36,13 @@ let private namePartsEqual (a: CoreInterpolatedPart list) (b: CoreInterpolatedPa
         a
         b
 
-let private nameHasHole (parts: CoreInterpolatedPart list) =
+let private nameHasHole (parts: InterpolatedParts) =
     parts
     |> List.exists (function
         | HolePart _ -> true
         | _ -> false)
 
-let private formatName (parts: CoreInterpolatedPart list) =
+let private formatName (parts: InterpolatedParts) =
     parts
     |> List.map (function
         | TextPart s -> s
@@ -49,7 +50,7 @@ let private formatName (parts: CoreInterpolatedPart list) =
     |> String.concat ""
 
 // The first declaration id in a scope whose name matches.
-let private lookupInScope (scope: Scope) (name: CoreInterpolatedPart list) : Guid option =
+let private lookupInScope (scope: Scope) (name: InterpolatedParts) : Guid option =
     scope.Names
     |> Seq.tryPick (fun kvp ->
         if namePartsEqual kvp.Value.NameParts name then
@@ -60,7 +61,7 @@ let private lookupInScope (scope: Scope) (name: CoreInterpolatedPart list) : Gui
 // As lookupInScope, but ignores hosted names. Hosted names (extension
 // properties/members declared via `int.Zero` / `int..Double`) are only reachable
 // through a projection on their host, never as bare lexical names.
-let private lookupUnhostedInScope (scope: Scope) (name: CoreInterpolatedPart list) : Guid option =
+let private lookupUnhostedInScope (scope: Scope) (name: InterpolatedParts) : Guid option =
     scope.Names
     |> Seq.tryPick (fun kvp ->
         if kvp.Value.Host.IsNone && namePartsEqual kvp.Value.NameParts name then
@@ -69,7 +70,7 @@ let private lookupUnhostedInScope (scope: Scope) (name: CoreInterpolatedPart lis
             None)
 
 // Map every scope id reachable from the program (plus the root scope) to its Scope.
-let private buildRegistry (rootScope: Scope) (exp: CoreExp) : Dictionary<Guid, Scope> =
+let private buildRegistry (rootScope: Scope) (exp: Exp) : Dictionary<Guid, Scope> =
     let registry = Dictionary<Guid, Scope>()
     registry[rootScope.Id] <- rootScope
     for s in collectAllScopes exp do
@@ -77,8 +78,9 @@ let private buildRegistry (rootScope: Scope) (exp: CoreExp) : Dictionary<Guid, S
             registry[s.Id] <- s
     registry
 
-let private nameOfRole (role: BindingRole) : CoreInterpolatedPart list =
+let private nameOfRole (role: BindingRole) : InterpolatedParts =
     match role with
+    | Unbound p
     | Declarative (_, p)
     | Referential (_, p)
     | Resolved (_, p) -> p
@@ -88,8 +90,8 @@ let private nameOfRole (role: BindingRole) : CoreInterpolatedPart list =
 // left operand is a declarative identifier introduce a binding; comparison uses
 // of `=` (where the left operand is, say, a projection) are ignored. This is the
 // minimal structural knowledge needed to resolve member projections.
-let private buildBindingMap (exp: CoreExp) : Dictionary<Guid, CoreExp> =
-    let map = Dictionary<Guid, CoreExp>()
+let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp> =
+    let map = Dictionary<Guid, Exp>()
 
     let isEqOp e =
         match e with
@@ -127,16 +129,12 @@ let private buildBindingMap (exp: CoreExp) : Dictionary<Guid, CoreExp> =
         | ValueEquals (a, b) ->
             walk a
             walk b
-        | InterpolatedString parts ->
+        | StringLiteral parts ->
             parts
             |> List.iter (function
                 | HolePart e -> walk e
                 | TextPart _ -> ())
-        | Identifier _
-        | This _
-        | Literal _
-        | Void
-        | Unknown -> ()
+        | _ -> ()
 
     walk exp
     map
@@ -146,7 +144,7 @@ let private buildBindingMap (exp: CoreExp) : Dictionary<Guid, CoreExp> =
 // the members of the set `S` (e.g. the fields of the record `S` denotes) are then
 // implicitly in scope in the lambda body as members of `this`.
 // (Ting has no types of its own; `S` denotes a set, e.g. `DateTime`.)
-let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: CoreExp) : Dictionary<Guid, CoreExp> =
+let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dictionary<Guid, Exp> =
     // declaration id -> id of the scope that declares it.
     let declToScope = Dictionary<Guid, Guid>()
 
@@ -156,7 +154,7 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: CoreExp) : 
             if not (declToScope.ContainsKey n.Key) then
                 declToScope[n.Key] <- scope.Id
 
-    let map = Dictionary<Guid, CoreExp>()
+    let map = Dictionary<Guid, Exp>()
 
     let rec walk e =
         match e with
@@ -184,16 +182,12 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: CoreExp) : 
         | ValueEquals (a, b) ->
             walk a
             walk b
-        | InterpolatedString parts ->
+        | StringLiteral parts ->
             parts
             |> List.iter (function
                 | HolePart e -> walk e
                 | TextPart _ -> ())
-        | Identifier _
-        | This _
-        | Literal _
-        | Void
-        | Unknown -> ()
+        | _ -> ()
 
     walk exp
     map
@@ -201,8 +195,8 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: CoreExp) : 
 // Shared state threaded through the resolution pass.
 type private Context =
     { Registry: Dictionary<Guid, Scope>
-      BindingMap: Dictionary<Guid, CoreExp>
-      ThisTypes: Dictionary<Guid, CoreExp>
+      BindingMap: Dictionary<Guid, Exp>
+      ThisTypes: Dictionary<Guid, Exp>
       Diags: ResizeArray<Diagnostic> }
 
 // Resolve a binding role to a single declaration id, where possible. Used when
@@ -221,7 +215,7 @@ let private tryResolveRoleToDecl (ctx: Context) (role: BindingRole) : Guid optio
 
 // The declaration id an expression denotes, for host matching. Follows the
 // identifier of the host/receiver (e.g. `int` -> int's declaration id).
-let rec private exprIdentity (ctx: Context) (exp: CoreExp) : Guid option =
+let rec private exprIdentity (ctx: Context) (exp: Exp) : Guid option =
     match exp with
     | Identifier role -> tryResolveRoleToDecl ctx role
     | Local (_, e)
@@ -231,7 +225,7 @@ let rec private exprIdentity (ctx: Context) (exp: CoreExp) : Guid option =
 
 // The set a receiver is a member of, for `..` (member-property) host matching.
 // Currently known for primitive literals (e.g. `21` is a member of `int`).
-let private receiverTypeIdentity (ctx: Context) (receiver: CoreExp) : Guid option =
+let private receiverTypeIdentity (ctx: Context) (receiver: Exp) : Guid option =
     match receiver with
     | Literal lit ->
         let typeName =
@@ -255,7 +249,7 @@ let private receiverTypeIdentity (ctx: Context) (receiver: CoreExp) : Guid optio
 let private lookupHostedInScope
     (ctx: Context)
     (scope: Scope)
-    (name: CoreInterpolatedPart list)
+    (name: InterpolatedParts)
     (receiverIdentity: Guid option)
     (receiverType: Guid option)
     : Guid option =
@@ -278,6 +272,7 @@ let private lookupHostedInScope
 
 let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
     match role with
+    | Unbound _
     | Declarative _
     | Resolved _ -> role
     | Referential (candidates, name) ->
@@ -338,7 +333,7 @@ let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
                         ctx.Diags.Add(UnresolvedName(formatName name))
                     role
 
-and private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
+and private resolveExp (ctx: Context) (exp: Exp) : Exp =
     let go = resolveExp ctx
 
     let goPart =
@@ -357,7 +352,7 @@ and private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
     | Literal _ -> exp
     | Set xs -> Set(List.map go xs)
     | List xs -> List(List.map go xs)
-    | InterpolatedString parts -> InterpolatedString(List.map goPart parts)
+    | StringLiteral parts -> StringLiteral(List.map goPart parts)
     | Projection (s, e, m) ->
         // The member of `receiver.member` is resolved against the record structure
         // of the receiver, not the enclosing lexical scopes.
@@ -372,12 +367,22 @@ and private resolveExp (ctx: Context) (exp: CoreExp) : CoreExp =
     | IsDefined e -> IsDefined(go e)
     | Equals (a, b) -> Equals(go a, go b)
     | ValueEquals (a, b) -> ValueEquals(go a, go b)
+    // Surface marker nodes: eliminated by the Binder before resolution.
+    | Declare _
+    | Reference _
+    | DeclareLeft _
+    | DeclareRight _
+    | ReferenceLeft _
+    | ReferenceRight _
+    | BuiltIn _
+    | PushScope _
+    | PushMemberScope _ -> exp
 
 // Resolve `receiver.member`. The member is resolved against (a) the record
 // structure of the receiver, then (b) hosted extension properties/members whose
 // host matches the receiver. There is no lexical fallback: member names are not
 // lexically scoped. If the receiver's structure is unknown, defer silently.
-and private resolveMember (ctx: Context) (receiver: CoreExp) (memberExp: CoreExp) : CoreExp =
+and private resolveMember (ctx: Context) (receiver: Exp) (memberExp: Exp) : Exp =
     match memberExp with
     | Identifier (Referential (cands, name)) when not (nameHasHole name) ->
         let recScopeOpt = recordScopeOf ctx (HashSet<Guid>()) receiver
@@ -409,7 +414,7 @@ and private resolveMember (ctx: Context) (receiver: CoreExp) (memberExp: CoreExp
 
 // Find the record scope denoted by an expression, following identifier bindings
 // (e.g. `person` -> `record(Name:string)`) with cycle protection.
-and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: CoreExp) : Scope option =
+and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Exp) : Scope option =
     match exp with
     | Record (recScope, _) -> Some recScope
     | Set [ single ] -> recordScopeOf ctx visited single
@@ -427,7 +432,7 @@ and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: CoreExp)
 
 // Resolve referential occurrences against the program's scopes.
 // Returns the rewritten tree and any diagnostics collected along the way.
-let resolve (rootScope: Scope) (exp: CoreExp) : CoreExp * Diagnostic list =
+let resolve (rootScope: Scope) (exp: Exp) : Exp * Diagnostic list =
     let registry = buildRegistry rootScope exp
 
     let ctx =

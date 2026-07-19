@@ -3,10 +3,9 @@ module Evaluator
 open System
 open System.Collections.Generic
 open Exp
-open CoreExp
-open CoreExpScopeAnalysis
+open ExpScopeAnalysis
 
-// Runtime values produced by evaluating a resolved CoreExp.
+// Runtime values produced by evaluating a resolved Exp.
 type Value =
     | VInt of int
     | VBool of bool
@@ -15,13 +14,13 @@ type Value =
     | VDecimal of decimal
     | VString of string
     | VTuple of Value list
-    | VClosure of Guid list * CoreExp * Env
+    | VClosure of Guid list * Exp * Env
 
 and Env = Map<Guid, Value>
 
 // The operator/identifier name carried by an identifier, when it is a plain
 // (non-interpolated) name.
-let private opName (e: CoreExp) : string option =
+let private opName (e: Exp) : string option =
     match e with
     | Identifier (Resolved (_, [ TextPart s ]))
     | Identifier (Referential (_, [ TextPart s ]))
@@ -29,7 +28,7 @@ let private opName (e: CoreExp) : string option =
     | _ -> None
 
 // The declaration id introduced by the left-hand side of a binding, if any.
-let rec private declIdOf (lhs: CoreExp) : Guid option =
+let rec private declIdOf (lhs: Exp) : Guid option =
     match lhs with
     | Identifier (Declarative (id, _)) -> Some id
     | Projection (_, _, m)
@@ -38,7 +37,7 @@ let rec private declIdOf (lhs: CoreExp) : Guid option =
     | _ -> None
 
 // The parameter declaration ids bound by a lambda's parameter expression.
-let rec private paramIds (param: CoreExp) : Guid list =
+let rec private paramIds (param: Exp) : Guid list =
     match param with
     | Identifier (Declarative (id, _)) -> [ id ]
     | Tuple xs -> xs |> List.collect paramIds
@@ -99,10 +98,10 @@ let private literalValue (lit: Exp.Literal) : Value =
     | Exp.Decimal d -> VDecimal d
     | Exp.String s -> VString s
 
-// Evaluate a resolved CoreExp to a value, when it denotes a computable value.
+// Evaluate a resolved Exp to a value, when it denotes a computable value.
 // Returns None when evaluation cannot proceed (unresolved names, sets, records
 // without values, unsupported forms). Evaluation is intentionally partial.
-let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
+let evaluate (rootScope: Scope) (exp: Exp) : Value option =
     // Map declaration id -> name entry, so hosted members can be distinguished
     // (direct property vs member property) at projection use sites.
     let registry = Dictionary<Guid, NameEntry>()
@@ -119,7 +118,7 @@ let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
         | true, e -> e.Host
         | _ -> None
 
-    let rec eval (env: Env) (e: CoreExp) : Value option =
+    let rec eval (env: Env) (e: Exp) : Value option =
         match e with
         | Literal lit -> Some(literalValue lit)
         | Local (_, inner)
@@ -131,7 +130,7 @@ let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
         | Apply (f, arg) -> evalApply env f arg
         | _ -> None
 
-    and evalList (env: Env) (xs: CoreExp list) : Value list option =
+    and evalList (env: Env) (xs: Exp list) : Value list option =
         match xs with
         | [] -> Some []
         | h :: t ->
@@ -139,7 +138,7 @@ let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
             | Some v -> evalList env t |> Option.map (fun vs -> v :: vs)
             | None -> None
 
-    and evalApply (env: Env) (f: CoreExp) (arg: CoreExp) : Value option =
+    and evalApply (env: Env) (f: Exp) (arg: Exp) : Value option =
         match opName f with
         | Some "_in_" ->
             match arg with
@@ -168,7 +167,7 @@ let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
                 | None -> None
             | _ -> None
 
-    and evalProjection (env: Env) (receiver: CoreExp) (m: CoreExp) : Value option =
+    and evalProjection (env: Env) (receiver: Exp) (m: Exp) : Value option =
         match m with
         | Identifier (Resolved (id, _)) ->
             match Map.tryFind id env with
@@ -188,7 +187,7 @@ let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
         | VClosure (ps, body, cenv) -> applyClosure ps body cenv argv
         | _ -> None
 
-    and applyClosure (ps: Guid list) (body: CoreExp) (cenv: Env) (argv: Value) : Value option =
+    and applyClosure (ps: Guid list) (body: Exp) (cenv: Env) (argv: Value) : Value option =
         let binds =
             match ps, argv with
             | [ single ], v -> [ single, v ]
@@ -200,7 +199,7 @@ let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
             let env' = (cenv, binds) ||> List.fold (fun e (id, v) -> Map.add id v e)
             eval env' body
 
-    and evalBinding (env: Env) (binding: CoreExp) : Env option =
+    and evalBinding (env: Env) (binding: Exp) : Env option =
         match binding with
         | Local (_, inner) -> evalBinding env inner
         | Apply (f, Tuple [ lhs; rhs ]) when opName f = Some "_=_" ->

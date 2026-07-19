@@ -1,13 +1,12 @@
-﻿module CompilerEngine
+module CompilerEngine
 
 open System
 open System.IO
 open Parser
 open ParseResult
-open Binder
-open CoreExp
-open CoreExpDiagnostics
-open CoreExpScopes
+open Exp
+open ExpDiagnostics
+open ExpScopes
 
 // Declarations receive a fresh Guid on every compilation, so raw output is not
 // stable across runs. Rewrite each distinct non-empty Guid to a sequential
@@ -45,80 +44,81 @@ let private isFenceLine (line: string) =
     line.TrimStart().StartsWith("```")
 
 let private compileTingProgramRaw (input: string) : string =
-    match parse input with
-    | ParseSucceeded result ->
-        let rootScope = CoreExp.LocalScope(Guid.Empty) :> CoreExp.Scope
-        rootScope.defineName(Guid.NewGuid(), "_=>_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_==_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_=_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_&_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_|_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_&&_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_||_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_&&&_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_|||_", Unknown)
+    let rootScope = Exp.LocalScope(Guid.Empty) :> Exp.Scope
+    rootScope.defineName(Guid.NewGuid(), "_=>_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_==_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_=_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_&_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_|_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_&&_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_||_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_&&&_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_|||_", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "bool", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "bool", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "string", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "char", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "string", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "char", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "float", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "double", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "float", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "double", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "int", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "uint", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "byte", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "sbyte", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "short", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "ushort", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "long", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "ulong", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "half", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "int", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "uint", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "byte", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "sbyte", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "short", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "ushort", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "long", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "ulong", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "half", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "decimal", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "decimal", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "DateTime", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "DateTimeOffset", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "DateTime", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "DateTimeOffset", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "set", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "any", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "Func", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "set", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "any", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "Func", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "_all_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_all_", Unknown)
 
-        rootScope.defineName(Guid.NewGuid(), "_in_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_+_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_-_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_*_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_/_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_%_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_/%_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_^_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_->_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_^^_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_^_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_then_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_else_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_..._", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_<..._", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_...<_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_<...<_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_:_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_::_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_:::_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_<_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_>_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_>=_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_\\_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_?_", Unknown)
-        rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_in_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_+_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_-_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_*_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_/_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_%_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_/%_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_^_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_->_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_^^_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_^_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_then_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_else_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_..._", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_<..._", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_...<_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_<...<_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_:_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_::_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_:::_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_<_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_>_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_>=_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_\\_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_?_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
 
-        let res = markDeclarations rootScope result ([], [rootScope])
-        let resolved, diagnostics = Resolver.resolve rootScope res
+    match parse rootScope input with
+    | ParseSucceeded analyzed ->
+        // Parsing already ran the Binder: `analyzed` carries declaration ids
+        // and referential candidate scopes.
+        let resolved, diagnostics = Resolver.resolve rootScope analyzed
         let scopes = renderScopeReport resolved
-        let coreExp = resolved.ToString()
+        let expText = resolved.ToString()
         let scopesSection =
             if String.IsNullOrWhiteSpace scopes then
                 "No scopes collected."
@@ -137,7 +137,7 @@ let private compileTingProgramRaw (input: string) : string =
             match Evaluator.evaluate rootScope resolved with
             | Some v when Evaluator.isDisplayable v -> $"\n\nValue:\n{Evaluator.render v}"
             | _ -> ""
-        $"Compilation succeeded.\n\n{coreExp}\n\nScopes:\n{scopesSection}{diagnosticsSection}{valueSection}"
+        $"Compilation succeeded.\n\n{expText}\n\nScopes:\n{scopesSection}{diagnosticsSection}{valueSection}"
     | ParseFailed errorMsg ->
         $"Compilation failed.\nError: {errorMsg}"
 

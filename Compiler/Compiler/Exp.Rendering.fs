@@ -1,15 +1,15 @@
-module CoreExpDiagnostics
+module ExpDiagnostics
 
 open System
-open CoreExp
-open CoreExpScopeAnalysis
+open Exp
+open ExpScopeAnalysis
 
 // Minimal name formatting for scope diagnostics.
 let private formatInterpolatedPartForScope = function
     | TextPart s -> s
     | HolePart _ -> "{...}"
 
-let private formatNameParts (parts: CoreInterpolatedPart list) =
+let private formatNameParts (parts: InterpolatedParts) =
     parts
     |> List.map formatInterpolatedPartForScope
     |> String.concat ""
@@ -50,7 +50,7 @@ let private formatHostSuffix (entry: NameEntry) =
     | Some (DirectPropertyHost e) -> $" host={hostName e}."
     | Some (MemberPropertyHost e) -> $" host={hostName e}.."
 
-let private collectProjectedDeclarationKinds (exp: CoreExp) =
+let private collectProjectedDeclarationKinds (exp: Exp) =
     let kinds = System.Collections.Generic.Dictionary<Guid, string>()
 
     let setKind id kind =
@@ -78,12 +78,7 @@ let private collectProjectedDeclarationKinds (exp: CoreExp) =
             collectFromMember isMemberProjection a
         | Projection (_, _, m) -> collectFromMember isMemberProjection m
         | MemberProjection (_, _, m) -> collectFromMember true m
-        | Identifier _
-        | This _
-        | Literal _
-        | InterpolatedString _
-        | Void
-        | Unknown -> ()
+        | _ -> ()
 
     let rec walk e =
         match e with
@@ -110,12 +105,7 @@ let private collectProjectedDeclarationKinds (exp: CoreExp) =
             collectFromMember true m
             walk receiver
             walk m
-        | Identifier _
-        | This _
-        | Literal _
-        | InterpolatedString _
-        | Void
-        | Unknown -> ()
+        | _ -> ()
 
     walk exp
     kinds
@@ -132,7 +122,7 @@ let private formatScopeNames (projectedKinds: System.Collections.Generic.Diction
     |> String.concat ", "
 
 // Build a textual scope report used by console and file output.
-let renderScopeReport (exp: CoreExp) : string =
+let renderScopeReport (exp: Exp) : string =
     let projectedKinds = collectProjectedDeclarationKinds exp
     collectAllScopes exp
     |> List.mapi (fun i s ->
@@ -145,22 +135,23 @@ let renderScopeReport (exp: CoreExp) : string =
     |> String.concat Environment.NewLine
 
 // Print each collected scope, its kind, and the names currently present in that scope.
-let printScopeReport (exp: CoreExp) : unit =
+let printScopeReport (exp: Exp) : unit =
     printfn "%s" (renderScopeReport exp)
 
-// Render CoreExp in a cycle-safe way for diagnostics/output files.
+// Render the analyzed Exp in a cycle-safe way for diagnostics/output files.
 let rec private renderInterpolatedPart = function
     | TextPart s -> s
     | HolePart e -> $"{{{renderExpression e}}}"
 
 and private renderBindingRole = function
+    | Unbound _ -> "unbound"
     | Declarative (id, _) -> $"decl:{id}"
     | Resolved (id, _) -> $"resolved:{id}"
     | Referential (scopeIds, _) ->
         let scopesText = scopeIds |> List.map string |> String.concat ", "
         $"ref:[{scopesText}]"
 
-and renderExpression (exp: CoreExp) : string =
+and renderExpression (exp: Exp) : string =
     match exp with
     | Local (s, e) -> $"local[{formatScope s}] {renderExpression e}"
     | Apply (f, a) -> $"({renderExpression f} {renderExpression a})"
@@ -186,7 +177,7 @@ and renderExpression (exp: CoreExp) : string =
         | Exp.String s -> $"\"{s}\""
     | Set xs -> xs |> List.map renderExpression |> String.concat ", " |> fun s -> $"{{{s}}}"
     | List xs -> xs |> List.map renderExpression |> String.concat ", " |> fun s -> $"[{s}]"
-    | InterpolatedString parts ->
+    | StringLiteral parts ->
         parts |> List.map renderInterpolatedPart |> String.concat "" |> fun s -> $"$\"{s}\""
     | Projection (s, e, m) -> $"({renderExpression e}).[{formatScope s}]({renderExpression m})"
     | MemberProjection (s, e, m) -> $"({renderExpression e})..[{formatScope s}]({renderExpression m})"
@@ -198,3 +189,13 @@ and renderExpression (exp: CoreExp) : string =
     | This role -> $"this[{renderBindingRole role}]"
     | Void -> "void"
     | Unknown -> "???"
+    // Surface marker nodes: eliminated by the Binder before rendering.
+    | Declare _
+    | Reference _
+    | DeclareLeft _
+    | DeclareRight _
+    | ReferenceLeft _
+    | ReferenceRight _
+    | BuiltIn _
+    | PushScope _
+    | PushMemberScope _ -> "<surface>"

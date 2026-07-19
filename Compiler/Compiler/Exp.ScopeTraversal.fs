@@ -1,6 +1,6 @@
-module CoreExpScopeAnalysis
+module ExpScopeAnalysis
 
-open CoreExp
+open Exp
 
 // Traverse interpolation holes to find nested scope-defining expressions.
 let rec private collectDefinitionScopesFromPart (acc: ResizeArray<Scope>) = function
@@ -15,10 +15,11 @@ and private collectDefinitionScopesFromScope (acc: ResizeArray<Scope>) (s: Scope
     | :? ExpressionMemberScope as k -> collectDefinitionScopes acc k.Expression
     | _ -> ()
 
-// Referential roles are traversed only through interpolated name holes.
+// Referential/unbound roles are traversed only through interpolated name holes.
 and private collectDefinitionScopesFromRole (acc: ResizeArray<Scope>) = function
     | Declarative _ -> ()
     | Resolved _ -> ()
+    | Unbound nameParts
     | Referential (_, nameParts) ->
         for p in nameParts do
             collectDefinitionScopesFromPart acc p
@@ -33,8 +34,8 @@ and private addDefinitionScope (acc: ResizeArray<Scope>) (s: Scope) =
         collectDefinitionScopesFromScope acc s
     | _ -> ()
 
-// Walk the CoreExp tree and collect relevant scopes into acc.
-and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: CoreExp) : unit =
+// Walk the analyzed Exp tree and collect relevant scopes into acc.
+and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: Exp) : unit =
     match exp with
     | Local (s, e) ->
         addDefinitionScope acc s
@@ -60,7 +61,7 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: CoreExp) : u
         collectDefinitionScopesFromRole acc role
     | Literal _
     | Void -> ()
-    | InterpolatedString parts ->
+    | StringLiteral parts ->
         for p in parts do
             collectDefinitionScopesFromPart acc p
     | Projection (s, e, m)
@@ -77,9 +78,19 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: CoreExp) : u
     | IsDefined e ->
         collectDefinitionScopes acc e
     | Unknown -> ()
+    // Surface marker nodes: eliminated by the Binder before analysis.
+    | Declare _
+    | Reference _
+    | DeclareLeft _
+    | DeclareRight _
+    | ReferenceLeft _
+    | ReferenceRight _
+    | BuiltIn _
+    | PushScope _
+    | PushMemberScope _ -> ()
 
-// Public helper to collect scopes from a CoreExp.
-let collectAllScopes (exp: CoreExp) : Scope list =
+// Public helper to collect scopes from an analyzed Exp.
+let collectAllScopes (exp: Exp) : Scope list =
     let acc = ResizeArray<Scope>()
     collectDefinitionScopes acc exp
     acc |> Seq.toList

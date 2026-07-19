@@ -16,84 +16,164 @@ type AccessModifier =
     | Internal
     | Protected
 
-/// The raw abstract syntax tree produced directly by the parser (Parser.fs),
-/// before the Binder lowers it into CoreExp. Each case documents the source
-/// pattern that produces it:
+/// The abstract syntax tree.
+///
+/// The parser produces this tree with:
+///   - binding-intent marker nodes (Declare, Reference, DeclareLeft/Right,
+///     ReferenceLeft/Right, BuiltIn, PushScope, PushMemberScope), and
+///   - identifiers in the Unbound binding role.
+///
+/// The Binder (run as part of parsing) rewrites the tree in place-of-type:
+///   - marker nodes are eliminated (lowered to Local/Apply/scope pushes),
+///   - every Unbound identifier becomes Declarative (with a fresh declaration
+///     id recorded in its declarative scopes) or Referential (with the ordered
+///     candidate scope-id list, nearest enclosing scope first).
+///
+/// The Resolver later upgrades Referential occurrences to Resolved.
+///
+/// Source patterns per case:
 ///
 ///   Declare          Prefix `let E` — opens a declaration/constraint region over `E`.
-///   Reference        Not a keyword: `pApp` wraps the callee of a juxtaposition
-///                    application (`f x` => `Apply(Reference f, x)`) to flag it as a
-///                    use-site rather than a declaration.
+///                    Eliminated by the Binder into `Local`.
+///   Reference        Not a keyword: wraps the callee of a juxtaposition application
+///                    (`f x` => `Apply(Reference f, x)`) to flag it as a use-site.
+///                    Eliminated by the Binder.
 ///   DeclareLeft      Infix operator whose LEFT operand is declarative; fields are
 ///                    (operator head, left, right). Produced by `x => body` (lambda
 ///                    parameter) and `elem \ gen` (set-comprehension binder).
 ///   DeclareRight     Infix operator whose RIGHT operand is declarative. Produced by
 ///                    `body where decls`.
 ///   ReferenceLeft    Infix operator with a plain-reference LEFT operand. Defined for
-///                    symmetry but currently NOT produced by the parser (no operator
-///                    is wired to `referenceLeftOperator`).
+///                    symmetry but currently NOT produced by the parser.
 ///   ReferenceRight   Infix operator whose RIGHT operand is a plain reference while the
 ///                    left keeps the ambient binding context. Produced by `=`, `in`,
 ///                    `then`, `->`, `catch`, `?`, `??`, `:`, `::`, `:::`, `<`, `<=`,
 ///                    `>=`, `>`, `==`, `!=`, `!:` — e.g. `x = 5`, `decls in body`.
-///   Publish          Prefix access modifier on a declaration: `public E`, `private E`,
-///                    `internal E`, `protected E`.
-///   Apply            Function/operator application. Two sources: juxtaposition
-///                    `f x` => `Apply(Reference f, x)`; and desugaring of every "plain"
-///                    operator, e.g. `a + b` => `Apply(BuiltIn "_+_", Tuple [a; b])`,
-///                    `a else b`, `a || b`, prefix `!x` => `Apply(BuiltIn "!_", x)`,
-///                    `fn x`, `class x`.
-///   Tuple            Parenthesized comma-separated list `(a, b, ...)`, including the
-///                    empty tuple `()`. Also synthesized as the argument carrying both
-///                    operands of a desugared binary operator: `Tuple [x; y]`.
-///   Record           Prefix `record E`. (`records E` produces `Set [Record E]`.)
-///   Identifier       An identifier term: a plain name `foo`, a backtick-quoted name
-///                    `` `foo bar` `` (both a single TextPart), or an interpolated
-///                    identifier `` $`pre{expr}post` `` (text + holes).
 ///   BuiltIn          Never written in source; synthesized as the operator/function head
-///                    for every operator desugaring, carrying the canonical operator
-///                    name, e.g. `_+_`, `_=>_`, `_where_`, `!_`, `fn_`.
-///   Literal          A literal term (integer, float, decimal, boolean, or string);
-///                    see the Literal type. Note `Float64` has no source syntax and is
-///                    not produced by the parser.
-///   Set              Brace comma-separated list `{a, b, ...}`, including the empty set
-///                    `{}`. Also produced by prefix `records E` (`Set [Record E]`) and
-///                    `tuples E` (`Set [E]`).
-///   List             Bracket comma-separated list `[a, b, ...]`, including the empty
-///                    list `[]`.
-///   InterpolatedString  Interpolated string `$"text{expr}text"` — alternating literal
-///                    text runs and `{expr}` holes.
-///   PushScope        Infix `./` — `scope ./ body`: pushes `scope` as an expression
-///                    scope over `body`.
-///   PushMemberScope  Infix `../` — `scope ../ body`: pushes the members of `scope` as
-///                    a scope over `body`.
-///   Projection       Infix `.` — `receiver.member`: direct property/member projection.
-///   MemberProjection Infix `..` — `receiver..member`: member (extension) projection.
-///   This             The `this` keyword.
+///                    for every operator desugaring (`_+_`, `_=>_`, `!_`, `fn_`, ...).
+///                    Lowered by the Binder to a root-scope Referential identifier.
+///   PushScope        Infix `./` — `scope ./ body`. Eliminated by the Binder (pushes an
+///                    ExpressionScope over `body`).
+///   PushMemberScope  Infix `../` — `scope ../ body`. Eliminated by the Binder (pushes
+///                    an ExpressionMemberScope over `body`).
+///   Publish          Prefix access modifier on a declaration: `public E`, etc. The
+///                    parser allocates the declaration scope; the Binder fills it.
+///   Apply            Function/operator application (`f x` and desugared operators).
+///   Tuple            Parenthesized comma-separated list `(a, b, ...)`.
+///   Record           Prefix `record E`. The parser allocates the record's scope; the
+///                    Binder fills it with the record's declarations.
+///   Identifier       An identifier occurrence carrying its BindingRole. The parser
+///                    emits Unbound; the Binder rewrites to Declarative/Referential.
+///   Literal          A literal term; see the Literal type.
+///   Set              Brace comma-separated list `{a, b, ...}`; also `records E`,
+///                    `tuples E`.
+///   List             Bracket comma-separated list `[a, b, ...]`.
+///   StringLiteral    Interpolated string `$"text{expr}text"` (a plain `"..."` is a
+///                    single-Literal string instead).
+///   Projection       Infix `.` — `receiver.member`; the parser allocates its scope.
+///   MemberProjection Infix `..` — `receiver..member`; the parser allocates its scope.
+///   This             The `this` keyword, carrying its BindingRole.
 ///   Void             The `void` keyword.
+///
+/// Analyzed-only cases (never produced by the parser):
+///
+///   Local            A declaration region with its scope, produced from Declare,
+///                    DeclareLeft/Right by the Binder.
+///   ScopeExp         An expression annotated with an explicit scope.
+///   Unknown          Placeholder expression (e.g. names declared without a value yet).
+///   Throw/Catch/IsDefined/Equals/ValueEquals
+///                    Semantic forms produced by later analysis passes.
 type Exp =
+    // Surface binding-intent markers (parser output, eliminated by the Binder).
     | Declare of Exp
     | Reference of Exp
     | DeclareLeft of Exp * Exp * Exp
     | DeclareRight of Exp * Exp * Exp
     | ReferenceLeft of Exp * Exp * Exp
     | ReferenceRight of Exp * Exp * Exp
-    | Publish of AccessModifier * Exp
+    | BuiltIn of string
+    | PushScope of Exp * Exp
+    | PushMemberScope of Exp * Exp
+    // Shared nodes (parser output, preserved by the Binder).
+    | Publish of Scope * AccessModifier * Exp
     | Apply of Exp * Exp
     | Tuple of Exp list
-    | Record of Exp
-    | Identifier of InterpolatedPart list
-    | BuiltIn of string
+    | Record of Scope * Exp
+    | Identifier of BindingRole
     | Literal of Literal
     | Set of Exp list
     | List of Exp list
-    | InterpolatedString of InterpolatedPart list
-    | PushScope of Exp * Exp
-    | PushMemberScope of Exp * Exp
-    | Projection of Exp * Exp
-    | MemberProjection of Exp * Exp
-    | This
+    | StringLiteral of InterpolatedParts
+    | Projection of Scope * Exp * Exp
+    | MemberProjection of Scope * Exp * Exp
+    | This of BindingRole
     | Void
+    // Analyzed-only nodes (produced by the Binder and later passes).
+    | Local of Scope * Exp
+    | ScopeExp of Scope * Exp
+    | Unknown
+    | Throw of Exp
+    | Catch of Exp * Exp
+    | IsDefined of Exp
+    | Equals of Exp * Exp
+    | ValueEquals of Exp * Exp
+
 and InterpolatedPart =
     | TextPart of string
     | HolePart of Exp
+
+and InterpolatedParts = InterpolatedPart list
+
+// Unbound is the parser's role for every identifier occurrence. The Binder
+// rewrites it: Declarative carries declaration identity; Referential carries the
+// ordered candidate scope ids + name pattern. Resolved carries the declaration
+// id a referential occurrence was bound to during name resolution.
+and BindingRole =
+    | Unbound of InterpolatedParts
+    | Declarative of Guid * InterpolatedParts
+    | Referential of Guid list * InterpolatedParts
+    | Resolved of Guid * InterpolatedParts
+
+and NameHost =
+    | DirectPropertyHost of Exp
+    | MemberPropertyHost of Exp
+
+and NameEntry = {
+    NameParts: InterpolatedParts
+    Expression: Exp
+    Host: NameHost option
+}
+
+// Name table for a scope: declaration id -> analyzed name entry.
+and Names = System.Collections.Generic.Dictionary<Guid, NameEntry>
+
+// Scope hierarchy.
+and [<AbstractClass>] Scope(id: Guid, names: Names) =
+    member _.Id = id
+    member _.Names = names
+    member this.defineName (id: Guid, name: string, exp: Exp) : unit =
+        this.Names.Add(id, { NameParts = [ TextPart name ]; Expression = exp; Host = None })
+    member this.defineName (id: Guid, name: InterpolatedParts, exp: Exp) : unit =
+        this.Names.Add(id, { NameParts = name; Expression = exp; Host = None })
+    member this.defineName (id: Guid, name: InterpolatedParts, exp: Exp, host: NameHost) : unit =
+        this.Names.Add(id, { NameParts = name; Expression = exp; Host = Some host })
+
+and [<AbstractClass>] ChildScope(id: Guid) =
+    inherit Scope(id, new Names())
+
+and LocalScope(id: Guid) =
+    inherit Scope(id, new Names())
+
+and ExpressionScope(id: Guid, expression: Exp) =
+    inherit ChildScope(id)
+    member _.Expression = expression
+
+and ExpressionMemberScope(id: Guid, expression: Exp) =
+    inherit ChildScope(id)
+    member _.Expression = expression
+
+// Declarative scopes (names being introduced) and referential scopes
+// (candidates for name lookup), nearest first.
+type ScopeStack = Scope list * Scope list
+
+let scopeId (s: Scope) = s.Id
