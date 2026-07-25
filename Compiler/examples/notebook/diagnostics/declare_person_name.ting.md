@@ -5,13 +5,13 @@ let person.Name = "Zaphod"
 Compilation succeeded.
 
 Local
-  (CoreExp+LocalScope,
+  (Exp+LocalScope,
    Apply
      (Identifier
         (Resolved (#0, [TextPart "_=_"])),
       Tuple
         [Projection
-           (CoreExp+LocalScope,
+           (Exp+LocalScope,
             Identifier
               (Referential
                  ([#1;

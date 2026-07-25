@@ -5,9 +5,9 @@ protected internal { 1, 2, 3, a }
 Compilation succeeded.
 
 Publish
-  (CoreExp+LocalScope, Protected,
+  (Exp+LocalScope, Protected,
    Publish
-     (CoreExp+LocalScope, Internal,
+     (Exp+LocalScope, Internal,
       Set
         [Literal (Int32 1); Literal (Int32 2); Literal (Int32 3);
          Identifier

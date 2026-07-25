@@ -5,7 +5,7 @@ T * T ^^ T where T:(Integrals|FloatingPoints|Lists)
 Compilation succeeded.
 
 Local
-  (CoreExp+LocalScope,
+  (Exp+LocalScope,
    Apply
      (Identifier
         (Referential

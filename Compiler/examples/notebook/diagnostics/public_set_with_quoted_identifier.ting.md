@@ -5,7 +5,7 @@ public { 1, 2, 3, `a` }
 Compilation succeeded.
 
 Publish
-  (CoreExp+LocalScope, Public,
+  (Exp+LocalScope, Public,
    Set
      [Literal (Int32 1); Literal (Int32 2); Literal (Int32 3);
       Identifier

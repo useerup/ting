@@ -6,7 +6,7 @@ Compilation succeeded.
 
 Set
   [Local
-     (CoreExp+LocalScope,
+     (Exp+LocalScope,
       Apply
         (Identifier
            (Resolved (#0, [TextPart "_\_"])),

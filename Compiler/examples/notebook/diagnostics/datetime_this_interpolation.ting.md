@@ -5,7 +5,7 @@ DateTime this => $"{Year}-{Month}-{Day}"
 Compilation succeeded.
 
 Local
-  (CoreExp+LocalScope,
+  (Exp+LocalScope,
    Apply
      (Identifier
         (Resolved (#0, [TextPart "_=>_"])),
@@ -15,7 +15,7 @@ Local
               (Resolved
                  (#1, [TextPart "DateTime"])),
             This (Declarative (#2, [])));
-         InterpolatedString
+         StringLiteral
            [HolePart
               (Identifier
                  (Referential

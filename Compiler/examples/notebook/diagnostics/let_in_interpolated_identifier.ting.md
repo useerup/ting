@@ -5,7 +5,7 @@ let answer=42 in $`Flollop{answer}`
 Compilation succeeded.
 
 Local
-  (CoreExp+LocalScope,
+  (Exp+LocalScope,
    Apply
      (Identifier
         (Resolved (#0, [TextPart "_in_"])),

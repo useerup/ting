@@ -5,12 +5,12 @@ $"{Word name} = {int value}" => (name->value)
 Compilation succeeded.
 
 Local
-  (CoreExp+LocalScope,
+  (Exp+LocalScope,
    Apply
      (Identifier
         (Resolved (#0, [TextPart "_=>_"])),
       Tuple
-        [InterpolatedString
+        [StringLiteral
            [HolePart
               (Apply
                  (Identifier

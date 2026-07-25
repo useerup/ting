@@ -5,7 +5,7 @@ x => x + y => x + y + z => x
 Compilation succeeded.
 
 Local
-  (CoreExp+LocalScope,
+  (Exp+LocalScope,
    Apply
      (Identifier
         (Resolved (#0, [TextPart "_=>_"])),
@@ -13,7 +13,7 @@ Local
         [Identifier
            (Declarative (#1, [TextPart "x"]));
          Local
-           (CoreExp+LocalScope,
+           (Exp+LocalScope,
             Apply
               (Identifier
                  (Resolved
@@ -34,7 +34,7 @@ Local
                              (#4,
                               [TextPart "y"]))]);
                   Local
-                    (CoreExp+LocalScope,
+                    (Exp+LocalScope,
                      Apply
                        (Identifier
                           (Resolved

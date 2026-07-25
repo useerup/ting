@@ -5,7 +5,7 @@ protected { 1, 2, 3, $`a{zark}b` }
 Compilation succeeded.
 
 Publish
-  (CoreExp+LocalScope, Protected,
+  (Exp+LocalScope, Protected,
    Set
      [Literal (Int32 1); Literal (Int32 2); Literal (Int32 3);
       Identifier

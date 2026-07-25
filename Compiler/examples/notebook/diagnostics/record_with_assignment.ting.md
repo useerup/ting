@@ -5,13 +5,13 @@ record(Answer:int) \ (Answer = 42)
 Compilation succeeded.
 
 Local
-  (CoreExp+LocalScope,
+  (Exp+LocalScope,
    Apply
      (Identifier
         (Resolved (#0, [TextPart "_\_"])),
       Tuple
         [Record
-           (CoreExp+LocalScope,
+           (Exp+LocalScope,
             Tuple
               [Apply
                  (Identifier

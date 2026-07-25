@@ -5,7 +5,7 @@ let x=21 in Answer = x*2
 Compilation succeeded.
 
 Local
-  (CoreExp+LocalScope,
+  (Exp+LocalScope,
    Apply
      (Identifier
         (Resolved (#0, [TextPart "_in_"])),

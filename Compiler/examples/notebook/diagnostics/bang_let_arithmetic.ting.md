@@ -9,7 +9,7 @@ Apply
      (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "!_"])),
    Tuple
      [Local
-        (CoreExp+LocalScope,
+        (Exp+LocalScope,
          Apply
            (Identifier
               (Resolved (#0, [TextPart "_-_"])),
