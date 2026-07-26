@@ -70,16 +70,16 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (node: Node) : uni
         collectDefinitionScopes acc e
         collectDefinitionScopes acc m
     | Equals (a, b)
-    | ValueEquals (a, b)
     | Catch (a, b) ->
         collectDefinitionScopes acc a
         collectDefinitionScopes acc b
     | Throw e
+    | Primary e
+    | Candidate e
     | IsDefined e ->
         collectDefinitionScopes acc e
     | Unknown -> ()
     // Surface marker nodes: eliminated by the Binder before analysis.
-    | Declare _
     | Reference _
     | DeclareLeft _
     | DeclareRight _

@@ -123,6 +123,8 @@ let private buildBindingMap (exp: Node) : Dictionary<Guid, Node> =
         | Publish (_, _, e)
         | ScopeExp (_, e)
         | Throw e
+        | Primary e
+        | Candidate e
         | IsDefined e -> walk e
         | Tuple xs
         | Set xs
@@ -130,8 +132,7 @@ let private buildBindingMap (exp: Node) : Dictionary<Guid, Node> =
         | Projection (_, a, b)
         | MemberProjection (_, a, b)
         | Catch (a, b)
-        | Equals (a, b)
-        | ValueEquals (a, b) ->
+        | Equals (a, b) ->
             walk a
             walk b
         | StringLiteral parts ->
@@ -176,6 +177,8 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Node) : Dic
         | Publish (_, _, e)
         | ScopeExp (_, e)
         | Throw e
+        | Primary e
+        | Candidate e
         | IsDefined e -> walk e
         | Tuple xs
         | Set xs
@@ -183,8 +186,7 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Node) : Dic
         | Projection (_, a, b)
         | MemberProjection (_, a, b)
         | Catch (a, b)
-        | Equals (a, b)
-        | ValueEquals (a, b) ->
+        | Equals (a, b) ->
             walk a
             walk b
         | StringLiteral parts ->
@@ -374,9 +376,9 @@ and private resolveExp (ctx: Context) (node: Node) : Node =
     | Catch (a, b) -> rebuild (Catch(go a, go b))
     | IsDefined e -> rebuild (IsDefined(go e))
     | Equals (a, b) -> rebuild (Equals(go a, go b))
-    | ValueEquals (a, b) -> rebuild (ValueEquals(go a, go b))
+    | Primary e -> rebuild (Primary(go e))
+    | Candidate e -> rebuild (Candidate(go e))
     // Surface marker nodes: eliminated by the Binder before resolution.
-    | Declare _
     | Reference _
     | DeclareLeft _
     | DeclareRight _

@@ -59,12 +59,13 @@ module private Marking =
             | Publish (_, _, x)
             | ScopeExp (_, x)
             | Throw x
+            | Primary x
+            | Candidate x
             | IsDefined x -> walk x
             | Projection (_, _, m)
             | MemberProjection (_, _, m) -> walk m
             | Catch (a, b)
-            | Equals (a, b)
-            | ValueEquals (a, b) ->
+            | Equals (a, b) ->
                 walk a
                 walk b
             | StringLiteral parts ->
@@ -93,8 +94,7 @@ module private Marking =
         let recur e s = markDeclarations e s
 
         match node.Exp with
-        | Declare e ->
-            let s = createNamesScope()
+        | Local (s, e) ->
             Node.like node (Local(s, recur e (addDeclarative s scopes)))
         | Reference e ->
             recur e (makeReferential scopes)
@@ -171,15 +171,21 @@ module private Marking =
             node
         | Void ->
             node
+        // Erasure intrinsics. The operand keeps the ambient binding context, so
+        // `primary a` declares `a` in a declarative scope exactly as a bare `a`
+        // would - the binding is just weaker, constraining `a` only up to
+        // attribute erasure.
+        | Primary e ->
+            Node.like node (Primary(recur e scopes))
+        | Candidate e ->
+            Node.like node (Candidate(recur e scopes))
         // Analyzed-only nodes: not produced by the parser; pass through untouched.
-        | Local _
         | ScopeExp _
         | Unknown
         | Throw _
         | Catch _
         | IsDefined _
-        | Equals _
-        | ValueEquals _ ->
+        | Equals _ ->
             node
 
     and markDeclarationsPart (part: InterpolatedPart) (scopes: ScopeStack) : InterpolatedPart =

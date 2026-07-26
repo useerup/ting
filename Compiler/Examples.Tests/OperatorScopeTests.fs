@@ -30,13 +30,14 @@ let rec private allRoles (node: Node) : BindingRole list =
 
     let children =
         match node.Exp with
-        | Declare e
         | Reference e
         | Local (_, e)
         | ScopeExp (_, e)
         | Record (_, e)
         | Publish (_, _, e)
         | Throw e
+        | Primary e
+        | Candidate e
         | IsDefined e -> [ e ]
         | DeclareLeft (a, b, c)
         | DeclareRight (a, b, c)
@@ -48,8 +49,7 @@ let rec private allRoles (node: Node) : BindingRole list =
         | Projection (_, a, b)
         | MemberProjection (_, a, b)
         | Catch (a, b)
-        | Equals (a, b)
-        | ValueEquals (a, b) -> [ a; b ]
+        | Equals (a, b) -> [ a; b ]
         | Tuple xs
         | Set xs
         | List xs -> xs

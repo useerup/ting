@@ -69,11 +69,12 @@ let private collectProjectedDeclarationKinds (exp: Node) =
         | ScopeExp (_, e)
         | Publish (_, _, e)
         | Throw e
+        | Primary e
+        | Candidate e
         | IsDefined e -> collectFromMember isMemberProjection e
         | Apply (f, a)
         | Catch (f, a)
-        | Equals (f, a)
-        | ValueEquals (f, a) ->
+        | Equals (f, a) ->
             collectFromMember isMemberProjection f
             collectFromMember isMemberProjection a
         | Projection (_, _, m) -> collectFromMember isMemberProjection m
@@ -87,11 +88,12 @@ let private collectProjectedDeclarationKinds (exp: Node) =
         | ScopeExp (_, x)
         | Publish (_, _, x)
         | Throw x
+        | Primary x
+        | Candidate x
         | IsDefined x -> walk x
         | Apply (f, a)
         | Catch (f, a)
-        | Equals (f, a)
-        | ValueEquals (f, a) ->
+        | Equals (f, a) ->
             walk f
             walk a
         | Tuple xs
@@ -182,7 +184,8 @@ and renderExpression (node: Node) : string =
     | Projection (s, e, m) -> $"({renderExpression e}).[{formatScope s}]({renderExpression m})"
     | MemberProjection (s, e, m) -> $"({renderExpression e})..[{formatScope s}]({renderExpression m})"
     | Equals (a, b) -> $"({renderExpression a} = {renderExpression b})"
-    | ValueEquals (a, b) -> $"({renderExpression a} == {renderExpression b})"
+    | Primary e -> $"primary({renderExpression e})"
+    | Candidate e -> $"candidate({renderExpression e})"
     | Throw e -> $"throw {renderExpression e}"
     | Catch (a, b) -> $"({renderExpression a} catch {renderExpression b})"
     | IsDefined e -> $"defined?({renderExpression e})"
@@ -190,7 +193,6 @@ and renderExpression (node: Node) : string =
     | Void -> "void"
     | Unknown -> "???"
     // Surface marker nodes: eliminated by the Binder before rendering.
-    | Declare _
     | Reference _
     | DeclareLeft _
     | DeclareRight _

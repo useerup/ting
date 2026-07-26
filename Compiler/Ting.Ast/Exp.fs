@@ -20,7 +20,7 @@ type AccessModifier =
 /// The abstract syntax tree.
 ///
 /// The parser produces this tree with:
-///   - binding-intent marker nodes (Declare, Reference, DeclareLeft/Right,
+///   - binding-intent marker nodes (Reference, DeclareLeft/Right,
 ///     ReferenceLeft/Right, PushScope, PushMemberScope), and
 ///   - identifiers in the Unbound binding role, except for the operator heads it
 ///     synthesizes: the parser knows every operator it can parse, so it emits
@@ -36,8 +36,6 @@ type AccessModifier =
 ///
 /// Source patterns per case:
 ///
-///   Declare          Prefix `let E` — opens a declaration/constraint region over `E`.
-///                    Eliminated by the Binder into `Local`.
 ///   Reference        Not a keyword: wraps the callee of a juxtaposition application
 ///                    (`f x` => `Apply(Reference f, x)`) to flag it as a use-site.
 ///                    Eliminated by the Binder.
@@ -77,18 +75,30 @@ type AccessModifier =
 ///   MemberProjection Infix `..` — `receiver..member`; the parser allocates its scope.
 ///   This             The `this` keyword, carrying its BindingRole.
 ///   Void             The `void` keyword.
+///   Primary          Prefix `primary E` — erases attributes from E. Deep,
+///                    total, deterministic, idempotent; preserves class
+///                    membership. Not lowered to a function application: the
+///                    solver has to be able to invert it, since `primary a =
+///                    primary b` must be usable to constrain `a`.
+///   Local            A declaration region with its scope. Produced by the parser for
+///                    prefix `let E` (the parser allocates the scope; the Binder fills
+///                    it), and by the Binder from DeclareLeft/Right.
+///   Candidate        Prefix `candidate E` — erases class membership from E,
+///                    yielding the candidate value the class was built over.
+///                    Preserves attributes.
 ///
 /// Analyzed-only cases (never produced by the parser):
 ///
-///   Local            A declaration region with its scope, produced from Declare,
-///                    DeclareLeft/Right by the Binder.
 ///   ScopeExp         An expression annotated with an explicit scope.
 ///   Unknown          Placeholder expression (e.g. names declared without a value yet).
-///   Throw/Catch/IsDefined/Equals/ValueEquals
+///   Throw/Catch/IsDefined/Equals
 ///                    Semantic forms produced by later analysis passes.
+///                    There is deliberately no value-equality case: `==`
+///                    normalizes to Equals(Primary a, Primary b), and every other
+///                    attribute-blind relation wraps its operands in Primary the
+///                    same way. Only `=` leaves its operands unwrapped.
 type Exp =
     // Surface binding-intent markers (parser output, eliminated by the Binder).
-    | Declare of Node
     | Reference of Node
     | DeclareLeft of Node * Node * Node
     | DeclareRight of Node * Node * Node
@@ -110,15 +120,16 @@ type Exp =
     | MemberProjection of Scope * Node * Node
     | This of BindingRole
     | Void
-    // Analyzed-only nodes (produced by the Binder and later passes).
+    | Primary of Node
+    | Candidate of Node
     | Local of Scope * Node
+    // Analyzed-only nodes (produced by the Binder and later passes).
     | ScopeExp of Scope * Node
     | Unknown
     | Throw of Node
     | Catch of Node * Node
     | IsDefined of Node
     | Equals of Node * Node
-    | ValueEquals of Node * Node
 
 /// An expression together with the source span it was parsed from.
 ///

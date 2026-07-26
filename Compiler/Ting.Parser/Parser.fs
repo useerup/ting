@@ -47,7 +47,7 @@ let isNotDoubleQuote c = c <> '"'
 
 let keywords =
     System.Collections.Generic.HashSet<string>(
-        [| "this"; "void"; "let"; "public"; "private"; "internal"; "protected"; "in"; "where"; "catch"; "throw"; "then"; "else"; "true"; "false"; "record"; "records"; "tuple"; "tuples"; "fn"; "class" |]
+        [| "this"; "void"; "let"; "public"; "private"; "internal"; "protected"; "in"; "where"; "catch"; "throw"; "then"; "else"; "true"; "false"; "record"; "records"; "tuple"; "tuples"; "fn"; "class"; "primary"; "candidate" |]
     )
 
 let pIdentifier: Parser<Node> =
@@ -224,7 +224,7 @@ let pApp: Parser<Node> =
 
 opp.TermParser <- pApp
 
-addPrefix "let" 1 true (prefixWrap "let" Declare)
+addPrefix "let" 1 true (prefixWrap "let" (fun b -> Local(ExpScopes.createNamesScope(), b)))
 addPrefix "public" 1 true (prefixWrap "public" (fun b -> Publish(ExpScopes.createNamesScope(), Public, b)))
 addPrefix "private" 1 true (prefixWrap "private" (fun b -> Publish(ExpScopes.createNamesScope(), Private, b)))
 addPrefix "protected" 1 true (prefixWrap "protected" (fun b -> Publish(ExpScopes.createNamesScope(), Protected, b)))
@@ -294,6 +294,14 @@ addPrefix "tuple" 155 true (fun _ b -> b)
 addPrefix "tuples" 155 true (prefixWrap "tuples" (fun b -> Set [ b ]))
 addFunctionPrefix "fn" 155 prefixOperator
 addFunctionPrefix "class" 155 prefixOperator
+
+// The two erasures. Unlike the operators above these do not lower to a function
+// application: they are semantic forms in their own right, because the solver
+// needs to invert them (`primary a = primary b` must be able to constrain `a`).
+// They are keywords rather than properties so that they cannot be shadowed by a
+// field of the same name on a programmer-authored record, class or entity.
+addPrefix "primary" 155 true (prefixWrap "primary" Primary)
+addPrefix "candidate" 155 true (prefixWrap "candidate" Candidate)
 
 addInfix "." 160 Associativity.Left (fun _ a b -> Node.spanning a b (Projection(ExpScopes.createNamesScope(), a, b)))
 addInfix ".." 160 Associativity.Left (fun _ a b -> Node.spanning a b (MemberProjection(ExpScopes.createNamesScope(), a, b)))
