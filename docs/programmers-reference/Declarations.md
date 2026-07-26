@@ -132,7 +132,7 @@ These visibility modifiers declare identifiers in the enclosing module or record
 
 `in` is a right-referential operator. It is typically combined with `let` to scope bindings over the right-hand expression, but it is not part of `let` itself:
 
-    let f = (0=>1)||(x=>x*f(x-1))
+    let f = (0=>1) || (x=>x*f(x-1))
     in  f 5    // 120  (5!)
 
 The Fibonacci sequence as a lazy list:
