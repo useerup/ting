@@ -17,10 +17,13 @@
   <ItemGroup>
     <ProjectReference Include="..\TingCompilerCli\TingCompilerCli.fsproj" />
     <ProjectReference Include="..\Compiler\Compiler.fsproj" />
+    <ProjectReference Include="..\Ting.Parser\Ting.Parser.fsproj" />
+    <ProjectReference Include="..\Ting.Ast\Ting.Ast.fsproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="ExampleNotebookTests.fs" />
+    <Compile Include="RangeTests.fs" />
   </ItemGroup>
 
 </Project>
