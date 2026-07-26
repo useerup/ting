@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="ExampleNotebookTests.fs" />
     <Compile Include="RangeTests.fs" />
+    <Compile Include="OperatorScopeTests.fs" />
   </ItemGroup>
 
 </Project>
