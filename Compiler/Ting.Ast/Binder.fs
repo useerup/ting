@@ -38,11 +38,11 @@ module private Marking =
     // Collect the declaration ids introduced by a (member) expression so their
     // host can be recorded after binding. Used for `int.Zero = ...` (a single
     // declarative member) and destructuring members like `int.(a, b) = ...`.
-    let private collectDeclarativeIds (exp: Exp) : System.Guid list =
+    let private collectDeclarativeIds (exp: Node) : System.Guid list =
         let acc = ResizeArray<System.Guid>()
 
-        let rec walk e =
-            match e with
+        let rec walk (n: Node) =
+            match n.Exp with
             | Identifier (Declarative (id, _)) -> acc.Add id
             | Apply (f, a) ->
                 walk f
@@ -75,77 +75,100 @@ module private Marking =
 
     // Record where a projection-declared name lives: e.g. `int.Zero` hosts `Zero`
     // directly on `int`, and `int..Double` hosts `Double` on the members of `int`.
-    let private attachHost (declScopes: Scope list) (host: NameHost) (memberExp: Exp) : unit =
+    let private attachHost (declScopes: Scope list) (host: NameHost) (memberExp: Node) : unit =
         for id in collectDeclarativeIds memberExp do
             for s in declScopes do
                 match s.Names.TryGetValue id with
                 | true, entry -> s.Names.[id] <- { entry with Host = Some host }
                 | _ -> ()
 
-    let rec markDeclarations (rootScope: Scope) (exp: Exp) (scopes: ScopeStack) : Exp =
-        match exp with
+    // Lowering preserves source spans: a node produced from a source construct
+    // reports that construct's range (Node.like), and a node synthesized to group
+    // operands reports the span of those operands (Node.spanning).
+    let rec markDeclarations (rootScope: Scope) (node: Node) (scopes: ScopeStack) : Node =
+        let recur e s = markDeclarations rootScope e s
+
+        match node.Exp with
         | Declare e ->
             let s = createNamesScope()
-            Local(s, markDeclarations rootScope e (addDeclarative s scopes))
+            Node.like node (Local(s, recur e (addDeclarative s scopes)))
         | Reference e ->
-            markDeclarations rootScope e (makeReferential scopes)
+            recur e (makeReferential scopes)
         | DeclareLeft (f, left, right) ->
             let s = createNamesScope()
-            Local(s, Apply(markDeclarations rootScope f (makeReferential scopes), Tuple [ markDeclarations rootScope left (addDeclarative s scopes); markDeclarations rootScope right (addReferential s scopes) ]))
+            let head = recur f (makeReferential scopes)
+            let left = recur left (addDeclarative s scopes)
+            let right = recur right (addReferential s scopes)
+            let args = Node.spanning left right (Tuple [ left; right ])
+            Node.like node (Local(s, Node.like node (Apply(head, args))))
         | DeclareRight (f, left, right) ->
             let s = createNamesScope()
-            Local(s, Apply(markDeclarations rootScope f (makeReferential scopes), Tuple [ markDeclarations rootScope left (addReferential s scopes); markDeclarations rootScope right (addDeclarative s scopes) ]))
+            let head = recur f (makeReferential scopes)
+            let left = recur left (addReferential s scopes)
+            let right = recur right (addDeclarative s scopes)
+            let args = Node.spanning left right (Tuple [ left; right ])
+            Node.like node (Local(s, Node.like node (Apply(head, args))))
         | ReferenceLeft (f, left, right) ->
             let refscopes = makeReferential scopes
-            Apply(markDeclarations rootScope f refscopes, Tuple [ markDeclarations rootScope left refscopes; markDeclarations rootScope right scopes ])
+            let head = recur f refscopes
+            let left = recur left refscopes
+            let right = recur right scopes
+            let args = Node.spanning left right (Tuple [ left; right ])
+            Node.like node (Apply(head, args))
         | ReferenceRight (f, left, right) ->
             let refscopes = makeReferential scopes
-            Apply(markDeclarations rootScope f refscopes, Tuple [ markDeclarations rootScope left scopes; markDeclarations rootScope right refscopes ])
+            let head = recur f refscopes
+            let left = recur left scopes
+            let right = recur right refscopes
+            let args = Node.spanning left right (Tuple [ left; right ])
+            Node.like node (Apply(head, args))
         | Apply (f, a) ->
-            Apply(markDeclarations rootScope f scopes, markDeclarations rootScope a scopes)
+            Node.like node (Apply(recur f scopes, recur a scopes))
         | Publish (s, access, e) ->
-            Publish(s, access, markDeclarations rootScope e (addDeclarative s scopes))
+            Node.like node (Publish(s, access, recur e (addDeclarative s scopes)))
         | PushScope (se, e) ->
-            let s = createExpressionScope(markDeclarations rootScope se (makeReferential scopes))
-            markDeclarations rootScope e (addReferential s scopes)
+            let s = createExpressionScope(recur se (makeReferential scopes))
+            recur e (addReferential s scopes)
         | PushMemberScope (se, e) ->
-            let s = createExpressionMemberScope(markDeclarations rootScope se (makeReferential scopes))
-            markDeclarations rootScope e (addReferential s scopes)
+            let s = createExpressionMemberScope(recur se (makeReferential scopes))
+            recur e (addReferential s scopes)
         | Tuple items ->
-            Tuple(List.map (fun e -> markDeclarations rootScope e scopes) items)
+            Node.like node (Tuple(List.map (fun e -> recur e scopes) items))
         | Record (s, e) ->
-            Record(s, markDeclarations rootScope e (addDeclarative s scopes))
+            Node.like node (Record(s, recur e (addDeclarative s scopes)))
         | Identifier (Unbound parts) ->
             let parts = List.map (fun p -> markDeclarationsPart rootScope p (makeReferential scopes)) parts
-            Identifier(bindingRole scopes parts)
+            Node.like node (Identifier(bindingRole scopes parts))
         | Identifier _ ->
-            exp
+            node
         | BuiltIn name ->
-            Identifier(Referential([ rootScope.Id ], [ TextPart name ]))
+            // The parser gives an operator's BuiltIn head the operator token's own
+            // range, so the lowered identifier still points at the operator.
+            Node.like node (Identifier(Referential([ rootScope.Id ], [ TextPart name ])))
         | Literal _ ->
-            exp
+            node
         | Set items ->
-            Set(List.map (fun e -> markDeclarations rootScope e scopes) items)
+            Node.like node (Set(List.map (fun e -> recur e scopes) items))
         | List items ->
-            List(List.map (fun e -> markDeclarations rootScope e scopes) items)
+            Node.like node (List(List.map (fun e -> recur e scopes) items))
         | StringLiteral parts ->
-            StringLiteral(List.map (fun p -> markDeclarationsPart rootScope p scopes) parts)
+            Node.like node (StringLiteral(List.map (fun p -> markDeclarationsPart rootScope p scopes) parts))
         | Projection (s, e, m) ->
-            let receiver = markDeclarations rootScope e (makeReferential scopes)
-            let memberExp = markDeclarations rootScope m scopes
+            let receiver = recur e (makeReferential scopes)
+            let memberExp = recur m scopes
             attachHost (fst scopes) (DirectPropertyHost receiver) memberExp
-            Projection(s, receiver, memberExp)
+            Node.like node (Projection(s, receiver, memberExp))
         | MemberProjection (s, e, m) ->
-            let receiver = markDeclarations rootScope e (makeReferential scopes)
-            let memberExp = markDeclarations rootScope m scopes
+            let receiver = recur e (makeReferential scopes)
+            let memberExp = recur m scopes
             attachHost (fst scopes) (MemberPropertyHost receiver) memberExp
-            MemberProjection(s, receiver, memberExp)
+            Node.like node (MemberProjection(s, receiver, memberExp))
         | This (Unbound _) ->
-            This(bindingRole scopes [])
+            Node.like node (This(bindingRole scopes []))
         | This _ ->
-            exp
+            node
         | Void ->
-            exp
+            node
         // Analyzed-only nodes: not produced by the parser; pass through untouched.
         | Local _
         | ScopeExp _
@@ -155,11 +178,11 @@ module private Marking =
         | IsDefined _
         | Equals _
         | ValueEquals _ ->
-            exp
+            node
 
     and markDeclarationsPart (rootScope: Scope) (part: InterpolatedPart) (scopes: ScopeStack) : InterpolatedPart =
         match part with
         | TextPart text -> TextPart text
         | HolePart exp -> HolePart(markDeclarations rootScope exp scopes)
 
-let markDeclarations rootScope exp scopes = Marking.markDeclarations rootScope exp scopes
+let markDeclarations rootScope node scopes = Marking.markDeclarations rootScope node scopes
