@@ -118,7 +118,9 @@ let private compileTingProgramRaw (input: string) : string =
         // and referential candidate scopes.
         let resolved, diagnostics = Resolver.resolve rootScope analyzed
         let scopes = renderScopeReport resolved
-        let expText = resolved.ToString()
+        // Rendered with renderExpression rather than %A: the Node wrapper costs
+        // print depth at every level, so %A truncates nested trees to `(..., ...)`.
+        let expText = renderExpression resolved
         let scopesSection =
             if String.IsNullOrWhiteSpace scopes then
                 "No scopes collected."

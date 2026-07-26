@@ -70,7 +70,7 @@ let private lookupUnhostedInScope (scope: Scope) (name: InterpolatedParts) : Gui
             None)
 
 // Map every scope id reachable from the program (plus the root scope) to its Scope.
-let private buildRegistry (rootScope: Scope) (exp: Exp) : Dictionary<Guid, Scope> =
+let private buildRegistry (rootScope: Scope) (exp: Node) : Dictionary<Guid, Scope> =
     let registry = Dictionary<Guid, Scope>()
     registry[rootScope.Id] <- rootScope
     for s in collectAllScopes exp do
@@ -90,19 +90,19 @@ let private nameOfRole (role: BindingRole) : InterpolatedParts =
 // left operand is a declarative identifier introduce a binding; comparison uses
 // of `=` (where the left operand is, say, a projection) are ignored. This is the
 // minimal structural knowledge needed to resolve member projections.
-let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp> =
-    let map = Dictionary<Guid, Exp>()
+let private buildBindingMap (exp: Node) : Dictionary<Guid, Node> =
+    let map = Dictionary<Guid, Node>()
 
-    let isEqOp e =
-        match e with
+    let isEqOp (e: Node) =
+        match e.Exp with
         | Identifier role -> namePartsEqual (nameOfRole role) [ TextPart "_=_" ]
         | _ -> false
 
-    let rec walk e =
-        match e with
-        | Apply (op, Tuple [ left; right ]) ->
+    let rec walk (n: Node) =
+        match n.Exp with
+        | Apply (op, E (Tuple [ left; right ])) ->
             if isEqOp op then
-                match left with
+                match left.Exp with
                 | Identifier (Declarative (id, _)) ->
                     if not (map.ContainsKey id) then
                         map.Add(id, right)
@@ -144,7 +144,7 @@ let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp> =
 // the members of the set `S` (e.g. the fields of the record `S` denotes) are then
 // implicitly in scope in the lambda body as members of `this`.
 // (Ting has no types of its own; `S` denotes a set, e.g. `DateTime`.)
-let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dictionary<Guid, Exp> =
+let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Node) : Dictionary<Guid, Node> =
     // declaration id -> id of the scope that declares it.
     let declToScope = Dictionary<Guid, Guid>()
 
@@ -154,11 +154,11 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dict
             if not (declToScope.ContainsKey n.Key) then
                 declToScope[n.Key] <- scope.Id
 
-    let map = Dictionary<Guid, Exp>()
+    let map = Dictionary<Guid, Node>()
 
-    let rec walk e =
-        match e with
-        | Apply (typeExpr, This (Declarative (thisId, _))) ->
+    let rec walk (n: Node) =
+        match n.Exp with
+        | Apply (typeExpr, E (This (Declarative (thisId, _)))) ->
             match declToScope.TryGetValue thisId with
             | true, sid when not (map.ContainsKey sid) -> map[sid] <- typeExpr
             | _ -> ()
@@ -195,8 +195,8 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dict
 // Shared state threaded through the resolution pass.
 type private Context =
     { Registry: Dictionary<Guid, Scope>
-      BindingMap: Dictionary<Guid, Exp>
-      ThisTypes: Dictionary<Guid, Exp>
+      BindingMap: Dictionary<Guid, Node>
+      ThisTypes: Dictionary<Guid, Node>
       Diags: ResizeArray<Diagnostic> }
 
 // Resolve a binding role to a single declaration id, where possible. Used when
@@ -215,8 +215,8 @@ let private tryResolveRoleToDecl (ctx: Context) (role: BindingRole) : Guid optio
 
 // The declaration id an expression denotes, for host matching. Follows the
 // identifier of the host/receiver (e.g. `int` -> int's declaration id).
-let rec private exprIdentity (ctx: Context) (exp: Exp) : Guid option =
-    match exp with
+let rec private exprIdentity (ctx: Context) (exp: Node) : Guid option =
+    match exp.Exp with
     | Identifier role -> tryResolveRoleToDecl ctx role
     | Local (_, e)
     | Publish (_, _, e)
@@ -225,8 +225,8 @@ let rec private exprIdentity (ctx: Context) (exp: Exp) : Guid option =
 
 // The set a receiver is a member of, for `..` (member-property) host matching.
 // Currently known for primitive literals (e.g. `21` is a member of `int`).
-let private receiverTypeIdentity (ctx: Context) (receiver: Exp) : Guid option =
-    match receiver with
+let private receiverTypeIdentity (ctx: Context) (receiver: Node) : Guid option =
+    match receiver.Exp with
     | Literal lit ->
         let typeName =
             match lit with
@@ -333,40 +333,43 @@ let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
                         ctx.Diags.Add(UnresolvedName(formatName name))
                     role
 
-and private resolveExp (ctx: Context) (exp: Exp) : Exp =
+and private resolveExp (ctx: Context) (node: Node) : Node =
     let go = resolveExp ctx
+    // Resolution only rewrites binding roles, so every rebuilt node keeps the
+    // range of the node it replaced.
+    let rebuild e = Node.like node e
 
     let goPart =
         function
         | TextPart _ as p -> p
         | HolePart e -> HolePart(go e)
 
-    match exp with
-    | Local (s, e) -> Local(s, go e)
-    | Apply (f, a) -> Apply(go f, go a)
-    | Tuple xs -> Tuple(List.map go xs)
-    | Record (s, e) -> Record(s, go e)
-    | Publish (s, access, e) -> Publish(s, access, go e)
-    | Identifier role -> Identifier(resolveRole ctx role)
-    | ScopeExp (s, e) -> ScopeExp(s, go e)
-    | Literal _ -> exp
-    | Set xs -> Set(List.map go xs)
-    | List xs -> List(List.map go xs)
-    | StringLiteral parts -> StringLiteral(List.map goPart parts)
+    match node.Exp with
+    | Local (s, e) -> rebuild (Local(s, go e))
+    | Apply (f, a) -> rebuild (Apply(go f, go a))
+    | Tuple xs -> rebuild (Tuple(List.map go xs))
+    | Record (s, e) -> rebuild (Record(s, go e))
+    | Publish (s, access, e) -> rebuild (Publish(s, access, go e))
+    | Identifier role -> rebuild (Identifier(resolveRole ctx role))
+    | ScopeExp (s, e) -> rebuild (ScopeExp(s, go e))
+    | Literal _ -> node
+    | Set xs -> rebuild (Set(List.map go xs))
+    | List xs -> rebuild (List(List.map go xs))
+    | StringLiteral parts -> rebuild (StringLiteral(List.map goPart parts))
     | Projection (s, e, m) ->
         // The member of `receiver.member` is resolved against the record structure
         // of the receiver, not the enclosing lexical scopes.
         let receiver = go e
-        Projection(s, receiver, resolveMember ctx receiver m)
-    | MemberProjection (s, e, m) -> MemberProjection(s, go e, go m)
-    | This role -> This(resolveRole ctx role)
-    | Void -> exp
-    | Unknown -> exp
-    | Throw e -> Throw(go e)
-    | Catch (a, b) -> Catch(go a, go b)
-    | IsDefined e -> IsDefined(go e)
-    | Equals (a, b) -> Equals(go a, go b)
-    | ValueEquals (a, b) -> ValueEquals(go a, go b)
+        rebuild (Projection(s, receiver, resolveMember ctx receiver m))
+    | MemberProjection (s, e, m) -> rebuild (MemberProjection(s, go e, go m))
+    | This role -> rebuild (This(resolveRole ctx role))
+    | Void -> node
+    | Unknown -> node
+    | Throw e -> rebuild (Throw(go e))
+    | Catch (a, b) -> rebuild (Catch(go a, go b))
+    | IsDefined e -> rebuild (IsDefined(go e))
+    | Equals (a, b) -> rebuild (Equals(go a, go b))
+    | ValueEquals (a, b) -> rebuild (ValueEquals(go a, go b))
     // Surface marker nodes: eliminated by the Binder before resolution.
     | Declare _
     | Reference _
@@ -376,14 +379,14 @@ and private resolveExp (ctx: Context) (exp: Exp) : Exp =
     | ReferenceRight _
     | BuiltIn _
     | PushScope _
-    | PushMemberScope _ -> exp
+    | PushMemberScope _ -> node
 
 // Resolve `receiver.member`. The member is resolved against (a) the record
 // structure of the receiver, then (b) hosted extension properties/members whose
 // host matches the receiver. There is no lexical fallback: member names are not
 // lexically scoped. If the receiver's structure is unknown, defer silently.
-and private resolveMember (ctx: Context) (receiver: Exp) (memberExp: Exp) : Exp =
-    match memberExp with
+and private resolveMember (ctx: Context) (receiver: Node) (memberExp: Node) : Node =
+    match memberExp.Exp with
     | Identifier (Referential (cands, name)) when not (nameHasHole name) ->
         let recScopeOpt = recordScopeOf ctx (HashSet<Guid>()) receiver
         let fieldHit = recScopeOpt |> Option.bind (fun rs -> lookupInScope rs name)
@@ -401,7 +404,7 @@ and private resolveMember (ctx: Context) (receiver: Exp) (memberExp: Exp) : Exp 
                     | _ -> None)
 
         match fieldHit |> Option.orElse hostedHit with
-        | Some id -> Identifier(Resolved(id, name))
+        | Some id -> Node.like memberExp (Identifier(Resolved(id, name)))
         | None ->
             // A field was sought on a known record but not found: a real error.
             // Otherwise the receiver structure is unknown, so defer.
@@ -414,8 +417,8 @@ and private resolveMember (ctx: Context) (receiver: Exp) (memberExp: Exp) : Exp 
 
 // Find the record scope denoted by an expression, following identifier bindings
 // (e.g. `person` -> `record(Name:string)`) with cycle protection.
-and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Exp) : Scope option =
-    match exp with
+and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Node) : Scope option =
+    match exp.Exp with
     | Record (recScope, _) -> Some recScope
     | Set [ single ] -> recordScopeOf ctx visited single
     | Local (_, e)
@@ -432,7 +435,7 @@ and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Exp) : S
 
 // Resolve referential occurrences against the program's scopes.
 // Returns the rewritten tree and any diagnostics collected along the way.
-let resolve (rootScope: Scope) (exp: Exp) : Exp * Diagnostic list =
+let resolve (rootScope: Scope) (exp: Node) : Node * Diagnostic list =
     let registry = buildRegistry rootScope exp
 
     let ctx =

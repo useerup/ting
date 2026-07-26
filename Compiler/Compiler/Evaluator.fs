@@ -14,22 +14,22 @@ type Value =
     | VDecimal of decimal
     | VString of string
     | VTuple of Value list
-    | VClosure of Guid list * Exp * Env
+    | VClosure of Guid list * Node * Env
 
 and Env = Map<Guid, Value>
 
 // The operator/identifier name carried by an identifier, when it is a plain
 // (non-interpolated) name.
-let private opName (e: Exp) : string option =
-    match e with
+let private opName (e: Node) : string option =
+    match e.Exp with
     | Identifier (Resolved (_, [ TextPart s ]))
     | Identifier (Referential (_, [ TextPart s ]))
     | Identifier (Declarative (_, [ TextPart s ])) -> Some s
     | _ -> None
 
 // The declaration id introduced by the left-hand side of a binding, if any.
-let rec private declIdOf (lhs: Exp) : Guid option =
-    match lhs with
+let rec private declIdOf (lhs: Node) : Guid option =
+    match lhs.Exp with
     | Identifier (Declarative (id, _)) -> Some id
     | Projection (_, _, m)
     | MemberProjection (_, _, m) -> declIdOf m
@@ -37,8 +37,8 @@ let rec private declIdOf (lhs: Exp) : Guid option =
     | _ -> None
 
 // The parameter declaration ids bound by a lambda's parameter expression.
-let rec private paramIds (param: Exp) : Guid list =
-    match param with
+let rec private paramIds (param: Node) : Guid list =
+    match param.Exp with
     | Identifier (Declarative (id, _)) -> [ id ]
     | Tuple xs -> xs |> List.collect paramIds
     | Local (_, e) -> paramIds e
@@ -101,7 +101,7 @@ let private literalValue (lit: Exp.Literal) : Value =
 // Evaluate a resolved Exp to a value, when it denotes a computable value.
 // Returns None when evaluation cannot proceed (unresolved names, sets, records
 // without values, unsupported forms). Evaluation is intentionally partial.
-let evaluate (rootScope: Scope) (exp: Exp) : Value option =
+let evaluate (rootScope: Scope) (exp: Node) : Value option =
     // Map declaration id -> name entry, so hosted members can be distinguished
     // (direct property vs member property) at projection use sites.
     let registry = Dictionary<Guid, NameEntry>()
@@ -118,8 +118,8 @@ let evaluate (rootScope: Scope) (exp: Exp) : Value option =
         | true, e -> e.Host
         | _ -> None
 
-    let rec eval (env: Env) (e: Exp) : Value option =
-        match e with
+    let rec eval (env: Env) (e: Node) : Value option =
+        match e.Exp with
         | Literal lit -> Some(literalValue lit)
         | Local (_, inner)
         | ScopeExp (_, inner)
@@ -130,7 +130,7 @@ let evaluate (rootScope: Scope) (exp: Exp) : Value option =
         | Apply (f, arg) -> evalApply env f arg
         | _ -> None
 
-    and evalList (env: Env) (xs: Exp list) : Value list option =
+    and evalList (env: Env) (xs: Node list) : Value list option =
         match xs with
         | [] -> Some []
         | h :: t ->
@@ -138,21 +138,21 @@ let evaluate (rootScope: Scope) (exp: Exp) : Value option =
             | Some v -> evalList env t |> Option.map (fun vs -> v :: vs)
             | None -> None
 
-    and evalApply (env: Env) (f: Exp) (arg: Exp) : Value option =
+    and evalApply (env: Env) (f: Node) (arg: Node) : Value option =
         match opName f with
         | Some "_in_" ->
-            match arg with
+            match arg.Exp with
             | Tuple [ binding; body ] ->
                 match evalBinding env binding with
                 | Some env' -> eval env' body
                 | None -> None
             | _ -> None
         | Some "_=>_" ->
-            match arg with
+            match arg.Exp with
             | Tuple [ param; body ] -> Some(VClosure(paramIds param, body, env))
             | _ -> None
         | Some op when isPrimOp op ->
-            match arg with
+            match arg.Exp with
             | Tuple [ a; b ] ->
                 match eval env a, eval env b with
                 | Some va, Some vb -> primOp op va vb
@@ -167,8 +167,8 @@ let evaluate (rootScope: Scope) (exp: Exp) : Value option =
                 | None -> None
             | _ -> None
 
-    and evalProjection (env: Env) (receiver: Exp) (m: Exp) : Value option =
-        match m with
+    and evalProjection (env: Env) (receiver: Node) (m: Node) : Value option =
+        match m.Exp with
         | Identifier (Resolved (id, _)) ->
             match Map.tryFind id env with
             | Some v ->
@@ -187,7 +187,7 @@ let evaluate (rootScope: Scope) (exp: Exp) : Value option =
         | VClosure (ps, body, cenv) -> applyClosure ps body cenv argv
         | _ -> None
 
-    and applyClosure (ps: Guid list) (body: Exp) (cenv: Env) (argv: Value) : Value option =
+    and applyClosure (ps: Guid list) (body: Node) (cenv: Env) (argv: Value) : Value option =
         let binds =
             match ps, argv with
             | [ single ], v -> [ single, v ]
@@ -199,10 +199,10 @@ let evaluate (rootScope: Scope) (exp: Exp) : Value option =
             let env' = (cenv, binds) ||> List.fold (fun e (id, v) -> Map.add id v e)
             eval env' body
 
-    and evalBinding (env: Env) (binding: Exp) : Env option =
-        match binding with
+    and evalBinding (env: Env) (binding: Node) : Env option =
+        match binding.Exp with
         | Local (_, inner) -> evalBinding env inner
-        | Apply (f, Tuple [ lhs; rhs ]) when opName f = Some "_=_" ->
+        | Apply (f, E (Tuple [ lhs; rhs ])) when opName f = Some "_=_" ->
             match eval env rhs with
             | Some v ->
                 match declIdOf lhs with

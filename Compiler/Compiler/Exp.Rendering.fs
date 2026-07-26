@@ -34,8 +34,8 @@ let private declarationKindText (entry: NameEntry) =
 // (`.` for direct properties, `..` for member properties). Proves the host was
 // recorded in the scope, e.g. `host=int.` or `host=int..`.
 let private formatHostSuffix (entry: NameEntry) =
-    let rec hostName e =
-        match e with
+    let rec hostName (n: Node) =
+        match n.Exp with
         | Identifier (Declarative (_, parts))
         | Identifier (Referential (_, parts))
         | Identifier (Resolved (_, parts)) -> formatNameParts parts
@@ -50,15 +50,15 @@ let private formatHostSuffix (entry: NameEntry) =
     | Some (DirectPropertyHost e) -> $" host={hostName e}."
     | Some (MemberPropertyHost e) -> $" host={hostName e}.."
 
-let private collectProjectedDeclarationKinds (exp: Exp) =
+let private collectProjectedDeclarationKinds (exp: Node) =
     let kinds = System.Collections.Generic.Dictionary<Guid, string>()
 
     let setKind id kind =
         if not (kinds.ContainsKey id) then
             kinds.Add(id, kind)
 
-    let rec collectFromMember isMemberProjection memberExp =
-        match memberExp with
+    let rec collectFromMember isMemberProjection (memberExp: Node) =
+        match memberExp.Exp with
         | Identifier (Declarative (id, _)) ->
             setKind id (if isMemberProjection then "extension member-property" else "extension property")
         | Tuple xs
@@ -80,8 +80,8 @@ let private collectProjectedDeclarationKinds (exp: Exp) =
         | MemberProjection (_, _, m) -> collectFromMember true m
         | _ -> ()
 
-    let rec walk e =
-        match e with
+    let rec walk (n: Node) =
+        match n.Exp with
         | Local (_, x)
         | Record (_, x)
         | ScopeExp (_, x)
@@ -122,7 +122,7 @@ let private formatScopeNames (projectedKinds: System.Collections.Generic.Diction
     |> String.concat ", "
 
 // Build a textual scope report used by console and file output.
-let renderScopeReport (exp: Exp) : string =
+let renderScopeReport (exp: Node) : string =
     let projectedKinds = collectProjectedDeclarationKinds exp
     collectAllScopes exp
     |> List.mapi (fun i s ->
@@ -135,7 +135,7 @@ let renderScopeReport (exp: Exp) : string =
     |> String.concat Environment.NewLine
 
 // Print each collected scope, its kind, and the names currently present in that scope.
-let printScopeReport (exp: Exp) : unit =
+let printScopeReport (exp: Node) : unit =
     printfn "%s" (renderScopeReport exp)
 
 // Render the analyzed Exp in a cycle-safe way for diagnostics/output files.
@@ -151,8 +151,8 @@ and private renderBindingRole = function
         let scopesText = scopeIds |> List.map string |> String.concat ", "
         $"ref:[{scopesText}]"
 
-and renderExpression (exp: Exp) : string =
-    match exp with
+and renderExpression (node: Node) : string =
+    match node.Exp with
     | Local (s, e) -> $"local[{formatScope s}] {renderExpression e}"
     | Apply (f, a) -> $"({renderExpression f} {renderExpression a})"
     | Tuple xs -> xs |> List.map renderExpression |> String.concat ", " |> fun s -> $"({s})"

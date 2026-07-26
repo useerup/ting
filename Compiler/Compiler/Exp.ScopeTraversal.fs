@@ -35,8 +35,8 @@ and private addDefinitionScope (acc: ResizeArray<Scope>) (s: Scope) =
     | _ -> ()
 
 // Walk the analyzed Exp tree and collect relevant scopes into acc.
-and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: Exp) : unit =
-    match exp with
+and private collectDefinitionScopes (acc: ResizeArray<Scope>) (node: Node) : unit =
+    match node.Exp with
     | Local (s, e) ->
         addDefinitionScope acc s
         collectDefinitionScopes acc e
@@ -90,7 +90,7 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (exp: Exp) : unit 
     | PushMemberScope _ -> ()
 
 // Public helper to collect scopes from an analyzed Exp.
-let collectAllScopes (exp: Exp) : Scope list =
+let collectAllScopes (node: Node) : Scope list =
     let acc = ResizeArray<Scope>()
-    collectDefinitionScopes acc exp
+    collectDefinitionScopes acc node
     acc |> Seq.toList
