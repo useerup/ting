@@ -21,8 +21,10 @@ type AccessModifier =
 ///
 /// The parser produces this tree with:
 ///   - binding-intent marker nodes (Declare, Reference, DeclareLeft/Right,
-///     ReferenceLeft/Right, BuiltIn, PushScope, PushMemberScope), and
-///   - identifiers in the Unbound binding role.
+///     ReferenceLeft/Right, PushScope, PushMemberScope), and
+///   - identifiers in the Unbound binding role, except for the operator heads it
+///     synthesizes: the parser knows every operator it can parse, so it emits
+///     those already Referential against its own operator scope.
 ///
 /// The Binder (run as part of parsing) rewrites the tree in place-of-type:
 ///   - marker nodes are eliminated (lowered to Local/Apply/scope pushes),
@@ -50,9 +52,6 @@ type AccessModifier =
 ///                    left keeps the ambient binding context. Produced by `=`, `in`,
 ///                    `then`, `->`, `catch`, `?`, `??`, `:`, `::`, `:::`, `<`, `<=`,
 ///                    `>=`, `>`, `==`, `!=`, `!:` — e.g. `x = 5`, `decls in body`.
-///   BuiltIn          Never written in source; synthesized as the operator/function head
-///                    for every operator desugaring (`_+_`, `_=>_`, `!_`, `fn_`, ...).
-///                    Lowered by the Binder to a root-scope Referential identifier.
 ///   PushScope        Infix `./` — `scope ./ body`. Eliminated by the Binder (pushes an
 ///                    ExpressionScope over `body`).
 ///   PushMemberScope  Infix `../` — `scope ../ body`. Eliminated by the Binder (pushes
@@ -64,7 +63,10 @@ type AccessModifier =
 ///   Record           Prefix `record E`. The parser allocates the record's scope; the
 ///                    Binder fills it with the record's declarations.
 ///   Identifier       An identifier occurrence carrying its BindingRole. The parser
-///                    emits Unbound; the Binder rewrites to Declarative/Referential.
+///                    emits Unbound for identifiers written in source, and the
+///                    already-Referential head of each operator desugaring
+///                    (`_+_`, `_=>_`, `!_`, `fn_`, ...). The Binder rewrites
+///                    Unbound to Declarative/Referential and leaves the rest alone.
 ///   Literal          A literal term; see the Literal type.
 ///   Set              Brace comma-separated list `{a, b, ...}`; also `records E`,
 ///                    `tuples E`.
@@ -92,7 +94,6 @@ type Exp =
     | DeclareRight of Node * Node * Node
     | ReferenceLeft of Node * Node * Node
     | ReferenceRight of Node * Node * Node
-    | BuiltIn of string
     | PushScope of Node * Node
     | PushMemberScope of Node * Node
     // Shared nodes (parser output, preserved by the Binder).

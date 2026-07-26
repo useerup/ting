@@ -69,10 +69,15 @@ let private lookupUnhostedInScope (scope: Scope) (name: InterpolatedParts) : Gui
         else
             None)
 
-// Map every scope id reachable from the program (plus the root scope) to its Scope.
-let private buildRegistry (rootScope: Scope) (exp: Node) : Dictionary<Guid, Scope> =
+// Map every scope id reachable from the program (plus the root and base scopes)
+// to its Scope. Base scopes are ambient scopes that no node points at but that
+// candidate lists refer to — the parser's operator scope is one.
+let private buildRegistry (rootScope: Scope) (baseScopes: Scope list) (exp: Node) : Dictionary<Guid, Scope> =
     let registry = Dictionary<Guid, Scope>()
     registry[rootScope.Id] <- rootScope
+    for s in baseScopes do
+        if not (registry.ContainsKey s.Id) then
+            registry[s.Id] <- s
     for s in collectAllScopes exp do
         if not (registry.ContainsKey s.Id) then
             registry[s.Id] <- s
@@ -377,7 +382,6 @@ and private resolveExp (ctx: Context) (node: Node) : Node =
     | DeclareRight _
     | ReferenceLeft _
     | ReferenceRight _
-    | BuiltIn _
     | PushScope _
     | PushMemberScope _ -> node
 
@@ -434,9 +438,12 @@ and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Node) : 
     | _ -> None
 
 // Resolve referential occurrences against the program's scopes.
+// `baseScopes` are scopes that referential candidate lists name but that are not
+// reachable from the tree — currently the parser's operator scope, which
+// declares the functions operators lower to.
 // Returns the rewritten tree and any diagnostics collected along the way.
-let resolve (rootScope: Scope) (exp: Node) : Node * Diagnostic list =
-    let registry = buildRegistry rootScope exp
+let resolve (rootScope: Scope) (baseScopes: Scope list) (exp: Node) : Node * Diagnostic list =
+    let registry = buildRegistry rootScope baseScopes exp
 
     let ctx =
         { Registry = registry

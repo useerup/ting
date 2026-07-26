@@ -44,14 +44,10 @@ let private isFenceLine (line: string) =
     line.TrimStart().StartsWith("```")
 
 let private compileTingProgramRaw (input: string) : string =
+    // The root scope declares the ambient names a program can refer to. The
+    // functions behind operators are *not* among them: the parser declares those
+    // in its own operator scope and binds operator heads to it directly.
     let rootScope = Exp.LocalScope(Guid.Empty) :> Exp.Scope
-    rootScope.defineName(Guid.NewGuid(), "_=>_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_==_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_=_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_&_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_|_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_&&_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_||_", Unknown)
     rootScope.defineName(Guid.NewGuid(), "_&&&_", Unknown)
     rootScope.defineName(Guid.NewGuid(), "_|||_", Unknown)
 
@@ -84,39 +80,11 @@ let private compileTingProgramRaw (input: string) : string =
 
     rootScope.defineName(Guid.NewGuid(), "_all_", Unknown)
 
-    rootScope.defineName(Guid.NewGuid(), "_in_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_+_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_-_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_*_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_/_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_%_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_/%_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_^_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_->_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_^^_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_^_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_then_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_else_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_..._", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_<..._", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_...<_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_<...<_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_:_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_::_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_:::_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_<_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_>_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_>=_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_\\_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_?_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_<=_", Unknown)
-
     match parse rootScope input with
     | ParseSucceeded analyzed ->
         // Parsing already ran the Binder: `analyzed` carries declaration ids
         // and referential candidate scopes.
-        let resolved, diagnostics = Resolver.resolve rootScope analyzed
+        let resolved, diagnostics = Resolver.resolve rootScope [ Parser.operatorScope ] analyzed
         let scopes = renderScopeReport resolved
         // Rendered with renderExpression rather than %A: the Node wrapper costs
         // print depth at every level, so %A truncates nested trees to `(..., ...)`.

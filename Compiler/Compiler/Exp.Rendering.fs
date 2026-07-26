@@ -196,6 +196,5 @@ and renderExpression (node: Node) : string =
     | DeclareRight _
     | ReferenceLeft _
     | ReferenceRight _
-    | BuiltIn _
     | PushScope _
     | PushMemberScope _ -> "<surface>"

@@ -8,6 +8,10 @@ open ExpScopes
 // assigns declaration ids to declarative identifiers (recording them in their
 // declarative scopes), and attaches the ordered candidate scope-id list to
 // every referential identifier.
+//
+// Operator heads are not its business: the parser knows the operators it parses
+// and emits their heads already bound to its own operator scope, so they arrive
+// here as ordinary Referential identifiers and pass through untouched.
 
 module private ScopeStackOps =
     let addDeclarative (s: Scope) (scopes: ScopeStack) : ScopeStack =
@@ -85,8 +89,8 @@ module private Marking =
     // Lowering preserves source spans: a node produced from a source construct
     // reports that construct's range (Node.like), and a node synthesized to group
     // operands reports the span of those operands (Node.spanning).
-    let rec markDeclarations (rootScope: Scope) (node: Node) (scopes: ScopeStack) : Node =
-        let recur e s = markDeclarations rootScope e s
+    let rec markDeclarations (node: Node) (scopes: ScopeStack) : Node =
+        let recur e s = markDeclarations e s
 
         match node.Exp with
         | Declare e ->
@@ -137,14 +141,12 @@ module private Marking =
         | Record (s, e) ->
             Node.like node (Record(s, recur e (addDeclarative s scopes)))
         | Identifier (Unbound parts) ->
-            let parts = List.map (fun p -> markDeclarationsPart rootScope p (makeReferential scopes)) parts
+            let parts = List.map (fun p -> markDeclarationsPart p (makeReferential scopes)) parts
             Node.like node (Identifier(bindingRole scopes parts))
         | Identifier _ ->
+            // Already bound: identifiers the parser resolved itself, i.e. the
+            // operator heads it emits Referential against its operator scope.
             node
-        | BuiltIn name ->
-            // The parser gives an operator's BuiltIn head the operator token's own
-            // range, so the lowered identifier still points at the operator.
-            Node.like node (Identifier(Referential([ rootScope.Id ], [ TextPart name ])))
         | Literal _ ->
             node
         | Set items ->
@@ -152,7 +154,7 @@ module private Marking =
         | List items ->
             Node.like node (List(List.map (fun e -> recur e scopes) items))
         | StringLiteral parts ->
-            Node.like node (StringLiteral(List.map (fun p -> markDeclarationsPart rootScope p scopes) parts))
+            Node.like node (StringLiteral(List.map (fun p -> markDeclarationsPart p scopes) parts))
         | Projection (s, e, m) ->
             let receiver = recur e (makeReferential scopes)
             let memberExp = recur m scopes
@@ -180,9 +182,9 @@ module private Marking =
         | ValueEquals _ ->
             node
 
-    and markDeclarationsPart (rootScope: Scope) (part: InterpolatedPart) (scopes: ScopeStack) : InterpolatedPart =
+    and markDeclarationsPart (part: InterpolatedPart) (scopes: ScopeStack) : InterpolatedPart =
         match part with
         | TextPart text -> TextPart text
-        | HolePart exp -> HolePart(markDeclarations rootScope exp scopes)
+        | HolePart exp -> HolePart(markDeclarations exp scopes)
 
-let markDeclarations rootScope node scopes = Marking.markDeclarations rootScope node scopes
+let markDeclarations node scopes = Marking.markDeclarations node scopes

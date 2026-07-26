@@ -85,7 +85,6 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (node: Node) : uni
     | DeclareRight _
     | ReferenceLeft _
     | ReferenceRight _
-    | BuiltIn _
     | PushScope _
     | PushMemberScope _ -> ()
 

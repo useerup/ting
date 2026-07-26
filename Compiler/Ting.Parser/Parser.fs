@@ -128,9 +128,28 @@ let pTerm: Parser<Node> =
 
 // The operator precedence parser carries the position just past each operator
 // token as its "after string" value, which is how an operator's own range is
-// recovered for the synthesized BuiltIn head.
+// recovered for the synthesized operator head.
 let opp = new OperatorPrecedenceParser<Node, FParsec.Position, UserState>()
 let pExpr: Parser<Node> = opp.ExpressionParser
+
+/// The scope declaring the functions that operators lower to.
+///
+/// Ting has no operators of its own: every operator is sugar for applying an
+/// ordinary function whose name marks the operand positions with `_` — `a + b`
+/// is `_+_ (a, b)`, `!a` is `!_ a`. The parser knows every operator it can
+/// parse, so it also knows every function those operators can name, and it
+/// declares them all here.
+///
+/// Because this scope is known at parse time, an operator head needs no later
+/// binding pass: the parser emits it as a Referential identifier whose single
+/// candidate scope is this one. Operator names are therefore never looked up
+/// lexically and can never be shadowed by user declarations.
+let operatorScope: Scope = LocalScope(Guid.NewGuid()) :> Scope
+
+/// Declare the function an operator lowers to. Called from the operator table
+/// below, so the scope cannot drift from the set of operators the parser accepts.
+let private declareOperatorFunction (name: string) =
+    operatorScope.defineName(Guid.NewGuid(), name, Unknown)
 
 /// Parser used after every operator token: capture the position, then skip
 /// whitespace. Capturing before `ws` is what keeps operator ranges tight.
@@ -146,30 +165,30 @@ let private opRange (op: string) (posAfter: FParsec.Position) : Range.Range =
       End = toPosition posAfter }
 
 // Operator lowerings. Each takes the position just past the operator token so
-// the synthesized BuiltIn head reports the operator's own span, while the node
-// as a whole spans both operands.
-let private builtInNode (op: string) (name: string) (pos: FParsec.Position) =
-    Node.at (opRange op pos) (BuiltIn name)
+// the synthesized head reports the operator's own span, while the node as a
+// whole spans both operands.
+let private operatorHead (op: string) (name: string) (pos: FParsec.Position) =
+    Node.at (opRange op pos) (Identifier(Referential([ operatorScope.Id ], [ TextPart name ])))
 
 let declareLeftOperator (op: string) =
-    fun pos x y -> Node.spanning x y (DeclareLeft(builtInNode op $"_{op}_" pos, x, y))
+    fun pos x y -> Node.spanning x y (DeclareLeft(operatorHead op $"_{op}_" pos, x, y))
 
 let declareRightOperator (op: string) =
-    fun pos x y -> Node.spanning x y (DeclareRight(builtInNode op $"_{op}_" pos, x, y))
+    fun pos x y -> Node.spanning x y (DeclareRight(operatorHead op $"_{op}_" pos, x, y))
 
 let referenceLeftOperator (op: string) =
-    fun pos x y -> Node.spanning x y (ReferenceLeft(builtInNode op $"_{op}_" pos, x, y))
+    fun pos x y -> Node.spanning x y (ReferenceLeft(operatorHead op $"_{op}_" pos, x, y))
 
 let referenceRightOperator (op: string) =
-    fun pos x y -> Node.spanning x y (ReferenceRight(builtInNode op $"_{op}_" pos, x, y))
+    fun pos x y -> Node.spanning x y (ReferenceRight(operatorHead op $"_{op}_" pos, x, y))
 
 let operator (op: string) =
     fun pos x y ->
-        Node.spanning x y (Apply(builtInNode op $"_{op}_" pos, Node.spanning x y (Tuple [ x; y ])))
+        Node.spanning x y (Apply(operatorHead op $"_{op}_" pos, Node.spanning x y (Tuple [ x; y ])))
 
 let prefixOperator (op: string) =
     fun pos x ->
-        let head = builtInNode op $"{op}_" pos
+        let head = operatorHead op $"{op}_" pos
         Node.at (Range.Range.span (opRange op pos) x.Range) (Apply(head, x))
 
 /// A prefix operator that wraps its operand in a single node spanning the
@@ -177,11 +196,25 @@ let prefixOperator (op: string) =
 let private prefixWrap (op: string) (make: Node -> Exp) =
     fun pos (x: Node) -> Node.at (Range.Range.span (opRange op pos) x.Range) (make x)
 
+// Registration helpers. `addInfix`/`addPrefix` are for operators that lower to
+// something other than a function application (`./`, `.`, `let`, `record`, ...).
 let private addInfix (op: string) prec assoc (f: FParsec.Position -> Node -> Node -> Node) =
     opp.AddOperator(InfixOperator(op, opws, prec, assoc, (), f))
 
 let private addPrefix (op: string) prec isAssoc (f: FParsec.Position -> Node -> Node) =
     opp.AddOperator(PrefixOperator(op, opws, prec, isAssoc, (), f))
+
+// Operators that lower to an application of a function go through these, which
+// declare that function in operatorScope as a side effect. Registering the
+// operator and declaring its function is therefore a single act and the scope
+// cannot drift from the grammar.
+let private addFunctionInfix (op: string) prec assoc (lower: string -> FParsec.Position -> Node -> Node -> Node) =
+    declareOperatorFunction $"_{op}_"
+    addInfix op prec assoc (lower op)
+
+let private addFunctionPrefix (op: string) prec (lower: string -> FParsec.Position -> Node -> Node) =
+    declareOperatorFunction $"{op}_"
+    addPrefix op prec true (lower op)
 
 // Juxtaposition application: `f x y` associates left, each Apply spanning from
 // the callee's start to the argument's end.
@@ -197,70 +230,70 @@ addPrefix "private" 1 true (prefixWrap "private" (fun b -> Publish(ExpScopes.cre
 addPrefix "protected" 1 true (prefixWrap "protected" (fun b -> Publish(ExpScopes.createNamesScope(), Protected, b)))
 addPrefix "internal" 1 true (prefixWrap "internal" (fun b -> Publish(ExpScopes.createNamesScope(), Internal, b)))
 
-addInfix "where" 3 Associativity.Right (declareRightOperator "where")
+addFunctionInfix "where" 3 Associativity.Right declareRightOperator
 
-addInfix "in" 5 Associativity.Right (referenceRightOperator "in")
-addInfix "=" 10 Associativity.Left (referenceRightOperator "=")
-addInfix "then" 15 Associativity.Right (referenceRightOperator "then")
-addInfix "else" 15 Associativity.Right (operator "else")
-addInfix "->" 20 Associativity.Left (referenceRightOperator "->")
+addFunctionInfix "in" 5 Associativity.Right referenceRightOperator
+addFunctionInfix "=" 10 Associativity.Left referenceRightOperator
+addFunctionInfix "then" 15 Associativity.Right referenceRightOperator
+addFunctionInfix "else" 15 Associativity.Right operator
+addFunctionInfix "->" 20 Associativity.Left referenceRightOperator
 
-addInfix ">>" 30 Associativity.Left (operator ">>")
-addInfix "<<" 30 Associativity.Left (operator "<<")
-addInfix "|>" 30 Associativity.Left (operator "|>")
-addInfix "<|" 30 Associativity.Left (operator "<|")
+addFunctionInfix ">>" 30 Associativity.Left operator
+addFunctionInfix "<<" 30 Associativity.Left operator
+addFunctionInfix "|>" 30 Associativity.Left operator
+addFunctionInfix "<|" 30 Associativity.Left operator
 
-addInfix "=>" 40 Associativity.Right (declareLeftOperator "=>")
+addFunctionInfix "=>" 40 Associativity.Right declareLeftOperator
 
 addInfix "./" 70 Associativity.Left (fun _ x y -> Node.spanning x y (PushScope(x, y)))
 addInfix "../" 70 Associativity.Left (fun _ x y -> Node.spanning x y (PushMemberScope(x, y)))
 
-addInfix "catch" 75 Associativity.Left (referenceRightOperator "catch")
-addInfix @"\" 80 Associativity.Left (declareLeftOperator @"\")
+addFunctionInfix "catch" 75 Associativity.Left referenceRightOperator
+addFunctionInfix @"\" 80 Associativity.Left declareLeftOperator
 
-addInfix "|" 90 Associativity.Left (operator "|")
-addInfix "||" 90 Associativity.Left (operator "||")
-addInfix "&" 100 Associativity.Left (operator "&")
-addInfix "&&" 100 Associativity.Left (operator "&&")
-addInfix "?" 103 Associativity.Left (referenceRightOperator "?")
-addInfix "??" 103 Associativity.Left (referenceRightOperator "??")
-addPrefix "!" 110 true (prefixOperator "!")
+addFunctionInfix "|" 90 Associativity.Left operator
+addFunctionInfix "||" 90 Associativity.Left operator
+addFunctionInfix "&" 100 Associativity.Left operator
+addFunctionInfix "&&" 100 Associativity.Left operator
+addFunctionInfix "?" 103 Associativity.Left referenceRightOperator
+addFunctionInfix "??" 103 Associativity.Left referenceRightOperator
+addFunctionPrefix "!" 110 prefixOperator
 
-addInfix ":" 115 Associativity.None (referenceRightOperator ":")
-addInfix "::" 115 Associativity.None (referenceRightOperator "::")
-addInfix ":::" 115 Associativity.None (referenceRightOperator ":::")
-addInfix "<" 115 Associativity.None (referenceRightOperator "<")
-addInfix "<=" 115 Associativity.None (referenceRightOperator "<=")
-addInfix ">=" 115 Associativity.None (referenceRightOperator ">=")
-addInfix ">" 115 Associativity.None (referenceRightOperator ">")
-addInfix "==" 115 Associativity.None (referenceRightOperator "==")
-addInfix "!=" 115 Associativity.None (referenceRightOperator "!=")
-addInfix "!:" 115 Associativity.None (referenceRightOperator "!:")
+addFunctionInfix ":" 115 Associativity.None referenceRightOperator
+addFunctionInfix "::" 115 Associativity.None referenceRightOperator
+addFunctionInfix ":::" 115 Associativity.None referenceRightOperator
+addFunctionInfix "<" 115 Associativity.None referenceRightOperator
+addFunctionInfix "<=" 115 Associativity.None referenceRightOperator
+addFunctionInfix ">=" 115 Associativity.None referenceRightOperator
+addFunctionInfix ">" 115 Associativity.None referenceRightOperator
+addFunctionInfix "==" 115 Associativity.None referenceRightOperator
+addFunctionInfix "!=" 115 Associativity.None referenceRightOperator
+addFunctionInfix "!:" 115 Associativity.None referenceRightOperator
 
-addInfix "..." 120 Associativity.None (operator "...")
-addInfix "...<" 120 Associativity.None (operator "...<")
-addInfix "<..." 120 Associativity.None (operator "<...")
-addInfix "<...<" 120 Associativity.None (operator "<...<")
+addFunctionInfix "..." 120 Associativity.None operator
+addFunctionInfix "...<" 120 Associativity.None operator
+addFunctionInfix "<..." 120 Associativity.None operator
+addFunctionInfix "<...<" 120 Associativity.None operator
 
-addInfix ";" 120 Associativity.Left (operator ";")
-addInfix ";;" 120 Associativity.Left (operator ";;")
+addFunctionInfix ";" 120 Associativity.Left operator
+addFunctionInfix ";;" 120 Associativity.Left operator
 
-addInfix "^^" 125 Associativity.Left (operator "^^")
-addInfix "**" 127 Associativity.Left (operator "**")
-addInfix "+" 130 Associativity.Left (operator "+")
-addInfix "-" 130 Associativity.Left (operator "-")
-addInfix "*" 140 Associativity.Left (operator "*")
-addInfix "/" 140 Associativity.Left (operator "/")
-addInfix "%" 140 Associativity.Left (operator "%")
-addInfix "/%" 140 Associativity.Left (operator "/%")
-addInfix "^" 150 Associativity.Left (operator "^")
+addFunctionInfix "^^" 125 Associativity.Left operator
+addFunctionInfix "**" 127 Associativity.Left operator
+addFunctionInfix "+" 130 Associativity.Left operator
+addFunctionInfix "-" 130 Associativity.Left operator
+addFunctionInfix "*" 140 Associativity.Left operator
+addFunctionInfix "/" 140 Associativity.Left operator
+addFunctionInfix "%" 140 Associativity.Left operator
+addFunctionInfix "/%" 140 Associativity.Left operator
+addFunctionInfix "^" 150 Associativity.Left operator
 
 addPrefix "record" 155 true (prefixWrap "record" (fun b -> Record(ExpScopes.createNamesScope(), b)))
 addPrefix "records" 155 true (prefixWrap "records" (fun b -> Set [ Node.like b (Record(ExpScopes.createNamesScope(), b)) ]))
 addPrefix "tuple" 155 true (fun _ b -> b)
 addPrefix "tuples" 155 true (prefixWrap "tuples" (fun b -> Set [ b ]))
-addPrefix "fn" 155 true (prefixOperator "fn")
-addPrefix "class" 155 true (prefixOperator "class")
+addFunctionPrefix "fn" 155 prefixOperator
+addFunctionPrefix "class" 155 prefixOperator
 
 addInfix "." 160 Associativity.Left (fun _ a b -> Node.spanning a b (Projection(ExpScopes.createNamesScope(), a, b)))
 addInfix ".." 160 Associativity.Left (fun _ a b -> Node.spanning a b (MemberProjection(ExpScopes.createNamesScope(), a, b)))
@@ -283,10 +316,12 @@ let tryParseExpression (streamName: string) (input: string) =
 // referential identifiers carry their ordered candidate scope-id lists.
 // Every node carries the source range it came from.
 // `rootScope` is the outermost (usually builtin-populated) scope, which is the
-// last referential candidate for every free name.
+// last referential candidate for every free name. Operator heads do not go
+// through it: they are already bound to `operatorScope`, which callers must
+// therefore make known to later passes (see Resolver.resolve).
 let parseNamed (rootScope: Scope) (streamName: string) (input: string) : ParseResult =
     match tryParseExpression streamName input with
-    | Success(result, _, _) -> ParseSucceeded(Binder.markDeclarations rootScope result ([], [ rootScope ]))
+    | Success(result, _, _) -> ParseSucceeded(Binder.markDeclarations result ([], [ rootScope ]))
     | Failure(errorMsg, _, _) -> ParseFailed errorMsg
 
 let parse (rootScope: Scope) (input: string) : ParseResult =
