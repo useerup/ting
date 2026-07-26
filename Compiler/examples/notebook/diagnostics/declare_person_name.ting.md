@@ -4,27 +4,12 @@ let person.Name = "Zaphod"
 ```ting-output
 Compilation succeeded.
 
-Local
-  (Exp+LocalScope,
-   Apply
-     (Identifier
-        (Resolved (#0, [TextPart "_=_"])),
-      Tuple
-        [Projection
-           (Exp+LocalScope,
-            Identifier
-              (Referential
-                 ([#1;
-                   00000000-0000-0000-0000-000000000000], [TextPart "person"])),
-            Identifier
-              (Declarative
-                 (#2, [TextPart "Name"])));
-         Literal (String "Zaphod")]))
+local[#0] (id(resolved:#1) ((id(ref:[#0, 00000000-0000-0000-0000-000000000000])).[#2](id(decl:#3)), "Zaphod"))
 
 Scopes:
-[0] NamesScope           #1
+[0] NamesScope           #0
     names=[Name<extension property> host=person.]
-[1] NamesScope           #3
+[1] NamesScope           #2
     names=[]
 
 Diagnostics:

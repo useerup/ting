@@ -4,44 +4,7 @@
 ```ting-output
 Compilation succeeded.
 
-Apply
-  (Identifier
-     (Resolved (#0, [TextPart "_in_"])),
-   Tuple
-     [Apply
-        (Identifier
-           (Resolved (#1, [TextPart "_*_"])),
-         Tuple
-           [Tuple
-              [Apply
-                 (Identifier
-                    (Resolved
-                       (#2, [TextPart "_+_"])),
-                  Tuple
-                    [Identifier
-                       (Referential
-                          ([00000000-0000-0000-0000-000000000000],
-                           [TextPart "x"]));
-                     Identifier
-                       (Referential
-                          ([00000000-0000-0000-0000-000000000000],
-                           [TextPart "y"]))])];
-            Tuple
-              [Apply
-                 (Identifier
-                    (Resolved
-                       (#3, [TextPart "_-_"])),
-                  Tuple
-                    [Identifier
-                       (Referential
-                          ([00000000-0000-0000-0000-000000000000],
-                           [TextPart "a"]));
-                     Identifier
-                       (Referential
-                          ([00000000-0000-0000-0000-000000000000],
-                           [TextPart "b"]))])]]);
-      Identifier
-        (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "z"]))])
+(id(resolved:#0) ((id(resolved:#1) (((id(resolved:#2) (id(ref:[00000000-0000-0000-0000-000000000000]), id(ref:[00000000-0000-0000-0000-000000000000])))), ((id(resolved:#3) (id(ref:[00000000-0000-0000-0000-000000000000]), id(ref:[00000000-0000-0000-0000-000000000000])))))), id(ref:[00000000-0000-0000-0000-000000000000])))
 
 Scopes:
 No scopes collected.

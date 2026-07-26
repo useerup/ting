@@ -4,11 +4,7 @@
 ```ting-output
 Compilation succeeded.
 
-Tuple
-  [Identifier
-     (Referential
-        ([#0;
-          00000000-0000-0000-0000-000000000000], [TextPart "wunder"]))]
+(id(ref:[#0, 00000000-0000-0000-0000-000000000000]))
 
 Scopes:
 No scopes collected.

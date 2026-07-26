@@ -4,33 +4,9 @@ let answer=42 in $`Flollop{answer}`
 ```ting-output
 Compilation succeeded.
 
-Local
-  (Exp+LocalScope,
-   Apply
-     (Identifier
-        (Resolved (#0, [TextPart "_in_"])),
-      Tuple
-        [Apply
-           (Identifier
-              (Resolved (#1, [TextPart "_=_"])),
-            Tuple
-              [Identifier
-                 (Declarative
-                    (#2, [TextPart "answer"]));
-               Literal (Int32 42)]);
-         Identifier
-           (Referential
-              ([#3;
-                00000000-0000-0000-0000-000000000000],
-               [TextPart "Flollop";
-                HolePart
-                  (Identifier
-                     (Referential
-                        ([#3;
-                          00000000-0000-0000-0000-000000000000],
-                         [TextPart "answer"])))]))]))
+local[#0] (id(resolved:#1) ((id(resolved:#2) (id(decl:#3), 42)), id(ref:[#0, 00000000-0000-0000-0000-000000000000])))
 
 Scopes:
-[0] NamesScope           #3
+[0] NamesScope           #0
     names=[answer<name>]
 ```

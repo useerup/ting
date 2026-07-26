@@ -4,38 +4,10 @@ DateTime this => $"{Year}-{Month}-{Day}"
 ```ting-output
 Compilation succeeded.
 
-Local
-  (Exp+LocalScope,
-   Apply
-     (Identifier
-        (Resolved (#0, [TextPart "_=>_"])),
-      Tuple
-        [Apply
-           (Identifier
-              (Resolved
-                 (#1, [TextPart "DateTime"])),
-            This (Declarative (#2, [])));
-         StringLiteral
-           [HolePart
-              (Identifier
-                 (Referential
-                    ([#3;
-                      00000000-0000-0000-0000-000000000000], [TextPart "Year"])));
-            TextPart "-";
-            HolePart
-              (Identifier
-                 (Referential
-                    ([#3;
-                      00000000-0000-0000-0000-000000000000], [TextPart "Month"])));
-            TextPart "-";
-            HolePart
-              (Identifier
-                 (Referential
-                    ([#3;
-                      00000000-0000-0000-0000-000000000000], [TextPart "Day"])))]]))
+local[#0] (id(resolved:#1) ((id(resolved:#2) this[decl:#3]), $"{id(ref:[#0, 00000000-0000-0000-0000-000000000000])}-{id(ref:[#0, 00000000-0000-0000-0000-000000000000])}-{id(ref:[#0, 00000000-0000-0000-0000-000000000000])}"))
 
 Scopes:
-[0] NamesScope           #3
+[0] NamesScope           #0
     names=[<name>]
 
 Diagnostics:

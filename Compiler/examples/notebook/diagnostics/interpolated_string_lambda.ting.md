@@ -4,47 +4,10 @@ $"{Word name} = {int value}" => (name->value)
 ```ting-output
 Compilation succeeded.
 
-Local
-  (Exp+LocalScope,
-   Apply
-     (Identifier
-        (Resolved (#0, [TextPart "_=>_"])),
-      Tuple
-        [StringLiteral
-           [HolePart
-              (Apply
-                 (Identifier
-                    (Referential
-                       ([#1;
-                         00000000-0000-0000-0000-000000000000],
-                        [TextPart "Word"])),
-                  Identifier
-                    (Declarative
-                       (#2, [TextPart "name"]))));
-            TextPart " = ";
-            HolePart
-              (Apply
-                 (Identifier
-                    (Resolved
-                       (#3, [TextPart "int"])),
-                  Identifier
-                    (Declarative
-                       (#4, [TextPart "value"]))))];
-         Tuple
-           [Apply
-              (Identifier
-                 (Resolved
-                    (#5, [TextPart "_->_"])),
-               Tuple
-                 [Identifier
-                    (Resolved
-                       (#2, [TextPart "name"]));
-                  Identifier
-                    (Resolved
-                       (#4, [TextPart "value"]))])]]))
+local[#0] (id(resolved:#1) ($"{(id(ref:[#0, 00000000-0000-0000-0000-000000000000]) id(decl:#2))} = {(id(resolved:#3) id(decl:#4))}", ((id(resolved:#5) (id(resolved:#2), id(resolved:#4))))))
 
 Scopes:
-[0] NamesScope           #1
+[0] NamesScope           #0
     names=[name<name>, value<name>]
 
 Diagnostics:

@@ -4,7 +4,7 @@
 ```ting-output
 Compilation succeeded.
 
-Set [Literal (Boolean true); Literal (Boolean false)]
+{True, False}
 
 Scopes:
 No scopes collected.

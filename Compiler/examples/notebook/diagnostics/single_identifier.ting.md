@@ -4,8 +4,7 @@ flollop
 ```ting-output
 Compilation succeeded.
 
-Identifier
-  (Referential ([00000000-0000-0000-0000-000000000000], [TextPart "flollop"]))
+id(ref:[00000000-0000-0000-0000-000000000000])
 
 Scopes:
 No scopes collected.

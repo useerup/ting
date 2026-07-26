@@ -4,14 +4,9 @@ public { 1, 2, 3, `a` }
 ```ting-output
 Compilation succeeded.
 
-Publish
-  (Exp+LocalScope, Public,
-   Set
-     [Literal (Int32 1); Literal (Int32 2); Literal (Int32 3);
-      Identifier
-        (Declarative (#0, [TextPart "a"]))])
+public[#0] {1, 2, 3, id(decl:#1)}
 
 Scopes:
-[0] NamesScope           #1
+[0] NamesScope           #0
     names=[a<name>]
 ```

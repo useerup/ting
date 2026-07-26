@@ -4,7 +4,7 @@ void
 ```ting-output
 Compilation succeeded.
 
-Void
+void
 
 Scopes:
 No scopes collected.
