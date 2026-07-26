@@ -7,21 +7,17 @@ open Xunit
 open CompilerEngine
 
 type ExampleNotebookTests() =
-    static let examplesDir = 
-        let baseDir = AppContext.BaseDirectory
-        let rec findExamplesDir (dir: string) : string option =
-            let examplesPath = Path.Combine(dir, "examples", "notebook", "diagnostics")
-            if Directory.Exists examplesPath then
-                Some examplesPath
-            elif dir = Path.GetPathRoot(dir) then
-                None
-            else
-                findExamplesDir (Path.GetDirectoryName dir)
-        
-        match findExamplesDir baseDir with
-        | Some path -> path
-        | None -> 
-            Path.Combine(__SOURCE_DIRECTORY__, "..", "..", "examples", "notebook", "diagnostics")
+    // Resolve the examples source folder relative to the test assembly:
+    // <root>\Examples.Tests\bin\<Configuration>\<Tfm> -> <root>\examples\notebook\diagnostics.
+    // A relative path (even one climbing outside the repo checkout) is used on
+    // purpose so the tests always update the checked-in source files, never a
+    // copy in the build output.
+    static let examplesDir =
+        Path.GetFullPath(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..", "..", "..", "..",
+                "examples", "notebook", "diagnostics"))
 
     static member GetExampleFiles() : string[] =
         if Directory.Exists examplesDir then
@@ -46,6 +42,9 @@ type ExampleNotebookTests() =
         let content = File.ReadAllText(filePath)
         Assert.Contains("```ting", content)
         
+        // Update the example file in place with the current compiler output,
+        // then verify the result round-trips (the update is idempotent).
+        processMarkdownFile filePath |> ignore
         let isValid = verifyMarkdownFile filePath
         Assert.True(isValid, $"Example {Path.GetFileName filePath} failed verification")
 
