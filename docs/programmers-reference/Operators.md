@@ -176,11 +176,13 @@ The `catch` operator catches exceptions throw from evaluating the value of an ex
 
 #### `=>` "lambda" function
 
-#### `->` "ordered pair" operator
+#### `->` "mapping" operator
 
-An ordered pair is constructed with the infix operator `->`. It produces an ordered pair whose left component is the LHS and whose right component is the RHS.
+A mapping is constructed with the infix operator `->`. It produces an ordinary product that fuses the LHS, one level deep, with a named field `Result` bound to the RHS: `x -> y` ≡ `(x @ Result = y)`. All fields of a mapping participate in its identity.
 
-#### `**` "fusion" operator
+#### `**` "non-fusing product" operator
+
+`A ** B` is the set of genuine two-tuples whose first component is a member of `A` and whose second is a member of `B`, each nested whole. It complements `*`, which on sets fuses products one level deep (`int*int*string` is a set of three-tuples regardless of grouping).
 
 #### `^^` "set of functions" operator
 

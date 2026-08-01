@@ -19,7 +19,7 @@ This means that every set has an `Identity` property.
 
 ### The `fn` operator
 
-Functions can be created from sets of ordered pairs through the `fn` operator.
+Functions can be created from collections of mappings through the `fn` operator. A mapping `x -> y` is an ordinary product fusing the argument with a named `Result` field. When `fn` is written with case patterns, the cases lower to an ordered choice of lambdas — `(p1 => r1) || (p2 => r2) || …` — so earlier cases take priority.
 
     let fib ?= fn{ 0->0, 1->1, int n?>1 -> fib(n-2) + fib(n-1) }
 

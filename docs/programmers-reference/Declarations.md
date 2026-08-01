@@ -151,9 +151,9 @@ Parameter patterns may include type constraints and guards:
     int n?>0 => n * 2       // defined only for positive integers
     string s => s + rest => rest
 
-#### `->` — ordered pair
+#### `->` — mapping
 
-`->` creates an ordered pair (pattern → value). It is used inside `fn{...}` to define function cases. The left side is a declarative pattern; the right side is the result with the pattern bindings in scope:
+`->` creates a mapping: an ordinary product that fuses the left side, one level deep, with a named field `Result` bound to the right side (`x -> y` ≡ `(x @ Result = y)`). It is used inside `fn{...}` to define function cases. The left side is a declarative pattern; the right side is the result with the pattern bindings in scope:
 
     let f = fn{ 0 -> 1, 1 -> 1, int n?>1 -> n * f(n-1) } in f
 
