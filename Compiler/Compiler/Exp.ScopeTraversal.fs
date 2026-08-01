@@ -48,6 +48,12 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (node: Node) : uni
     | List xs ->
         for x in xs do
             collectDefinitionScopes acc x
+    | Product (positional, _, s, named) ->
+        addDefinitionScope acc s
+        for x in positional do
+            collectDefinitionScopes acc x
+        for x in named do
+            collectDefinitionScopes acc x
     | Record (s, e) ->
         addDefinitionScope acc s
         collectDefinitionScopes acc e

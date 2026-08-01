@@ -54,6 +54,9 @@ module private Marking =
             | Tuple xs
             | Set xs
             | List xs -> List.iter walk xs
+            | Product (positional, _, _, named) ->
+                List.iter walk positional
+                List.iter walk named
             | Local (_, x)
             | Record (_, x)
             | Publish (_, _, x)
@@ -138,6 +141,13 @@ module private Marking =
             recur e (addReferential s scopes)
         | Tuple items ->
             Node.like node (Tuple(List.map (fun e -> recur e scopes) items))
+        // A product literal's positional section is ambient, exactly as a
+        // tuple's; its named section declares into the product's own scope, as
+        // the operand of `record` does.
+        | Product (positional, fusion, s, named) ->
+            let positional = List.map (fun e -> recur e scopes) positional
+            let named = List.map (fun e -> recur e (addDeclarative s scopes)) named
+            Node.like node (Product(positional, fusion, s, named))
         | Record (s, e) ->
             Node.like node (Record(s, recur e (addDeclarative s scopes)))
         | Identifier (Unbound parts) ->

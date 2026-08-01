@@ -129,6 +129,9 @@ let private buildBindingMap (exp: Node) : Dictionary<Guid, Node> =
         | Tuple xs
         | Set xs
         | List xs -> List.iter walk xs
+        | Product (positional, _, _, named) ->
+            List.iter walk positional
+            List.iter walk named
         | Projection (_, a, b)
         | MemberProjection (_, a, b)
         | Catch (a, b)
@@ -183,6 +186,9 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Node) : Dic
         | Tuple xs
         | Set xs
         | List xs -> List.iter walk xs
+        | Product (positional, _, _, named) ->
+            List.iter walk positional
+            List.iter walk named
         | Projection (_, a, b)
         | MemberProjection (_, a, b)
         | Catch (a, b)
@@ -355,6 +361,8 @@ and private resolveExp (ctx: Context) (node: Node) : Node =
     | Local (s, e) -> rebuild (Local(s, go e))
     | Apply (f, a) -> rebuild (Apply(go f, go a))
     | Tuple xs -> rebuild (Tuple(List.map go xs))
+    | Product (positional, fusion, s, named) ->
+        rebuild (Product(List.map go positional, fusion, s, List.map go named))
     | Record (s, e) -> rebuild (Record(s, go e))
     | Publish (s, access, e) -> rebuild (Publish(s, access, go e))
     | Identifier role -> rebuild (Identifier(resolveRole ctx role))
@@ -426,6 +434,9 @@ and private resolveMember (ctx: Context) (receiver: Node) (memberExp: Node) : No
 and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Node) : Scope option =
     match exp.Exp with
     | Record (recScope, _) -> Some recScope
+    // A product literal's named section carries its field names, so a product
+    // with named fields answers member lookups exactly as a record does.
+    | Product (_, _, productScope, _) -> Some productScope
     | Set [ single ] -> recordScopeOf ctx visited single
     | Local (_, e)
     | Publish (_, _, e)
