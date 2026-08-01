@@ -53,7 +53,11 @@ In both, the receiver is referential and the member is interpreted against the r
 
 ### `void`
 
-The value of an expression that yields nothing.
+The absence of a value. `void` is deliberately *not* a value: it is what an expression
+yields when it yields nothing at all. It is a member of no set, it cannot be bound,
+stored or passed, and it cannot be compared — comparing against it is itself undefined.
+An expression that yields `void` is *undefined*, and the core observes that only through
+`isDefined` (and the exception machinery it is equivalent to), never by equality.
 
 ### `unknown`
 
@@ -156,7 +160,7 @@ Member resolution is **structural, not lexical**. Members are never found by lex
 
 ## Surface forms and their lowering
 
-This section indexes the surface syntax against the core. It covers the constructs the grammar currently accepts; a handful of operators appear in reference material without yet having a lowering, and are listed in §16.
+This section indexes the surface syntax against the core. It covers the constructs the grammar currently accepts. Operator sections — a binary operator written in prefix position, such as `(= rhs)`, denoting partial application — appear in reference material but have no lowering yet.
 
 Two things are recorded for each construct. **Core** is the form of §2.1 or §2.2 it produces. **Binding** is how it affects the binding role (§2.4) of its operands, using two terms:
 

@@ -23,6 +23,8 @@ The following tokens exists:
 
 - Unary prefix operators. [Unary prefix operators](#Opers)
 - Binary infix operators. See 
+- Nullary operators. The keyword token `void`. See [Nullary
+  operators](#nullary-operators).
 - Bracketing tokens.
 
 #### Unary prefix
@@ -317,7 +319,8 @@ be empty.
 
 Each element expression contributes every value it can assume, not the expression itself: 
 - one value if it is deterministic
-- no value at all if it is undefined
+- no value at all if it is undefined — an element expression that evaluates to `void`
+  contributes nothing, rather than contributing a member
 - several values if it is nondeterministic.
 
 Members values in a set definition are ordered (see [Sets and multisets](#sets-and-multisets)): the element expressions in the order they are written, and within an element expression the values in the order it produces them. A value
@@ -361,6 +364,29 @@ Functions map argument values to result values. A function permits, at each argu
 value, a set of result values: applied to an argument it may be deterministic (one
 result), nondeterministic (several results), or undefined (no result). Function values
 can be defined by lambdas or case expressions (`fn`).
+
+### Partial functions
+
+A function is **total** where it has a result for every argument its domain admits, and
+**partial** where it does not. Partiality is not a separate kind of function: a function
+declares the values it can be applied to, and is partial when applying it to some such
+value nevertheless produces no result.
+
+A function is undefined at an argument either because no mapping covers it, or because
+the body evaluates to `void` there — the two are the same outcome. Evaluating to `void`
+is not returning a distinguished result; it is returning nothing, and it is essentially
+the same as throwing an `UndefinedException` at that argument.
+
+    let F = int n => n < 0 then void else n * 2
+
+`F` is a partial function on `int`: it is defined on the non-negative `int`s and
+undefined on the rest, even though its declared domain is all of `int`. Its underlying
+collection of mappings contains no mapping whose argument part is negative, so
+`dom F` is `int x \ x >= 0`.
+
+Undefinedness at an argument is observable only through the constructs that observe
+definedness — `;;`, `?`, `;`, the guarded logical operators and `catch`. Because `void`
+is not a value (see [`void`](#void)), a caller cannot test for it by comparison.
 
 ### Mappings and the underlying collection
 
@@ -532,7 +558,10 @@ Name resolution rule for `this`:
 ## Nondeterminism
 
 TODO: Choice, ranges, and set/list expansion interact via backtracking semantics.
-TODO: Undefined values participate in operator-specific ways (notably choice and guarded logical operators).
+TODO: Undefinedness participates in operator-specific ways (notably choice and guarded
+logical operators). Note that undefinedness is the *absence* of a value, not a value: an
+undefined operand contributes no solution, and cannot be compared against. See
+[`void`](#void).
 
 ### Unenumerable nondeterminism
 
@@ -931,8 +960,10 @@ Right-referential. TODO: its semantics are not yet specified.
 Neutral. Strict conjunction.
 
 A non-guarded operator always evaluates both of its operands, so its table lists every
-combination of `true`, `false` and *undefined*. The table of a guarded operator uses one
-further operand value:
+combination of `true`, `false` and *undefined*. *undefined* is not a third truth value:
+it is the row for an operand that yields no value at all (see [`void`](#void)), and a
+result of *undefined* means the expression yields no value either. The table of a guarded
+operator uses one further operand value:
 
 - *ignored* — the operand is either not evaluated, or its result is disregarded even where
   it is undefined.
@@ -1341,9 +1372,34 @@ is a function that handles exceptions. See [Exceptions](#exceptions) for the ful
 
 ### Nullary operators
 
-A nullary operator is an operator that takes no operands.
+A nullary operator is an operator that takes no operands. Ting has one, the keyword token
+`void`.
 
-#### `undefined`
+#### `void`
 
-The value of `undefined` is *undefined*. Essentially the same as throwing an `UndefinedException`.
+`void` denotes *the absence of a value*. It is the only way to write undefinedness
+directly in source.
+
+**`void` is not a value.** It is not a member of any set — not even of a set that
+contains everything — it cannot be bound to a name, held in a collection, or passed as an
+argument. An expression that yields `void` yields nothing at all; there is no object
+there for anything to observe. In particular `void` cannot be compared to anything:
+`void = void`, `x == void` and `x != void` are not propositions that hold or fail, they
+are themselves undefined. Definedness is therefore never tested by comparing against
+`void`; the operators that observe definedness are `;;`, `?`, `;`, the guarded logical
+operators, and `catch`.
+
+`void` is not a unit value and not a null value. An empty tuple `()`, an empty set `{}`
+and an empty list `[]` are all values, and each is distinct from `void`.
+
+Where an expression evaluates to `void` the expression is *undefined*, which is
+essentially the same as throwing an `UndefinedException` at that point. `void` is what
+makes that outcome writable, so it is how a function is made explicitly undefined
+somewhere in its domain:
+
+    let F = int n => n < 0 then void else n * 2
+
+`F` declares that it accepts an `int`; for a negative `int` it has no value to offer. It
+does not *return* `void` — it returns nothing. See [Partial
+functions](#partial-functions).
 
