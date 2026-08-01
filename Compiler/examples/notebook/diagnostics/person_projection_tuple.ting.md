@@ -11,7 +11,7 @@ Scopes:
     names=[]
 
 Diagnostics:
-- unresolved name 'person'
-- unresolved name 'Name'
-- unresolved name 'Age'
+- (1,1-1,7) unresolved name 'person'
+- (1,9-1,13) unresolved name 'Name'
+- (1,14-1,17) unresolved name 'Age'
 ```

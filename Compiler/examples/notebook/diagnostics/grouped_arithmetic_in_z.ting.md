@@ -10,9 +10,9 @@ Scopes:
 No scopes collected.
 
 Diagnostics:
-- unresolved name 'x'
-- unresolved name 'y'
-- unresolved name 'a'
-- unresolved name 'b'
-- unresolved name 'z'
+- (1,2-1,3) unresolved name 'x'
+- (1,6-1,7) unresolved name 'y'
+- (1,12-1,13) unresolved name 'a'
+- (1,16-1,17) unresolved name 'b'
+- (1,22-1,23) unresolved name 'z'
 ```

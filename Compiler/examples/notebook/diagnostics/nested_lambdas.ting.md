@@ -15,5 +15,5 @@ Scopes:
     names=[x<name>, y<name>, z<name>]
 
 Diagnostics:
-- illegal shadowing of 'x' in nested local scope
+- (1,28-1,29) illegal shadowing of 'x' in nested local scope
 ```

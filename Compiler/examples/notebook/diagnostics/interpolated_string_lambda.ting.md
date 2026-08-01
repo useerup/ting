@@ -11,5 +11,5 @@ Scopes:
     names=[name<name>, value<name>]
 
 Diagnostics:
-- unresolved name 'Word'
+- (1,4-1,8) unresolved name 'Word'
 ```

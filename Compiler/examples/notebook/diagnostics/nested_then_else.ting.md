@@ -10,6 +10,6 @@ Scopes:
 No scopes collected.
 
 Diagnostics:
-- unresolved name 'a'
-- unresolved name 'a'
+- (1,1-1,2) unresolved name 'a'
+- (1,11-1,12) unresolved name 'a'
 ```

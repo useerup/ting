@@ -11,6 +11,6 @@ Scopes:
     names=[]
 
 Diagnostics:
-- unresolved name 'name'
-- unresolved name 'value'
+- (1,12-1,16) unresolved name 'name'
+- (1,18-1,23) unresolved name 'value'
 ```

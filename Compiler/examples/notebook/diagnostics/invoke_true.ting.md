@@ -10,5 +10,5 @@ Scopes:
 No scopes collected.
 
 Diagnostics:
-- unresolved name 'Invoke'
+- (1,1-1,7) unresolved name 'Invoke'
 ```

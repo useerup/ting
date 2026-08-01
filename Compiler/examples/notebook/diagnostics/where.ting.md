@@ -11,7 +11,7 @@ Scopes:
     names=[T<name>]
 
 Diagnostics:
-- unresolved name 'Integrals'
-- unresolved name 'FloatingPoints'
-- unresolved name 'Lists'
+- (1,21-1,30) unresolved name 'Integrals'
+- (1,31-1,45) unresolved name 'FloatingPoints'
+- (1,46-1,51) unresolved name 'Lists'
 ```

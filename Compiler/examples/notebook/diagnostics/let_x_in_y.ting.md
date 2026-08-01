@@ -11,5 +11,5 @@ Scopes:
     names=[x<name>]
 
 Diagnostics:
-- unresolved name 'y'
+- (1,10-1,11) unresolved name 'y'
 ```

@@ -10,5 +10,5 @@ Scopes:
 No scopes collected.
 
 Diagnostics:
-- unresolved name 'flollop'
+- (1,1-1,8) unresolved name 'flollop'
 ```

@@ -11,7 +11,7 @@ Scopes:
     names=[<name>]
 
 Diagnostics:
-- unresolved name 'Year'
-- unresolved name 'Month'
-- unresolved name 'Day'
+- (1,21-1,25) unresolved name 'Year'
+- (1,28-1,33) unresolved name 'Month'
+- (1,36-1,39) unresolved name 'Day'
 ```

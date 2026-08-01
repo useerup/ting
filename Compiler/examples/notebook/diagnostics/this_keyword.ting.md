@@ -10,5 +10,5 @@ Scopes:
 No scopes collected.
 
 Diagnostics:
-- unresolved name ''
+- (1,1-1,5) unresolved name ''
 ```
