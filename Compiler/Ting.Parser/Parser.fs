@@ -85,12 +85,36 @@ let pVoid: Parser<Node> = located (keywordCore "void" >>% Void)
 
 let expr, exprRef = createParserForwardedToRef<Node, UserState>()
 
-let private delimitedExprList (openCh: char) (closeCh: char): Parser<Node list> =
+let private exprList: Parser<Node list> =
     let comma = skipChar ',' .>> ws
-    between (skipChar openCh .>> ws) (skipChar closeCh) (sepBy expr comma)
+    sepBy expr comma
+
+let private delimitedExprList (openCh: char) (closeCh: char): Parser<Node list> =
+    between (skipChar openCh .>> ws) (skipChar closeCh) exprList
+
+/// The punctuation opening the named section of a product literal.
+///
+/// `@@` is tried first, so longest-match decides between the two forms. Neither
+/// may be followed by `"`: that is the opening of a verbatim string, which is
+/// what keeps `@"..."` unambiguous.
+let private pNamedSectionMark: Parser<Fusion> =
+    let mark (s: string) (f: Fusion) =
+        attempt (pstring s >>. notFollowedBy (pchar '"') >>% f)
+    (mark "@@" NonFusing <|> mark "@" Fusing) .>> ws
+
+/// A parenthesized product literal.
+///
+/// Without a named section this is an ordinary tuple, which keeps `(a, b)`
+/// exactly as it was. With one, the elements after `@` / `@@` form a declarative
+/// section harvested into a fresh names scope, like the operand of `record`.
+let private pParensBody: Parser<Exp> =
+    pipe2 exprList (opt (pNamedSectionMark .>>. exprList)) (fun positional named ->
+        match named with
+        | None -> Tuple positional
+        | Some (fusion, fields) -> Product(positional, fusion, ExpScopes.createNamesScope(), fields))
 
 // The closing delimiter is inside the range, the whitespace after it is not.
-let pParens: Parser<Node> = located (delimitedExprList '(' ')' |>> Tuple)
+let pParens: Parser<Node> = located (between (skipChar '(' .>> ws) (skipChar ')') pParensBody)
 let pBraces: Parser<Node> = located (delimitedExprList '{' '}' |>> Set)
 let pBrackets: Parser<Node> = located (delimitedExprList '[' ']' |>> List)
 
