@@ -91,6 +91,14 @@ let private primOp (op: string) (a: Value) (b: Value) : Value option =
     | "_==_", x, y -> Some(VBool(valueEqual x y))
     | _ -> None
 
+// The fields a value contributes to a product that fuses it one level deep. A
+// value that is not a product is a one-field product, so it contributes itself.
+let private fusedFields (v: Value) : Value list * (string * Value) list =
+    match v with
+    | VTuple vs -> vs, []
+    | VProduct (positional, named) -> positional, named
+    | single -> [ single ], []
+
 let private literalValue (lit: Exp.Literal) : Value =
     match lit with
     | Exp.Int32 i -> VInt i
@@ -120,6 +128,15 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
         | true, e -> e.Host
         | _ -> None
 
+    // The plain (non-interpolated) name a declaration was given.
+    let nameOf (id: Guid) : string option =
+        match registry.TryGetValue id with
+        | true, e ->
+            match e.NameParts with
+            | [ TextPart s ] -> Some s
+            | _ -> None
+        | _ -> None
+
     let rec eval (env: Env) (e: Node) : Value option =
         match e.Exp with
         | Literal lit -> Some(literalValue lit)
@@ -128,6 +145,7 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
         | Publish (_, _, inner) -> eval env inner
         | Identifier (Resolved (id, _)) -> Map.tryFind id env
         | Tuple xs -> evalList env xs |> Option.map VTuple
+        | Product (positional, fusion, _, named) -> evalProduct env positional fusion named
         | Projection (_, receiver, m) -> evalProjection env receiver m
         | Apply (f, arg) -> evalApply env f arg
         | _ -> None
@@ -139,6 +157,41 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
             match eval env h with
             | Some v -> evalList env t |> Option.map (fun vs -> v :: vs)
             | None -> None
+
+    // A product literal `(p1, p2 @ n1 = v1, ...)`. Under `@` the positional
+    // section is fused one level deep, so a single product-valued element
+    // contributes its own fields; under `@@` the section stays one field.
+    and evalProduct (env: Env) (positional: Node list) (fusion: Fusion) (named: Node list) : Value option =
+        match evalList env positional, evalNamedFields env named with
+        | Some positionalValues, Some namedFields ->
+            let fields, fusedNamed =
+                match fusion, positionalValues with
+                | Fusing, [ single ] -> fusedFields single
+                | Fusing, values -> values, []
+                | NonFusing, [ single ] -> [ single ], []
+                | NonFusing, values -> [ VTuple values ], []
+            Some(VProduct(fields, fusedNamed @ namedFields))
+        | _ -> None
+
+    and evalNamedFields (env: Env) (fields: Node list) : (string * Value) list option =
+        match fields with
+        | [] -> Some []
+        | h :: t ->
+            match evalNamedField env h with
+            | Some f -> evalNamedFields env t |> Option.map (fun fs -> f :: fs)
+            | None -> None
+
+    // One element of a named section: `name = value` declares `name` as a field.
+    and evalNamedField (env: Env) (field: Node) : (string * Value) option =
+        match field.Exp with
+        | Local (_, inner)
+        | ScopeExp (_, inner)
+        | Publish (_, _, inner) -> evalNamedField env inner
+        | Apply (f, E (Tuple [ lhs; rhs ])) when opName f = Some "_=_" ->
+            match declIdOf lhs |> Option.bind nameOf, eval env rhs with
+            | Some name, Some v -> Some(name, v)
+            | _ -> None
+        | _ -> None
 
     and evalApply (env: Env) (f: Node) (arg: Node) : Value option =
         match opName f with
