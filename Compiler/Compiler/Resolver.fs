@@ -19,10 +19,22 @@ open ExpScopeAnalysis
 //   - IllegalShadowing: the same name is declared in two or more distinct enclosing
 //     local scopes (local scopes may shadow published names but not each other).
 
-type Diagnostic =
+type DiagnosticKind =
     | UnresolvedName of string
     | UnresolvedMember of string
     | IllegalShadowing of string
+
+/// A diagnostic together with the source span that provoked it. Every
+/// diagnostic carries a span: a message without a location is not actionable,
+/// and tooling downstream of the compiler has nothing else to anchor to.
+///
+/// The field is `Span` rather than `Range` for the same reason as `ParseError`'s:
+/// `Node.Range` must stay the only `Range` field in scope, or F# will infer this
+/// record wherever a `.Range` is read without annotation.
+type Diagnostic = {
+    Kind: DiagnosticKind
+    Span: Range.Range
+}
 
 // Compare two name patterns. Only fully textual names participate in static
 // resolution; any interpolation hole makes the name dynamic and unresolved here.
@@ -283,7 +295,9 @@ let private lookupHostedInScope
         else
             None)
 
-let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
+let rec private resolveRole (ctx: Context) (span: Range.Range) (role: BindingRole) : BindingRole =
+    let report kind = ctx.Diags.Add { Kind = kind; Span = span }
+
     match role with
     | Unbound _
     | Declarative _
@@ -321,7 +335,7 @@ let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
                     hasDeferredScope <- true
 
             if declaringLocalScopes.Count >= 2 then
-                ctx.Diags.Add(IllegalShadowing(formatName name))
+                report (IllegalShadowing(formatName name))
 
             match resolved with
             | Some declId -> Resolved(declId, name)
@@ -343,7 +357,7 @@ let rec private resolveRole (ctx: Context) (role: BindingRole) : BindingRole =
                 | Some declId -> Resolved(declId, name)
                 | None ->
                     if not hasDeferredScope then
-                        ctx.Diags.Add(UnresolvedName(formatName name))
+                        report (UnresolvedName(formatName name))
                     role
 
 and private resolveExp (ctx: Context) (node: Node) : Node =
@@ -365,7 +379,7 @@ and private resolveExp (ctx: Context) (node: Node) : Node =
         rebuild (Product(List.map go positional, fusion, s, List.map go named))
     | Record (s, e) -> rebuild (Record(s, go e))
     | Publish (s, access, e) -> rebuild (Publish(s, access, go e))
-    | Identifier role -> rebuild (Identifier(resolveRole ctx role))
+    | Identifier role -> rebuild (Identifier(resolveRole ctx node.Range role))
     | ScopeExp (s, e) -> rebuild (ScopeExp(s, go e))
     | Literal _ -> node
     | Set xs -> rebuild (Set(List.map go xs))
@@ -377,7 +391,7 @@ and private resolveExp (ctx: Context) (node: Node) : Node =
         let receiver = go e
         rebuild (Projection(s, receiver, resolveMember ctx receiver m))
     | MemberProjection (s, e, m) -> rebuild (MemberProjection(s, go e, go m))
-    | This role -> rebuild (This(resolveRole ctx role))
+    | This role -> rebuild (This(resolveRole ctx node.Range role))
     | Void -> node
     | Unknown -> node
     | Throw e -> rebuild (Throw(go e))
@@ -423,7 +437,7 @@ and private resolveMember (ctx: Context) (receiver: Node) (memberExp: Node) : No
             // A field was sought on a known record but not found: a real error.
             // Otherwise the receiver structure is unknown, so defer.
             match recScopeOpt with
-            | Some _ -> ctx.Diags.Add(UnresolvedMember(formatName name))
+            | Some _ -> ctx.Diags.Add { Kind = UnresolvedMember(formatName name); Span = memberExp.Range }
             | None -> ()
 
             memberExp
@@ -467,8 +481,11 @@ let resolve (rootScope: Scope) (baseScopes: Scope list) (exp: Node) : Node * Dia
     let resolved = resolveExp ctx exp
     resolved, List.ofSeq ctx.Diags
 
-let formatDiagnostic =
-    function
-    | UnresolvedName name -> $"unresolved name '{name}'"
-    | UnresolvedMember name -> $"unresolved member '{name}'"
-    | IllegalShadowing name -> $"illegal shadowing of '{name}' in nested local scope"
+let formatDiagnostic (d: Diagnostic) =
+    let message =
+        match d.Kind with
+        | UnresolvedName name -> $"unresolved name '{name}'"
+        | UnresolvedMember name -> $"unresolved member '{name}'"
+        | IllegalShadowing name -> $"illegal shadowing of '{name}' in nested local scope"
+
+    $"{Range.Range.format d.Span} {message}"
