@@ -302,7 +302,7 @@ addFunctionInfix "<...<" 120 Associativity.None operator
 addFunctionInfix ";" 120 Associativity.Left operator
 addFunctionInfix ";;" 120 Associativity.Left operator
 
-addFunctionInfix "^^" 125 Associativity.Left operator
+addFunctionInfix "^^" 125 Associativity.Right operator
 addFunctionInfix "**" 127 Associativity.Left operator
 addFunctionInfix "+" 130 Associativity.Left operator
 addFunctionInfix "-" 130 Associativity.Left operator
