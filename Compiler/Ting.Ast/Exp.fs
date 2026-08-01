@@ -69,6 +69,13 @@ type Fusion =
 ///                    parser allocates the declaration scope; the Binder fills it.
 ///   Apply            Function/operator application (`f x` and desugared operators).
 ///   Tuple            Parenthesized comma-separated list `(a, b, ...)`.
+///   Product          Parenthesized product literal with a named section,
+///                    `(p1, p2 @ n1 = v1, n2 = v2)`; fields are (positional
+///                    elements, fusion, named scope, named elements). The
+///                    positional elements are ambient, exactly as in a Tuple; the
+///                    named elements are declarative and are harvested into the
+///                    scope like a Record's. A Tuple is the degenerate case with
+///                    no named section.
 ///   Record           Prefix `record E`. The parser allocates the record's scope; the
 ///                    Binder fills it with the record's declarations.
 ///   Identifier       An identifier occurrence carrying its BindingRole. The parser
