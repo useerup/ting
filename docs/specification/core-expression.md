@@ -193,11 +193,11 @@ Operators are ordinary functions (§2), but they differ in how they interpret th
 
 **Neutral** — both operands ambient; the operator introduces no scope and forces no role:
 
-`else`, `>>`, `<<`, `|>`, `<|`, `|`, `||`, `&`, `&&`, `...`, `...<`, `<...`, `<...<`, `;`, `;;`, `^^`, `**`, `+`, `-`, `*`, `/`, `%`, `/%`, `^`, and the prefix operators `!`, `fn`, `class`.
+`else`, `>>`, `<<`, `|>`, `<|`, `|`, `||`, `|||`, `&`, `&&`, `&&&`, `...`, `...<`, `<...`, `<...<`, `;`, `;;`, `^^`, `**`, `+`, `-`, `*`, `/`, `%`, `/%`, `^`, and the prefix operators `!`, `fn`, `class`.
 
 **Right-referential** — left operand ambient, right operand referential; no scope introduced:
 
-`=`, `in`, `then`, `->`, `catch`, `?`, `??`, `:`, `::`, `:::`, `<`, `<=`, `>=`, `>`, `==`, `!=`, `!:`.
+`=`, `?=`, `?=`, `in`, `then`, `->`, `catch`, `?`, `??`, `:`, `::`, `:::`, `<`, `<=`, `>=`, `>`, `==`, `!=`, `!:`.
 
 This class is what gives `x = 5` its asymmetry. The right side is a value to be read; the left side inherits the surrounding context and so introduces `x` when a declarative scope covers it. Nothing about `=` itself declares anything.
 
@@ -227,6 +227,7 @@ These do not lower to function application.
 | `a .. b` | `projectMembers a b` | `a` referential, `b` resolved against `a` |
 | `primary E` | `primary E` | `E` ambient |
 | `candidate E` | `candidate E` | `E` ambient |
+| `throw E` | `throw E` | `E` ambient |
 
 `primary` and `candidate` leave their operand ambient, so `primary a = primary b` still declares `a` where a declarative scope covers it. The declaration is simply weaker: it constrains `a` only up to attribute erasure.
 

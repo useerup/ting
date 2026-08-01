@@ -336,6 +336,11 @@ addFunctionInfix "where" 3 Associativity.Right declareRightOperator
 
 addFunctionInfix "in" 5 Associativity.Right referenceRightOperator
 addFunctionInfix "=" 10 Associativity.Left referenceRightOperator
+// `?=` declares as `=` does, but unifies rather than asserts: the name it
+// declares is in scope on the right, which is what makes recursive bindings
+// (`let f ?= fn{ ... f ... }`) work. Same precedence as `=`, since it is the
+// same kind of construct.
+addFunctionInfix "?=" 10 Associativity.Left referenceRightOperator
 addFunctionInfix "then" 15 Associativity.Right referenceRightOperator
 addFunctionInfix "else" 15 Associativity.Right operator
 addFunctionInfix "->" 20 Associativity.Left referenceRightOperator
@@ -355,8 +360,10 @@ addFunctionInfix @"\" 80 Associativity.Left declareLeftOperator
 
 addFunctionInfix "|" 90 Associativity.Left operator
 addFunctionInfix "||" 90 Associativity.Left operator
+addFunctionInfix "|||" 90 Associativity.Left operator
 addFunctionInfix "&" 100 Associativity.Left operator
 addFunctionInfix "&&" 100 Associativity.Left operator
+addFunctionInfix "&&&" 100 Associativity.Left operator
 addFunctionInfix "?" 103 Associativity.Left referenceRightOperator
 addFunctionInfix "??" 103 Associativity.Left referenceRightOperator
 addFunctionPrefix "!" 110 prefixOperator
@@ -396,6 +403,11 @@ addPrefix "tuple" 155 true (fun _ b -> b)
 addPrefix "tuples" 155 true (prefixWrap "tuples" (fun b -> Set [ b ]))
 addFunctionPrefix "fn" 155 fnPrefix
 addFunctionPrefix "class" 155 prefixOperator
+
+// `throw` is a semantic form, not a function application: it produces no value
+// to apply anything to. It binds as tightly as the other prefix keywords, so
+// `throw e` is an operand like any other (`x ?? throw e` parses).
+addPrefix "throw" 155 true (prefixWrap "throw" Throw)
 
 // The two erasures. Unlike the operators above these do not lower to a function
 // application: they are semantic forms in their own right, because the solver

@@ -90,10 +90,10 @@ let private declaredInOperatorScope (name: string) =
 /// lowers to. Keeping the whole table here is what makes the tests below a
 /// check on the *grammar*, not just on a couple of sampled operators.
 let private infixOperators =
-    [ "where"; "in"; "="; "then"; "else"; "->"
+    [ "where"; "in"; "="; "?="; "then"; "else"; "->"
       ">>"; "<<"; "|>"; "<|"
       "=>"; "catch"; "\\"
-      "|"; "||"; "&"; "&&"; "?"; "??"
+      "|"; "||"; "|||"; "&"; "&&"; "&&&"; "?"; "??"
       ":"; "::"; ":::"; "<"; "<="; ">="; ">"; "=="; "!="; "!:"
       "..."; "...<"; "<..."; "<...<"
       ";"; ";;"

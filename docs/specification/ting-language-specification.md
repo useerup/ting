@@ -31,20 +31,24 @@ The following tokens exists:
 | ----- | ---------------- |
 | `!`   | logical negation |
 
+The remaining prefix operators are keyword tokens: `let`, `public`, `private`,
+`protected`, `internal`, `record`, `records`, `tuple`, `tuples`, `fn`, `class`,
+`primary`, `candidate` and `throw`.
+
 #### Binary infix
 
 Listed in order of increasing binding power. Tokens on the same row bind equally tightly.
 
 | Tokens                           | Role                                                 |
 | -------------------------------- | ---------------------------------------------------- |
-| `=`                              | identity                                             |
+| `=` `?=`                         | identity, unify                                      |
 | `->`                             | mapping                                              |
 | `>>` `<<` `\|>` `<\|`            | composition and application                          |
 | `=>`                             | lambda                                               |
 | `./` `../`                       | expression scope, expression-member scope            |
 | `\`                              | such-that / restriction                              |
-| `\|` `\|\|`                      | disjunction, guarded disjunction                     |
-| `&` `&&`                         | conjunction, guarded conjunction                     |
+| `\|` `\|\|` `\|\|\|`             | disjunction, guarded disjunction, mutually guarded disjunction |
+| `&` `&&` `&&&`                   | conjunction, guarded conjunction, mutually guarded conjunction |
 | `?` `??`                         | restriction, alternative-on-undefined                |
 | `:` `::` `:::`                   | member-of, collection-of, sequence-of                |
 | `<` `<=` `>=` `>` `==` `!=` `!:` | comparison, attribute-blind equality, non-membership |
@@ -786,6 +790,12 @@ preserves attributes.
 `primary` and `candidate` are keyword intrinsics rather than properties, so that they
 cannot be shadowed by a field of the same name.
 
+#### `throw`
+
+Raises the exception denoted by its operand. The operand is ambient, as every prefix
+operator's is. `throw` is a semantic form rather than a function application: it produces
+no value, so there is nothing for an application to yield. See [Exceptions](#exceptions).
+
 ### Binary infix operators
 
 A binary infix operator is written between its two operands.
@@ -870,6 +880,17 @@ language. In a position that requires truth, such as a guard or a restriction, `
 must evaluate to `true`. Because the operator is right-referential, the left operand
 inherits the surrounding context, which is why `x = 5` declares `x` under a declarative
 scope; nothing about `=` itself declares anything.
+
+#### `?=`
+
+Right-referential, and binds as tightly as `=`. Declaration by unification: the left
+operand is unified with the right rather than asserted equal to it, and where the two
+cannot be unified the expression is *undefined* rather than `false`.
+
+The name the left operand declares is in scope on the right, which is what distinguishes
+`?=` from `=` in practice: it is how a recursive binding is written.
+
+    let f ?= fn{ 0 -> 1, int n -> n * f (n - 1) } in f 3
 
 #### `in`
 

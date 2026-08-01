@@ -189,10 +189,13 @@ module private Marking =
             Node.like node (Primary(recur e scopes))
         | Candidate e ->
             Node.like node (Candidate(recur e scopes))
+        // `throw` is a semantic form rather than a function application, but its
+        // operand binds like any other prefix operator's: ambient.
+        | Throw e ->
+            Node.like node (Throw(recur e scopes))
         // Analyzed-only nodes: not produced by the parser; pass through untouched.
         | ScopeExp _
         | Unknown
-        | Throw _
         | Catch _
         | IsDefined _
         | Equals _ ->
