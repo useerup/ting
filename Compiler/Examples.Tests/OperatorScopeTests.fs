@@ -53,6 +53,7 @@ let rec private allRoles (node: Node) : BindingRole list =
         | Tuple xs
         | Set xs
         | List xs -> xs
+        | Product (positional, _, _, named) -> positional @ named
         | StringLiteral parts ->
             parts
             |> List.choose (function

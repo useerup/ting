@@ -64,6 +64,9 @@ let private collectProjectedDeclarationKinds (exp: Node) =
         | Tuple xs
         | Set xs
         | List xs -> xs |> List.iter (collectFromMember isMemberProjection)
+        | Product (positional, _, _, named) ->
+            positional |> List.iter (collectFromMember isMemberProjection)
+            named |> List.iter (collectFromMember isMemberProjection)
         | Local (_, e)
         | Record (_, e)
         | ScopeExp (_, e)
@@ -99,6 +102,9 @@ let private collectProjectedDeclarationKinds (exp: Node) =
         | Tuple xs
         | Set xs
         | List xs -> xs |> List.iter walk
+        | Product (positional, _, _, named) ->
+            positional |> List.iter walk
+            named |> List.iter walk
         | Projection (_, receiver, m) ->
             collectFromMember false m
             walk receiver
@@ -158,6 +164,15 @@ and renderExpression (node: Node) : string =
     | Local (s, e) -> $"local[{formatScope s}] {renderExpression e}"
     | Apply (f, a) -> $"({renderExpression f} {renderExpression a})"
     | Tuple xs -> xs |> List.map renderExpression |> String.concat ", " |> fun s -> $"({s})"
+    | Product (positional, fusion, s, named) ->
+        let mark =
+            match fusion with
+            | Fusing -> "@"
+            | NonFusing -> "@@"
+        let positionalText = positional |> List.map renderExpression |> String.concat ", "
+        let namedText = named |> List.map renderExpression |> String.concat ", "
+        let separator = if List.isEmpty positional then "" else " "
+        $"({positionalText}{separator}{mark}[{formatScope s}] {namedText})"
     | Record (s, e) -> $"record[{formatScope s}] {renderExpression e}"
     | Publish (s, access, e) ->
         let accessText =

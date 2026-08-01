@@ -285,6 +285,11 @@ let rec render (v: Value) : string =
     | VDecimal d -> string d
     | VString s -> "\"" + s + "\""
     | VTuple vs -> "(" + (vs |> List.map render |> String.concat ", ") + ")"
+    | VProduct (positional, named) ->
+        let positionalText = positional |> List.map render |> String.concat ", "
+        let namedText = named |> List.map (fun (n, v) -> $"{n} = {render v}") |> String.concat ", "
+        let separator = if List.isEmpty positional then "" else " "
+        "(" + positionalText + separator + "@ " + namedText + ")"
     | VClosure _ -> "<function>"
 
 // Whether a value is a concrete first-order datum worth showing in snapshots.
@@ -299,4 +304,6 @@ let rec isDisplayable (v: Value) : bool =
     | VDecimal _
     | VString _ -> true
     | VTuple vs -> vs |> List.forall isDisplayable
+    | VProduct (positional, named) ->
+        List.forall isDisplayable positional && named |> List.forall (snd >> isDisplayable)
     | VClosure _ -> false
