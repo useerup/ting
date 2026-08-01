@@ -17,6 +17,17 @@ type AccessModifier =
     | Internal
     | Protected
 
+/// How the positional section of a product literal joins the product.
+///
+/// Written `@` and `@@` respectively, mirroring the two product set operators:
+/// `*` fuses one level deep, `**` does not.
+type Fusion =
+    /// `@` — the positional section is fused one level deep: its top-level
+    /// fields become the positional fields of the product.
+    | Fusing
+    /// `@@` — the positional section stays a single field, nested whole.
+    | NonFusing
+
 /// The abstract syntax tree.
 ///
 /// The parser produces this tree with:
@@ -110,6 +121,7 @@ type Exp =
     | Publish of Scope * AccessModifier * Node
     | Apply of Node * Node
     | Tuple of Node list
+    | Product of Node list * Fusion * Scope * Node list
     | Record of Scope * Node
     | Identifier of BindingRole
     | Literal of Literal

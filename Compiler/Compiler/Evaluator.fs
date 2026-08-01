@@ -14,6 +14,8 @@ type Value =
     | VDecimal of decimal
     | VString of string
     | VTuple of Value list
+    /// A product with a named section: positional fields, then named fields.
+    | VProduct of Value list * (string * Value) list
     | VClosure of Guid list * Node * Env
 
 and Env = Map<Guid, Value>
