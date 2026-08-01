@@ -108,8 +108,8 @@ let private compileTingProgramRaw (input: string) : string =
             | Some v when Evaluator.isDisplayable v -> $"\n\nValue:\n{Evaluator.render v}"
             | _ -> ""
         $"Compilation succeeded.\n\n{expText}\n\nScopes:\n{scopesSection}{diagnosticsSection}{valueSection}"
-    | ParseFailed errorMsg ->
-        $"Compilation failed.\nError: {errorMsg}"
+    | ParseFailed error ->
+        $"Compilation failed.\n({error.Span.Start.Line},{error.Span.Start.Column}) {error.Message}"
 
 let compileTingProgram (input: string) : string =
     normalizeGuids (compileTingProgramRaw input)

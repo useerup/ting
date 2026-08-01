@@ -432,7 +432,11 @@ let tryParseExpression (streamName: string) (input: string) =
 let parseNamed (rootScope: Scope) (streamName: string) (input: string) : ParseResult =
     match tryParseExpression streamName input with
     | Success(result, _, _) -> ParseSucceeded(Binder.markDeclarations result ([], [ rootScope ]))
-    | Failure(errorMsg, _, _) -> ParseFailed errorMsg
+    | Failure(errorMsg, error, _) ->
+        let position = toPosition error.Position
+        ParseFailed
+            { Message = errorMsg
+              Span = Range.Range.create streamName position position }
 
 let parse (rootScope: Scope) (input: string) : ParseResult =
     parseNamed rootScope "" input

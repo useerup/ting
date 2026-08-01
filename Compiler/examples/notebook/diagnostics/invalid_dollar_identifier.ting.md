@@ -3,7 +3,7 @@ invalid$char + 5
 ```
 ```ting-output
 Compilation failed.
-Error: Error in Ln: 1 Col: 8
+(1,8) Error in Ln: 1 Col: 8
 invalid$char + 5
        ^
 Expecting: end of input or infix operator
