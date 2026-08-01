@@ -82,6 +82,22 @@ Bracketing tokens occur in pairs.
 | `@@`  | as `@`, but non-fusing: the positional value stays a single component (see [Products](#products))                               |
 | `$`   | prefixes an interpolated string or identifier (a run of one or more, see [Interpolated identifiers](#interpolated-identifiers)) |
 
+### Comments
+
+A comment is whitespace. It may appear anywhere whitespace may appear, and nowhere else —
+in particular, not inside a string literal or a quoted identifier, where `//` and `/*` are
+ordinary characters.
+
+There are two forms:
+
+- A **line comment** begins with `//` and extends to the end of the line.
+- A **block comment** begins with `/*` and extends to the matching `*/`. Block comments
+  **nest**: a `/*` inside a block comment opens an inner comment that must be closed before
+  the outer one. This is what makes commenting out a region that already contains a comment
+  work. An unterminated block comment is a compile-time error.
+
+Because a comment is whitespace, `a/**/b` is two tokens, not one.
+
 ### String literals
 
 A string literal produces a value of type `string`, which is an immutable sequence of Unicode characters. Several forms exist, distinguished by their opening delimiter and optional prefix characters.

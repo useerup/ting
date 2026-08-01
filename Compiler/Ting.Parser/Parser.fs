@@ -12,7 +12,32 @@ type UserState = unit
 
 type Parser<'t> = FParsec.Primitives.Parser<'t, UserState>
 
-let ws: Parser<unit> = spaces
+/// Match a literal token without contributing an "expected" entry to error
+/// messages. A comment may begin almost anywhere, so letting `//` and `/*` show
+/// up in the expectation list of every unrelated parse error is pure noise.
+let private skipTokenSilently (s: string) : Parser<unit> =
+    fun stream ->
+        if stream.Skip(s) then
+            Reply(())
+        else
+            Reply(ReplyStatus.Error, FParsec.Error.NoErrorMessages)
+
+/// `// ...` to the end of the line.
+let private lineComment: Parser<unit> = skipTokenSilently "//" >>. skipRestOfLine false
+
+/// `/* ... */`, nesting. Nesting is what makes commenting out a region that
+/// already contains a comment work, which is the only reason block comments
+/// earn their keep. The closing `*/` is *not* silent: an unterminated block
+/// comment should say what it was looking for.
+let private blockComment, blockCommentRef = createParserForwardedToRef<unit, UserState>()
+
+blockCommentRef.Value <-
+    skipTokenSilently "/*"
+    >>. skipManyTill (attempt blockComment <|> skipAnyChar) (skipString "*/")
+
+/// Whitespace, including comments. Comments are whitespace: they may appear
+/// anywhere whitespace may, and nowhere else.
+let ws: Parser<unit> = spaces >>. skipMany ((lineComment <|> blockComment) >>. spaces)
 
 // Bridge from FParsec's position type to the parser-neutral one in Ting.Ast.
 // FParsec positions already carry the stream name, so Range.File is populated
