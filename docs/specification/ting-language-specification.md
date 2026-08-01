@@ -509,7 +509,7 @@ Name resolution rule for `this`:
 - A nested `let this = ... in ...` introduces a new `this` that shadows outer or implicit `this` bindings for that nested scope.
 - A function/lambda parameter named `this` shadows outer or implicit `this` bindings inside that function body.
 
-## 12. Nondeterminism
+## Nondeterminism
 
 TODO: Choice, ranges, and set/list expansion interact via backtracking semantics.
 TODO: Undefined values participate in operator-specific ways (notably choice and guarded logical operators).
@@ -526,11 +526,11 @@ TODO
 
 TODO
 
-## 13. Exceptions
+## Exceptions
 
 Exception behavior follows the .NET exception model. No explicit `try` block syntax exists; instead, exception handling is integrated via the binary `catch` operator and the unary prefix `throw` operator.
 
-### 13.1 Throw operator
+### Throw operator
 
 The `throw` operator is a unary prefix operator that raises (throws) an exception.
 
