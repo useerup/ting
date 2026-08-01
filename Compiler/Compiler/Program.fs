@@ -48,8 +48,6 @@ let private compileTingProgramRaw (input: string) : string =
     // functions behind operators are *not* among them: the parser declares those
     // in its own operator scope and binds operator heads to it directly.
     let rootScope = Exp.LocalScope(Guid.Empty) :> Exp.Scope
-    rootScope.defineName(Guid.NewGuid(), "_&&&_", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "_|||_", Unknown)
 
     rootScope.defineName(Guid.NewGuid(), "bool", Unknown)
 
