@@ -191,8 +191,16 @@ let private opRange (op: string) (posAfter: FParsec.Position) : Range.Range =
 // Operator lowerings. Each takes the position just past the operator token so
 // the synthesized head reports the operator's own span, while the node as a
 // whole spans both operands.
+let private operatorFunction (name: string) = Identifier(Referential([ operatorScope.Id ], [ TextPart name ]))
+
 let private operatorHead (op: string) (name: string) (pos: FParsec.Position) =
-    Node.at (opRange op pos) (Identifier(Referential([ operatorScope.Id ], [ TextPart name ])))
+    Node.at (opRange op pos) (operatorFunction name)
+
+/// Whether a node is the head the parser synthesizes for a given operator.
+let private isOperatorHead (name: string) (node: Node) =
+    match node.Exp with
+    | Identifier (Referential ([ sid ], [ TextPart s ])) -> sid = operatorScope.Id && s = name
+    | _ -> false
 
 let declareLeftOperator (op: string) =
     fun pos x y -> Node.spanning x y (DeclareLeft(operatorHead op $"_{op}_" pos, x, y))
@@ -219,6 +227,51 @@ let prefixOperator (op: string) =
 /// keyword and the operand (`let`, `record`, the access modifiers).
 let private prefixWrap (op: string) (make: Node -> Exp) =
     fun pos (x: Node) -> Node.at (Range.Range.span (opRange op pos) x.Range) (make x)
+
+/// The cases of a `fn { p1 -> r1, ... }` case form, as (`->` head, pattern,
+/// result) triples. A brace literal qualifies only when every element is a
+/// mapping, which is what separates the case form from `fn` applied to an
+/// ordinary collection of mappings.
+let private tryCaseForm (operand: Node) : (Node * Node * Node) list option =
+    let asCase (item: Node) =
+        match item.Exp with
+        | ReferenceRight (head, pattern, result) when isOperatorHead "_->_" head -> Some(head, pattern, result)
+        | _ -> None
+
+    match operand.Exp with
+    | Set (_ :: _ as items) ->
+        let cases = items |> List.map asCase
+        if List.forall Option.isSome cases then
+            Some(cases |> List.map Option.get)
+        else
+            None
+    | _ -> None
+
+/// `fn`.
+///
+/// The case form `fn { p1 -> r1, p2 -> r2, ... }` is a syntactic form of its
+/// own: it lowers to the ordered choice of lambdas
+/// `(p1 => r1) || (p2 => r2) || ...`, so the cases are tried in order and the
+/// first one defined for the argument decides the result. Each case pattern
+/// therefore declares, as a lambda parameter does. `fn` applied to anything
+/// else stays an ordinary application, converting a collection of mappings into
+/// a function; that reading is nondeterministic where mappings overlap, which
+/// is exactly where it differs from the case form.
+let private fnPrefix (op: string) =
+    fun pos (operand: Node) ->
+        match tryCaseForm operand with
+        | None -> prefixOperator op pos operand
+        | Some cases ->
+            let lambda (head: Node, pattern: Node, result: Node) =
+                let lambdaHead = Node.like head (operatorFunction "_=>_")
+                Node.spanning pattern result (DeclareLeft(lambdaHead, pattern, result))
+
+            let orElse (left: Node) (right: Node) =
+                let head = Node.synthetic (operatorFunction "_||_")
+                Node.spanning left right (Apply(head, Node.spanning left right (Tuple [ left; right ])))
+
+            let chain = cases |> List.map lambda |> List.reduce orElse
+            Node.at (Range.Range.span (opRange op pos) operand.Range) chain.Exp
 
 // Registration helpers. `addInfix`/`addPrefix` are for operators that lower to
 // something other than a function application (`./`, `.`, `let`, `record`, ...).
@@ -316,7 +369,7 @@ addPrefix "record" 155 true (prefixWrap "record" (fun b -> Record(ExpScopes.crea
 addPrefix "records" 155 true (prefixWrap "records" (fun b -> Set [ Node.like b (Record(ExpScopes.createNamesScope(), b)) ]))
 addPrefix "tuple" 155 true (fun _ b -> b)
 addPrefix "tuples" 155 true (prefixWrap "tuples" (fun b -> Set [ b ]))
-addFunctionPrefix "fn" 155 prefixOperator
+addFunctionPrefix "fn" 155 fnPrefix
 addFunctionPrefix "class" 155 prefixOperator
 
 // The two erasures. Unlike the operators above these do not lower to a function
