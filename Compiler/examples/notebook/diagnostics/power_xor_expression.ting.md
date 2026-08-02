@@ -6,6 +6,9 @@ Compilation succeeded.
 
 (id(resolved:#0) ((id(resolved:#1) (id(resolved:#2), 2)), id(resolved:#2)))
 
+Core:
+(id(resolved:#0) ((id(resolved:#1) (id(resolved:#2), 2)), id(resolved:#2)))
+
 Scopes:
 No scopes collected.
 ```

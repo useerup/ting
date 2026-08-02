@@ -7,6 +7,9 @@ Compilation succeeded.
 
 (id(resolved:#0) (local[#1] (id(resolved:#2) (0, 1)), local[#3] (id(resolved:#2) ((id(resolved:#4) id(decl:#5)), (id(resolved:#6) (id(resolved:#5), 2))))))
 
+Core:
+(id(resolved:#0) (local[#1] (id(resolved:#2) (0, 1)), local[#3] (id(resolved:#2) ((id(resolved:#4) id(decl:#5)), (id(resolved:#6) (id(resolved:#5), 2))))))
+
 Scopes:
 [0] NamesScope           #1
     names=[]

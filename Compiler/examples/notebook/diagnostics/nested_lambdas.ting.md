@@ -6,6 +6,9 @@ Compilation succeeded.
 
 local[#0] (id(resolved:#1) (id(decl:#2), local[#3] (id(resolved:#1) ((id(resolved:#4) (id(decl:#5), id(decl:#6))), local[#7] (id(resolved:#1) ((id(resolved:#4) ((id(resolved:#4) (id(decl:#8), id(decl:#9))), id(decl:#10))), id(resolved:#8)))))))
 
+Core:
+local[#0] (id(resolved:#1) (id(decl:#2), local[#3] (id(resolved:#1) ((id(resolved:#4) (id(decl:#5), id(decl:#6))), local[#7] (id(resolved:#1) ((id(resolved:#4) ((id(resolved:#4) (id(decl:#8), id(decl:#9))), id(decl:#10))), id(resolved:#8)))))))
+
 Scopes:
 [0] NamesScope           #0
     names=[x<name>]

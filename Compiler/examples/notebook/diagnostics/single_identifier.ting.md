@@ -6,6 +6,9 @@ Compilation succeeded.
 
 id(ref:[00000000-0000-0000-0000-000000000000])
 
+Core:
+id(ref:[00000000-0000-0000-0000-000000000000])
+
 Scopes:
 No scopes collected.
 

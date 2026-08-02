@@ -6,6 +6,9 @@ Compilation succeeded.
 
 void
 
+Core:
+void
+
 Scopes:
 No scopes collected.
 ```

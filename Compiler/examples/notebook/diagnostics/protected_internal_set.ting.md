@@ -6,6 +6,9 @@ Compilation succeeded.
 
 protected[#0] internal[#1] {1, 2, 3, id(decl:#2)}
 
+Core:
+protected[#0] internal[#1] {1, 2, 3, id(decl:#2)}
+
 Scopes:
 [0] NamesScope           #0
     names=[a<name>]
