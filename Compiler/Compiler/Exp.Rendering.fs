@@ -14,7 +14,7 @@ let private formatNameParts (parts: InterpolatedParts) =
     |> List.map formatInterpolatedPartForScope
     |> String.concat ""
 
-let private formatScope (s: Scope) =
+let formatScope (s: Scope) =
     $"{s.Id}"
 
 let private scopeKindName (s: Scope) =
@@ -151,7 +151,7 @@ let rec private renderInterpolatedPart = function
     | TextPart s -> s
     | HolePart e -> $"{{{renderExpression e}}}"
 
-and private renderBindingRole = function
+and renderBindingRole = function
     | Unbound _ -> "unbound"
     | Declarative (id, _) -> $"decl:{id}"
     | Resolved (id, _) -> $"resolved:{id}"

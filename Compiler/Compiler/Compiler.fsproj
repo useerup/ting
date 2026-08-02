@@ -17,6 +17,9 @@
     <Compile Include="Exp.ScopeTraversal.fs" />
     <Compile Include="Exp.Rendering.fs" />
     <Compile Include="Resolver.fs" />
+    <Compile Include="Lowering.fs" />
+    <Compile Include="Core.ScopeTraversal.fs" />
+    <Compile Include="Core.Rendering.fs" />
     <Compile Include="Evaluator.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
