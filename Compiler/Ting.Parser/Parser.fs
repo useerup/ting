@@ -90,6 +90,18 @@ let pIdentifier: Parser<Node> =
 
     located (attempt pQuoted <|> pPlain)
 
+/// An integer literal, always unsigned.
+///
+/// A leading `-` is never part of a literal: it is the negation operator (see
+/// `pNegated`). Folding the sign into the literal is what used to make `n-1`
+/// parse as `n` applied to `-1` instead of as a subtraction.
+let private pUnsignedInt: Parser<int> =
+    many1SatisfyL isDigit "integer"
+    >>= fun digits ->
+        match Int32.TryParse(digits, Globalization.NumberStyles.None, Globalization.CultureInfo.InvariantCulture) with
+        | true, value -> preturn value
+        | _ -> fail $"integer literal '{digits}' does not fit in a 32-bit integer"
+
 let pNumber: Parser<Node> =
     let pFloatingCore =
         pipe2 (many1Satisfy isDigit .>> skipChar '.') (many1Satisfy isDigit) (fun whole frac -> $"{whole}.{frac}")
@@ -97,9 +109,9 @@ let pNumber: Parser<Node> =
     let pDecimal = attempt (pFloatingCore .>> skipChar 'm') |>> (fun s -> Literal(Decimal(decimal (Double.Parse(s, Globalization.CultureInfo.InvariantCulture)))))
     let pFloatSuffix = attempt (pFloatingCore .>> skipChar 'f') |>> (fun s -> Literal(Float32(float (Double.Parse(s, Globalization.CultureInfo.InvariantCulture)))))
     let pFloat = attempt (pFloatingCore .>> notFollowedBy (pchar 'f' <|> pchar 'm')) |>> (fun s -> Literal(Float32(float (Double.Parse(s, Globalization.CultureInfo.InvariantCulture)))))
-    let pInt = attempt (pint32 .>> notFollowedBy (pchar 'f' <|> pchar 'm')) |>> (fun n -> Literal(Int32 n))
-    let pIntWithFloatSuffix = attempt (pint32 .>> skipChar 'f') |>> (fun n -> Literal(Float32(float n)))
-    let pIntWithDecimalSuffix = attempt (pint32 .>> skipChar 'm') |>> (fun n -> Literal(Decimal(decimal n)))
+    let pInt = attempt (pUnsignedInt .>> notFollowedBy (pchar 'f' <|> pchar 'm')) |>> (fun n -> Literal(Int32 n))
+    let pIntWithFloatSuffix = attempt (pUnsignedInt .>> skipChar 'f') |>> (fun n -> Literal(Float32(float n)))
+    let pIntWithDecimalSuffix = attempt (pUnsignedInt .>> skipChar 'm') |>> (fun n -> Literal(Decimal(decimal n)))
     located (choice [ pDecimal; pFloatSuffix; pIntWithFloatSuffix; pIntWithDecimalSuffix; pFloat; pInt ])
 
 let pBool: Parser<Node> =
@@ -160,7 +172,7 @@ let pInterpolatedIdentifier: Parser<Node> =
     located (skipChar '$' >>. between (skipChar '`') (skipChar '`') (many part)
              |>> fun parts -> Exp.Identifier(Unbound parts))
 
-let pTerm: Parser<Node> =
+let private pTermCore: Parser<Node> =
     choice [
         pNumber
         pBool
@@ -174,6 +186,15 @@ let pTerm: Parser<Node> =
         pInterpolatedString
         pString
     ]
+
+/// Negation, `-x`. Defined below, once the machinery for synthesizing operator
+/// heads exists; forwarded because its operand is a term in its own right.
+let private pNegated, pNegatedRef = createParserForwardedToRef<Node, UserState>()
+
+/// A term. Negation is part of the term rather than an operator in the
+/// precedence parser, because a negated value has to be usable as a juxtaposed
+/// argument: `f -1 -2` passes two negative numbers.
+let pTerm: Parser<Node> = pNegated <|> pTermCore
 
 // The operator precedence parser carries the position just past each operator
 // token as its "after string" value, which is how an operator's own range is
@@ -317,6 +338,40 @@ let private addFunctionInfix (op: string) prec assoc (lower: string -> FParsec.P
 let private addFunctionPrefix (op: string) prec (lower: string -> FParsec.Position -> Node -> Node) =
     declareOperatorFunction $"{op}_"
     addPrefix op prec true (lower op)
+
+// Negation. Like every other operator it lowers to a function application, so
+// its function is declared in operatorScope alongside the rest.
+//
+// `-` negates when it has whitespace before it and none after it. Every other
+// combination is the binary `-`. So:
+//
+//   n - 1   n-1   n- 1     subtraction
+//   n -1                   `n` applied to the negation of `1`
+//   2 + -1                 negation
+//
+// Two things force this rule. A negative value has to be usable as a juxtaposed
+// argument (`f -1 -2`) without stealing the subtraction in `n-1`; and `- x`,
+// with a space on both sides of a single operand, is the prefix form of the
+// binary operator, which denotes partial application rather than negation.
+//
+// The rule is purely lexical and admits no exception, so `(-1)` and a leading
+// `-1` at the very start of a file are *not* negation: nothing precedes the
+// `-`, so it reads as the binary operator and finds no left operand. Write
+// `( -1)` and ` -1`.
+//
+// The whole thing is an `attempt` because the leading `-` of `->` also passes
+// the spacing test: `a -> b` gets this far and then fails to find a term, at
+// which point the precedence parser reads `->` as the infix operator it is.
+declareOperatorFunction "-_"
+
+pNegatedRef.Value <-
+    attempt (
+        previousCharSatisfies Char.IsWhiteSpace
+        >>. skipChar '-'
+        >>. notFollowedBy (satisfy Char.IsWhiteSpace)
+        >>. getPosition
+        .>>. pTerm)
+    |>> fun (posAfterMinus, operand) -> prefixOperator "-" posAfterMinus operand
 
 // Juxtaposition application: `f x y` associates left, each Apply spanning from
 // the callee's start to the argument's end.

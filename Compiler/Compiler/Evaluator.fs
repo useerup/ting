@@ -91,6 +91,21 @@ let private primOp (op: string) (a: Value) (b: Value) : Value option =
     | "_==_", x, y -> Some(VBool(valueEqual x y))
     | _ -> None
 
+// Apply a primitive unary operator to its evaluated operand. Negation is a
+// primitive rather than part of the literal grammar, so `-1` is an application
+// that has to be folded here.
+// TODO Figure out how to handle negation of integer ranges, where the negative range 
+//      in 2nds complement has a larger magnitude than the positive range. The current
+//      implementation will throw an exception if the negation overflows, 
+//      which is not ideal. However, we will live with it for now.
+let private primUnaryOp (op: string) (a: Value) : Value option =
+    match op, a with
+    | "-_", VInt x -> Some(VInt(-x))
+    | "-_", VFloat x -> Some(VFloat(-x))
+    | "-_", VDouble x -> Some(VDouble(-x))
+    | "-_", VDecimal x -> Some(VDecimal(-x))
+    | _ -> None
+
 // The fields a value contributes to a product that fuses it one level deep. A
 // value that is not a product is a one-field product, so it contributes itself.
 let private fusedFields (v: Value) : Value list * (string * Value) list =
@@ -213,6 +228,7 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
                 | Some va, Some vb -> primOp op va vb
                 | _ -> None
             | _ -> None
+        | Some op when isPrimUnaryOp op -> eval env arg |> Option.bind (primUnaryOp op)
         | _ ->
             // Ordinary function application: head must evaluate to a closure.
             match eval env f with
@@ -272,6 +288,8 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
         | "_<_" | "_>_" | "_<=_" | "_>=_" | "_==_"
         | "_&&_" | "_||_" | "_&_" | "_|_" -> true
         | _ -> false
+
+    and isPrimUnaryOp (op: string) : bool = op = "-_"
 
     eval Map.empty exp
 

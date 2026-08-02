@@ -7,6 +7,16 @@
 
 Ting is logic programming language. The logic oriented core allows it to unify the functional- and object-oriented paradigms.
 
+## Programs
+
+A program is a single expression, held in a single source file. There are no modules and
+no declaration list at file level: the file *is* the expression, and everything a program
+declares it declares through the scope-introducing operators within that expression.
+
+This is a deliberate restriction of the current draft, not a final position. It removes
+any need for a separate program grammar, and it means the language has exactly one
+syntactic category to define.
+
 
 ## Lexical Structure
 
@@ -32,6 +42,7 @@ The following tokens exists:
 | Token | Name             |
 | ----- | ---------------- |
 | `!`   | logical negation |
+| `-`   | arithmetic negation (see [`-`](#--negation)) |
 
 The remaining prefix operators are keyword tokens: `let`, `public`, `private`,
 `protected`, `internal`, `record`, `records`, `tuple`, `tuples`, `fn`, `class`,
@@ -269,6 +280,9 @@ Format specifiers
 
 ### Numeric literals
 - Numeric literals include integer and floating forms.
+- Numeric literals are unsigned. A leading `-` is never part of the literal; it is the
+  negation operator applied to it. This is what keeps `n-1` a subtraction rather than `n`
+  applied to the literal `-1`.
 - Numeric separators are supported (example in syntax docs).
 
 ### Whitespace and indentation
@@ -692,6 +706,9 @@ Any binary operator may be written in prefix position with a single operand. The
 the function obtained by partial application: `( : rhs)` is a function that accepts `lhs`
 and evaluates `lhs : rhs`.
 
+`-` is the one operator for which the prefix position is not always partial application:
+written immediately before its operand it is negation instead. See [`-`](#--negation).
+
 
 
 ### Unary prefix operators
@@ -799,6 +816,45 @@ permit. Applied to a member `x` of `dom F`, `!F x` is nondeterministically any v
 other than `F x`; applied to a value outside `dom F` it is nondeterministically any value
 at all. Negation on functions is an involution — `!!F` denotes `F` — and `F & !F` is
 undefined for every argument.
+
+#### `-` (negation)
+
+Neutral. Arithmetic negation: `-x` denotes the additive inverse of `x`.
+
+`-` is also a binary infix operator, and prefix position is otherwise reserved for the
+partial application of a binary operator. Spacing alone decides between the three
+readings:
+
+- `-` with whitespace before it and none after it is **negation**.
+- `- ` with whitespace on both sides, applied to a single operand, is the **partial
+  application** of subtraction, per [Binary operators used as unary prefix
+  operators](#binary-operators-used-as-unary-prefix-operators).
+- Every other combination is **subtraction**.
+
+The rule is purely lexical and admits no exception:
+
+| Expression | Reading                                    |
+| ---------- | ------------------------------------------ |
+| `n - 1`    | subtraction                                |
+| `n-1`      | subtraction                                |
+| `n- 1`     | subtraction                                |
+| `n -1`     | `n` applied to the negation of `1`         |
+| `f -1 -2`  | `f` applied to `-1`, then to `-2`          |
+| `x + -1`   | negation                                   |
+| `[1, -1]`  | negation                                   |
+| `(-1)`     | subtraction, and therefore ill-formed      |
+| `( -1)`    | negation                                   |
+
+Nothing precedes the `-` in `(-1)`, so it is the binary operator and has no left operand.
+A negated value that opens a bracketed construct, or a source file, must be written with
+the space: `( -1)`, `[ -1, 2]`.
+
+The rule exists because a negative value has to be usable as a juxtaposed argument
+without taking the subtraction away from `n-1`.
+
+Negation binds more tightly than every infix operator, because `-x` is a term. In
+particular `-a.b` denotes `(-a).b` and `-a^b` denotes `(-a)^b`, in the same way that the
+juxtaposition in `f a.b` denotes `(f a).b`.
 
 #### `class`
 

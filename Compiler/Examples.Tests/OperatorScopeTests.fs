@@ -99,7 +99,10 @@ let private infixOperators =
       ";"; ";;"
       "^^"; "**"; "+"; "-"; "*"; "/"; "%"; "/%"; "^" ]
 
-let private prefixOperators = [ "!"; "fn"; "class" ]
+/// Prefix operators, each paired with a snippet that uses it. Unary minus has
+/// to be spelled with a space before it and none after: that combination, and
+/// only that combination, is negation rather than the binary `-`.
+let private prefixOperators = [ "!", "! a"; "fn", "fn a"; "class", "class a"; "-", "f -a" ]
 
 [<Fact>]
 let ``every infix operator head is bound to the operator scope`` () =
@@ -110,17 +113,17 @@ let ``every infix operator head is bound to the operator scope`` () =
 
 [<Fact>]
 let ``every prefix operator head is bound to the operator scope`` () =
-    for op in prefixOperators do
+    for (op, source) in prefixOperators do
         let expected = $"{op}_"
-        let found = operatorNamesIn $"{op} a"
-        Assert.True(List.contains expected found, $"'{op} a' did not bind {expected} to the operator scope (found {found})")
+        let found = operatorNamesIn source
+        Assert.True(List.contains expected found, $"'{source}' did not bind {expected} to the operator scope (found {found})")
 
 [<Fact>]
 let ``the operator scope declares every operator function`` () =
     for op in infixOperators do
         Assert.True(declaredInOperatorScope $"_{op}_", $"operator scope does not declare _{op}_")
 
-    for op in prefixOperators do
+    for (op, _) in prefixOperators do
         Assert.True(declaredInOperatorScope $"{op}_", $"operator scope does not declare {op}_")
 
 [<Fact>]

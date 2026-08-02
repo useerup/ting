@@ -197,7 +197,7 @@ Operators are ordinary functions (§2), but they differ in how they interpret th
 
 **Neutral** — both operands ambient; the operator introduces no scope and forces no role:
 
-`else`, `>>`, `<<`, `|>`, `<|`, `|`, `||`, `|||`, `&`, `&&`, `&&&`, `...`, `...<`, `<...`, `<...<`, `;`, `;;`, `^^`, `**`, `+`, `-`, `*`, `/`, `%`, `/%`, `^`, and the prefix operators `!`, `fn`, `class`.
+`else`, `>>`, `<<`, `|>`, `<|`, `|`, `||`, `|||`, `&`, `&&`, `&&&`, `...`, `...<`, `<...`, `<...<`, `;`, `;;`, `^^`, `**`, `+`, `-`, `*`, `/`, `%`, `/%`, `^`, and the prefix operators `!`, `-`, `fn`, `class`.
 
 **Right-referential** — left operand ambient, right operand referential; no scope introduced:
 
