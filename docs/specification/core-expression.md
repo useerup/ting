@@ -17,6 +17,7 @@ Two properties explain why the core is as small as it is.
 ### Aggregates
 
 - `tuple (e₁, …, eₙ)` — positional product.
+- `product (e₁, …, eₙ) F S (n₁, …, nₘ)` — a product with a named section. The positional elements are the ambient section, `F` is the fusion mode of that section (`@` fuses a single product-valued element one level deep, `@@` keeps it as one field), and the named elements declare into the product's own scope `S`, as the operand of `record` does. `tuple` is the degenerate case with no named section, and `record` the degenerate case with no positional one; both are kept as their own forms because that is how the surface distinguishes them.
 - `set {e₁, …, eₙ}` — set.
 - `list [e₁, …, eₙ]` — list.
 - `string` — a sequence of literal text segments and embedded expressions (an uninterpolated string is the degenerate case of a single literal segment).
@@ -223,6 +224,8 @@ These do not lower to function application.
 | `public E`, `private E`, `protected E`, `internal E` | `publish A S E` | `S` declarative over `E` |
 | `record E` | `record S E` | `S` declarative over `E` |
 | `records E` | `set {record S E}` | as `record` |
+| `(a, b @ n = v, …)` | `product (a, b) fusing S (n = v, …)` | positional ambient, named declarative over `S` |
+| `(a, b @@ n = v, …)` | `product (a, b) nonfusing S (n = v, …)` | as above |
 | `tuple E` | `E` | unchanged |
 | `tuples E` | `set {E}` | unchanged |
 | `a ./ b` | `scoped S b`, `S` = the declarations of `a` | `a` referential, `b` ambient |
