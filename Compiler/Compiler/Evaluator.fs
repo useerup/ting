@@ -88,8 +88,6 @@ let private primOp (op: string) (a: Value) (b: Value) : Value option =
     | "_||_", VBool x, VBool y -> Some(VBool(x || y))
     | "_&_", VBool x, VBool y -> Some(VBool(x && y))
     | "_|_", VBool x, VBool y -> Some(VBool(x || y))
-    // Equality across primitives.
-    | "_==_", x, y -> Some(VBool(valueEqual x y))
     | _ -> None
 
 // Apply a primitive unary operator to its evaluated operand. Negation is a
@@ -153,20 +151,31 @@ let evaluate (rootScope: Scope) (exp: CoreNode) : Value option =
             | _ -> None
         | _ -> None
 
-    let rec eval (env: Env) (e: Node) : Value option =
-        match e.Exp with
-        | Literal lit -> Some(literalValue lit)
-        | Local (_, inner)
-        | ScopeExp (_, inner)
-        | Publish (_, _, inner) -> eval env inner
-        | Identifier (Resolved (id, _)) -> Map.tryFind id env
-        | Tuple xs -> evalList env xs |> Option.map VTuple
-        | Product (positional, fusion, _, named) -> evalProduct env positional fusion named
-        | Projection (_, receiver, m) -> evalProjection env receiver m
-        | Apply (f, arg) -> evalApply env f arg
+    let rec eval (env: Env) (e: CoreNode) : Value option =
+        match e.Core with
+        | CoreExp.Literal lit -> Some(literalValue lit)
+        | CoreExp.Local (_, inner)
+        | CoreExp.Scoped (_, inner)
+        | CoreExp.Publish (_, _, inner) -> eval env inner
+        | CoreExp.Identifier (Resolved (id, _)) -> Map.tryFind id env
+        | CoreExp.Tuple xs -> evalList env xs |> Option.map VTuple
+        | CoreExp.Product (positional, fusion, _, named) -> evalProduct env positional fusion named
+        | CoreExp.Project (receiver, m) -> evalProjection env receiver m
+        | CoreExp.Apply (f, arg) -> evalApply env f arg
+        // Attribute erasure is the identity while there is no attribute layer
+        // to erase. It stays a distinct core form so that the pass that adds
+        // attributes has a place to hook into.
+        | CoreExp.Primary inner
+        | CoreExp.Candidate inner -> eval env inner
+        // `=` as a value rather than as a binding: it asserts that its operands
+        // denote the same value.
+        | CoreExp.Equals (a, b) ->
+            match eval env a, eval env b with
+            | Some va, Some vb -> Some(VBool(valueEqual va vb))
+            | _ -> None
         | _ -> None
 
-    and evalList (env: Env) (xs: Node list) : Value list option =
+    and evalList (env: Env) (xs: CoreNode list) : Value list option =
         match xs with
         | [] -> Some []
         | h :: t ->
@@ -286,7 +295,7 @@ let evaluate (rootScope: Scope) (exp: CoreNode) : Value option =
     and isPrimOp (op: string) : bool =
         match op with
         | "_+_" | "_-_" | "_*_" | "_/_" | "_%_" | "_^_"
-        | "_<_" | "_>_" | "_<=_" | "_>=_" | "_==_"
+        | "_<_" | "_>_" | "_<=_" | "_>=_"
         | "_&&_" | "_||_" | "_&_" | "_|_" -> true
         | _ -> false
 
