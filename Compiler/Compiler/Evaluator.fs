@@ -3,9 +3,10 @@ module Evaluator
 open System
 open System.Collections.Generic
 open Exp
-open ExpScopeAnalysis
+open Core
+open CoreScopeAnalysis
 
-// Runtime values produced by evaluating a resolved Exp.
+// Runtime values produced by evaluating a lowered core tree.
 type Value =
     | VInt of int
     | VBool of bool
@@ -16,34 +17,34 @@ type Value =
     | VTuple of Value list
     /// A product with a named section: positional fields, then named fields.
     | VProduct of Value list * (string * Value) list
-    | VClosure of Guid list * Node * Env
+    | VClosure of Guid list * CoreNode * Env
 
 and Env = Map<Guid, Value>
 
 // The operator/identifier name carried by an identifier, when it is a plain
 // (non-interpolated) name.
-let private opName (e: Node) : string option =
-    match e.Exp with
-    | Identifier (Resolved (_, [ TextPart s ]))
-    | Identifier (Referential (_, [ TextPart s ]))
-    | Identifier (Declarative (_, [ TextPart s ])) -> Some s
+let private opName (e: CoreNode) : string option =
+    match e.Core with
+    | CoreExp.Identifier (Resolved (_, [ TextPart s ]))
+    | CoreExp.Identifier (Referential (_, [ TextPart s ]))
+    | CoreExp.Identifier (Declarative (_, [ TextPart s ])) -> Some s
     | _ -> None
 
 // The declaration id introduced by the left-hand side of a binding, if any.
-let rec private declIdOf (lhs: Node) : Guid option =
-    match lhs.Exp with
-    | Identifier (Declarative (id, _)) -> Some id
-    | Projection (_, _, m)
-    | MemberProjection (_, _, m) -> declIdOf m
-    | Local (_, e) -> declIdOf e
+let rec private declIdOf (lhs: CoreNode) : Guid option =
+    match lhs.Core with
+    | CoreExp.Identifier (Declarative (id, _)) -> Some id
+    | CoreExp.Project (_, m)
+    | CoreExp.ProjectMembers (_, m) -> declIdOf m
+    | CoreExp.Local (_, e) -> declIdOf e
     | _ -> None
 
 // The parameter declaration ids bound by a lambda's parameter expression.
-let rec private paramIds (param: Node) : Guid list =
-    match param.Exp with
-    | Identifier (Declarative (id, _)) -> [ id ]
-    | Tuple xs -> xs |> List.collect paramIds
-    | Local (_, e) -> paramIds e
+let rec private paramIds (param: CoreNode) : Guid list =
+    match param.Core with
+    | CoreExp.Identifier (Declarative (id, _)) -> [ id ]
+    | CoreExp.Tuple xs -> xs |> List.collect paramIds
+    | CoreExp.Local (_, e) -> paramIds e
     | _ -> []
 
 let private valueEqual (a: Value) (b: Value) : bool =
@@ -123,10 +124,10 @@ let private literalValue (lit: Exp.Literal) : Value =
     | Exp.Decimal d -> VDecimal d
     | Exp.String s -> VString s
 
-// Evaluate a resolved Exp to a value, when it denotes a computable value.
+// Evaluate a lowered core tree to a value, when it denotes a computable value.
 // Returns None when evaluation cannot proceed (unresolved names, sets, records
 // without values, unsupported forms). Evaluation is intentionally partial.
-let evaluate (rootScope: Scope) (exp: Node) : Value option =
+let evaluate (rootScope: Scope) (exp: CoreNode) : Value option =
     // Map declaration id -> name entry, so hosted members can be distinguished
     // (direct property vs member property) at projection use sites.
     let registry = Dictionary<Guid, NameEntry>()
@@ -176,7 +177,7 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
     // A product literal `(p1, p2 @ n1 = v1, ...)`. Under `@` the positional
     // section is fused one level deep, so a single product-valued element
     // contributes its own fields; under `@@` the section stays one field.
-    and evalProduct (env: Env) (positional: Node list) (fusion: Fusion) (named: Node list) : Value option =
+    and evalProduct (env: Env) (positional: CoreNode list) (fusion: Fusion) (named: CoreNode list) : Value option =
         match evalList env positional, evalNamedFields env named with
         | Some positionalValues, Some namedFields ->
             let fields, fusedNamed =
@@ -188,7 +189,7 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
             Some(VProduct(fields, fusedNamed @ namedFields))
         | _ -> None
 
-    and evalNamedFields (env: Env) (fields: Node list) : (string * Value) list option =
+    and evalNamedFields (env: Env) (fields: CoreNode list) : (string * Value) list option =
         match fields with
         | [] -> Some []
         | h :: t ->
@@ -197,33 +198,33 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
             | None -> None
 
     // One element of a named section: `name = value` declares `name` as a field.
-    and evalNamedField (env: Env) (field: Node) : (string * Value) option =
-        match field.Exp with
-        | Local (_, inner)
-        | ScopeExp (_, inner)
-        | Publish (_, _, inner) -> evalNamedField env inner
-        | Apply (f, E (Tuple [ lhs; rhs ])) when opName f = Some "_=_" ->
+    and evalNamedField (env: Env) (field: CoreNode) : (string * Value) option =
+        match field.Core with
+        | CoreExp.Local (_, inner)
+        | CoreExp.Scoped (_, inner)
+        | CoreExp.Publish (_, _, inner) -> evalNamedField env inner
+        | CoreExp.Equals (lhs, rhs) ->
             match declIdOf lhs |> Option.bind nameOf, eval env rhs with
             | Some name, Some v -> Some(name, v)
             | _ -> None
         | _ -> None
 
-    and evalApply (env: Env) (f: Node) (arg: Node) : Value option =
+    and evalApply (env: Env) (f: CoreNode) (arg: CoreNode) : Value option =
         match opName f with
         | Some "_in_" ->
-            match arg.Exp with
-            | Tuple [ binding; body ] ->
+            match arg.Core with
+            | CoreExp.Tuple [ binding; body ] ->
                 match evalBinding env binding with
                 | Some env' -> eval env' body
                 | None -> None
             | _ -> None
         | Some "_=>_" ->
-            match arg.Exp with
-            | Tuple [ param; body ] -> Some(VClosure(paramIds param, body, env))
+            match arg.Core with
+            | CoreExp.Tuple [ param; body ] -> Some(VClosure(paramIds param, body, env))
             | _ -> None
         | Some op when isPrimOp op ->
-            match arg.Exp with
-            | Tuple [ a; b ] ->
+            match arg.Core with
+            | CoreExp.Tuple [ a; b ] ->
                 match eval env a, eval env b with
                 | Some va, Some vb -> primOp op va vb
                 | _ -> None
@@ -238,9 +239,9 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
                 | None -> None
             | _ -> None
 
-    and evalProjection (env: Env) (receiver: Node) (m: Node) : Value option =
-        match m.Exp with
-        | Identifier (Resolved (id, _)) ->
+    and evalProjection (env: Env) (receiver: CoreNode) (m: CoreNode) : Value option =
+        match m.Core with
+        | CoreExp.Identifier (Resolved (id, _)) ->
             match Map.tryFind id env with
             | Some v ->
                 match hostOf id with
@@ -258,7 +259,7 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
         | VClosure (ps, body, cenv) -> applyClosure ps body cenv argv
         | _ -> None
 
-    and applyClosure (ps: Guid list) (body: Node) (cenv: Env) (argv: Value) : Value option =
+    and applyClosure (ps: Guid list) (body: CoreNode) (cenv: Env) (argv: Value) : Value option =
         let binds =
             match ps, argv with
             | [ single ], v -> [ single, v ]
@@ -270,10 +271,10 @@ let evaluate (rootScope: Scope) (exp: Node) : Value option =
             let env' = (cenv, binds) ||> List.fold (fun e (id, v) -> Map.add id v e)
             eval env' body
 
-    and evalBinding (env: Env) (binding: Node) : Env option =
-        match binding.Exp with
-        | Local (_, inner) -> evalBinding env inner
-        | Apply (f, E (Tuple [ lhs; rhs ])) when opName f = Some "_=_" ->
+    and evalBinding (env: Env) (binding: CoreNode) : Env option =
+        match binding.Core with
+        | CoreExp.Local (_, inner) -> evalBinding env inner
+        | CoreExp.Equals (lhs, rhs) ->
             match eval env rhs with
             | Some v ->
                 match declIdOf lhs with
