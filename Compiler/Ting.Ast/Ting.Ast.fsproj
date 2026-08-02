@@ -7,6 +7,7 @@
   <ItemGroup>
     <Compile Include="Range.fs" />
     <Compile Include="Exp.fs" />
+    <Compile Include="Core.fs" />
     <Compile Include="Exp.Scopes.fs" />
     <Compile Include="Binder.fs" />
     <Compile Include="ParseResult.fs" />
