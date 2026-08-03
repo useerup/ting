@@ -41,49 +41,49 @@ and private addScope (acc: ResizeArray<Scope>) (s: Scope) =
         collectFromScope acc s
     | _ -> ()
 
-and private collectScopes (acc: ResizeArray<Scope>) (node: CoreNode) : unit =
-    match node.Core with
-    | CoreExp.Apply (f, a) ->
+and private collectScopes (acc: ResizeArray<Scope>) (node: CoreExp) : unit =
+    match node with
+    | CoreExp.Apply (_, f, a) ->
         collectScopes acc f
         collectScopes acc a
-    | CoreExp.Tuple xs
-    | CoreExp.Set xs
-    | CoreExp.List xs ->
+    | CoreExp.Tuple (_, xs)
+    | CoreExp.Set (_, xs)
+    | CoreExp.List (_, xs) ->
         for x in xs do
             collectScopes acc x
-    | CoreExp.Product (positional, _, s, named) ->
+    | CoreExp.Product (_, positional, _, s, named) ->
         addScope acc s
         for x in positional do
             collectScopes acc x
         for x in named do
             collectScopes acc x
-    | CoreExp.StringLiteral parts ->
+    | CoreExp.StringLiteral (_, parts) ->
         for p in parts do
             collectFromPart acc p
     | CoreExp.Literal _
-    | CoreExp.Void
-    | CoreExp.Unknown -> ()
-    | CoreExp.Identifier role
-    | CoreExp.This role -> collectFromRole acc role
-    | CoreExp.Local (s, e)
-    | CoreExp.Scoped (s, e)
-    | CoreExp.Record (s, e)
-    | CoreExp.Publish (_, s, e) ->
+    | CoreExp.Void _
+    | CoreExp.Unknown _ -> ()
+    | CoreExp.Identifier (_, role)
+    | CoreExp.This (_, role) -> collectFromRole acc role
+    | CoreExp.Local (_, s, e)
+    | CoreExp.Scoped (_, s, e)
+    | CoreExp.Record (_, s, e)
+    | CoreExp.Publish (_, _, s, e) ->
         addScope acc s
         collectScopes acc e
-    | CoreExp.Project (r, m)
-    | CoreExp.ProjectMembers (r, m)
-    | CoreExp.Equals (r, m)
-    | CoreExp.Catch (r, m) ->
+    | CoreExp.Project (_, r, m)
+    | CoreExp.ProjectMembers (_, r, m)
+    | CoreExp.Equals (_, r, m)
+    | CoreExp.Catch (_, r, m) ->
         collectScopes acc r
         collectScopes acc m
-    | CoreExp.Primary e
-    | CoreExp.Candidate e
-    | CoreExp.IsDefined e
-    | CoreExp.Throw e -> collectScopes acc e
+    | CoreExp.Primary (_, e)
+    | CoreExp.Candidate (_, e)
+    | CoreExp.IsDefined (_, e)
+    | CoreExp.Throw (_, e) -> collectScopes acc e
 
 /// Public helper to collect scopes from a core tree.
-let collectAllScopes (node: CoreNode) : Scope list =
+let collectAllScopes (node: CoreExp) : Scope list =
     let acc = ResizeArray<Scope>()
     collectScopes acc node
     acc |> Seq.toList
