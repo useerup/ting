@@ -30,22 +30,32 @@ type Fusion =
 
 /// The abstract syntax tree.
 ///
+/// Every case carries its source Range as its **first** field. There is no
+/// wrapper node: an expression and the span it was parsed from are one value.
+/// Read the span back with the `Range` member, which is defined over every case,
+/// and build a span covering several operands with `Exp.spanning` /
+/// `Exp.spanningAll`. Expressions with no source text of their own (builtins,
+/// placeholders, some desugaring artifacts) carry `Range.synthetic`.
+///
+/// Note: do not print a tree with %A. It has no depth limit problem any more,
+/// but the ranges drown the structure. Use ExpDiagnostics.renderExpression.
+///
 /// The parser produces this tree with:
-///   - binding-intent marker nodes (Reference, DeclareLeft/Right,
+///   - binding-intent marker cases (Reference, DeclareLeft/Right,
 ///     ReferenceLeft/Right, PushScope, PushMemberScope), and
 ///   - identifiers in the Unbound binding role, except for the operator heads it
 ///     synthesizes: the parser knows every operator it can parse, so it emits
 ///     those already Referential against its own operator scope.
 ///
 /// The Binder (run as part of parsing) rewrites the tree in place-of-type:
-///   - marker nodes are eliminated (lowered to Local/Apply/scope pushes),
+///   - marker cases are eliminated (lowered to Local/Apply/scope pushes),
 ///   - every Unbound identifier becomes Declarative (with a fresh declaration
 ///     id recorded in its declarative scopes) or Referential (with the ordered
 ///     candidate scope-id list, nearest enclosing scope first).
 ///
 /// The Resolver later upgrades Referential occurrences to Resolved.
 ///
-/// Source patterns per case:
+/// Source patterns per case (the leading Range is omitted throughout):
 ///
 ///   Reference        Not a keyword: wraps the callee of a juxtaposition application
 ///                    (`f x` => `Apply(Reference f, x)`) to flag it as a use-site.
@@ -117,56 +127,76 @@ type Fusion =
 ///                    same way. Only `=` leaves its operands unwrapped.
 type Exp =
     // Surface binding-intent markers (parser output, eliminated by the Binder).
-    | Reference of Node
-    | DeclareLeft of Node * Node * Node
-    | DeclareRight of Node * Node * Node
-    | ReferenceLeft of Node * Node * Node
-    | ReferenceRight of Node * Node * Node
-    | PushScope of Node * Node
-    | PushMemberScope of Node * Node
-    // Shared nodes (parser output, preserved by the Binder).
-    | Publish of Scope * AccessModifier * Node
-    | Apply of Node * Node
-    | Tuple of Node list
-    | Product of Node list * Fusion * Scope * Node list
-    | Record of Scope * Node
-    | Identifier of BindingRole
-    | Literal of Literal
-    | Set of Node list
-    | List of Node list
-    | StringLiteral of InterpolatedParts
-    | Projection of Scope * Node * Node
-    | MemberProjection of Scope * Node * Node
-    | This of BindingRole
-    | Void
-    | Primary of Node
-    | Candidate of Node
-    | Local of Scope * Node
-    // Analyzed-only nodes (produced by the Binder and later passes).
-    | ScopeExp of Scope * Node
-    | Unknown
-    | Throw of Node
-    | Catch of Node * Node
-    | IsDefined of Node
-    | Equals of Node * Node
+    | Reference of Range * Exp
+    | DeclareLeft of Range * Exp * Exp * Exp
+    | DeclareRight of Range * Exp * Exp * Exp
+    | ReferenceLeft of Range * Exp * Exp * Exp
+    | ReferenceRight of Range * Exp * Exp * Exp
+    | PushScope of Range * Exp * Exp
+    | PushMemberScope of Range * Exp * Exp
+    // Shared forms (parser output, preserved by the Binder).
+    | Publish of Range * Scope * AccessModifier * Exp
+    | Apply of Range * Exp * Exp
+    | Tuple of Range * Exp list
+    | Product of Range * Exp list * Fusion * Scope * Exp list
+    | Record of Range * Scope * Exp
+    | Identifier of Range * BindingRole
+    | Literal of Range * Literal
+    | Set of Range * Exp list
+    | List of Range * Exp list
+    | StringLiteral of Range * InterpolatedParts
+    | Projection of Range * Scope * Exp * Exp
+    | MemberProjection of Range * Scope * Exp * Exp
+    | This of Range * BindingRole
+    | Void of Range
+    | Primary of Range * Exp
+    | Candidate of Range * Exp
+    | Local of Range * Scope * Exp
+    // Analyzed-only forms (produced by the Binder and later passes).
+    | ScopeExp of Range * Scope * Exp
+    | Unknown of Range
+    | Throw of Range * Exp
+    | Catch of Range * Exp * Exp
+    | IsDefined of Range * Exp
+    | Equals of Range * Exp * Exp
 
-/// An expression together with the source span it was parsed from.
-///
-/// Every recursive position in Exp goes through Node, so a range is available at
-/// every point in the tree. Nodes with no source text of their own (builtins,
-/// placeholders, some desugaring artifacts) carry Range.synthetic.
-///
-/// Note: do not print a Node tree with %A. Each Node hop costs print depth, so
-/// %A elides nested structure as `Apply (..., ...)`. Use ExpDiagnostics.renderExpression,
-/// which is written for this tree and has no depth limit.
-and Node = {
-    Exp: Exp
-    Range: Range
-}
+    /// The source span this expression was parsed from.
+    member this.Range =
+        match this with
+        | Reference (r, _)
+        | DeclareLeft (r, _, _, _)
+        | DeclareRight (r, _, _, _)
+        | ReferenceLeft (r, _, _, _)
+        | ReferenceRight (r, _, _, _)
+        | PushScope (r, _, _)
+        | PushMemberScope (r, _, _)
+        | Publish (r, _, _, _)
+        | Apply (r, _, _)
+        | Tuple (r, _)
+        | Product (r, _, _, _, _)
+        | Record (r, _, _)
+        | Identifier (r, _)
+        | Literal (r, _)
+        | Set (r, _)
+        | List (r, _)
+        | StringLiteral (r, _)
+        | Projection (r, _, _, _)
+        | MemberProjection (r, _, _, _)
+        | This (r, _)
+        | Void r
+        | Primary (r, _)
+        | Candidate (r, _)
+        | Local (r, _, _)
+        | ScopeExp (r, _, _)
+        | Unknown r
+        | Throw (r, _)
+        | Catch (r, _, _)
+        | IsDefined (r, _)
+        | Equals (r, _, _) -> r
 
 and InterpolatedPart =
     | TextPart of string
-    | HolePart of Node
+    | HolePart of Exp
 
 and InterpolatedParts = InterpolatedPart list
 
@@ -181,12 +211,12 @@ and BindingRole =
     | Resolved of Guid * InterpolatedParts
 
 and NameHost =
-    | DirectPropertyHost of Node
-    | MemberPropertyHost of Node
+    | DirectPropertyHost of Exp
+    | MemberPropertyHost of Exp
 
 and NameEntry = {
     NameParts: InterpolatedParts
-    Expression: Node
+    Expression: Exp
     Host: NameHost option
 }
 
@@ -197,18 +227,12 @@ and Names = System.Collections.Generic.Dictionary<Guid, NameEntry>
 and [<AbstractClass>] Scope(id: Guid, names: Names) =
     member _.Id = id
     member _.Names = names
-    member this.defineName (id: Guid, name: string, exp: Node) : unit =
-        this.Names.Add(id, { NameParts = [ TextPart name ]; Expression = exp; Host = None })
-    member this.defineName (id: Guid, name: InterpolatedParts, exp: Node) : unit =
-        this.Names.Add(id, { NameParts = name; Expression = exp; Host = None })
-    member this.defineName (id: Guid, name: InterpolatedParts, exp: Node, host: NameHost) : unit =
-        this.Names.Add(id, { NameParts = name; Expression = exp; Host = Some host })
-    // Convenience overloads for callers that define names with no source text of
-    // their own (builtins, placeholder declarations); the entry gets a synthetic range.
     member this.defineName (id: Guid, name: string, exp: Exp) : unit =
-        this.defineName(id, name, { Exp = exp; Range = Range.synthetic })
+        this.Names.Add(id, { NameParts = [ TextPart name ]; Expression = exp; Host = None })
     member this.defineName (id: Guid, name: InterpolatedParts, exp: Exp) : unit =
-        this.defineName(id, name, { Exp = exp; Range = Range.synthetic })
+        this.Names.Add(id, { NameParts = name; Expression = exp; Host = None })
+    member this.defineName (id: Guid, name: InterpolatedParts, exp: Exp, host: NameHost) : unit =
+        this.Names.Add(id, { NameParts = name; Expression = exp; Host = Some host })
 
 and [<AbstractClass>] ChildScope(id: Guid) =
     inherit Scope(id, new Names())
@@ -216,11 +240,11 @@ and [<AbstractClass>] ChildScope(id: Guid) =
 and LocalScope(id: Guid) =
     inherit Scope(id, new Names())
 
-and ExpressionScope(id: Guid, expression: Node) =
+and ExpressionScope(id: Guid, expression: Exp) =
     inherit ChildScope(id)
     member _.Expression = expression
 
-and ExpressionMemberScope(id: Guid, expression: Node) =
+and ExpressionMemberScope(id: Guid, expression: Exp) =
     inherit ChildScope(id)
     member _.Expression = expression
 
@@ -230,49 +254,49 @@ type ScopeStack = Scope list * Scope list
 
 let scopeId (s: Scope) = s.Id
 
-/// Match a node's expression while ignoring its range.
-///
-/// Intended for *nested* pattern positions, where writing out the record pattern
-/// would drown the shape being matched:
-///
-///     match node.Exp with
-///     | Apply (E (Identifier role), arg) -> ...
-///
-/// Prefer plain `match node.Exp with` at the top level of a match: that keeps
-/// F#'s exhaustiveness checking working, which is what makes adding a new Exp
-/// case a compile error rather than a silent fallthrough.
-let inline (|E|) (node: Node) = node.Exp
+/// The span covering two expressions. Used when a desugaring synthesizes a
+/// parent (e.g. the Tuple in an infix operator lowering) that has no token of
+/// its own but covers its operands.
+let spanning (a: Exp) (b: Exp) : Range = Range.span a.Range b.Range
 
-/// Match a node's expression and bind its range as well.
-///
-///     match node.Exp with
-///     | Apply (ER (Identifier role, range), arg) -> ...
-let inline (|ER|) (node: Node) = (node.Exp, node.Range)
+/// The span covering all of the given expressions; synthetic when the list is empty.
+let spanningAll (exps: Exp list) : Range =
+    exps |> List.map (fun e -> e.Range) |> Range.spanAll
 
-[<RequireQualifiedAccess>]
-module Node =
-    /// A node for an expression that came from a known source span.
-    let at (range: Range) (exp: Exp) = { Exp = exp; Range = range }
+/// The standard placeholder for a name declared without a value yet.
+let unknown = Unknown Range.synthetic
 
-    /// A node with no source text of its own.
-    let synthetic (exp: Exp) = { Exp = exp; Range = Range.synthetic }
-
-    /// Replace a node's expression, keeping its range. The workhorse of any
-    /// rewriting pass: a lowered node reports the same source span as the node
-    /// it replaced.
-    let like (original: Node) (exp: Exp) = { Exp = exp; Range = original.Range }
-
-    /// A node whose range covers both of the given nodes. Used when a desugaring
-    /// synthesizes a parent (e.g. the Tuple in an infix operator lowering) that
-    /// has no single token of its own but spans its operands.
-    let spanning (a: Node) (b: Node) (exp: Exp) =
-        { Exp = exp; Range = Range.span a.Range b.Range }
-
-    /// A node covering all of the given nodes; synthetic when the list is empty.
-    let spanningAll (nodes: Node list) (exp: Exp) =
-        { Exp = exp; Range = nodes |> List.map (fun n -> n.Range) |> Range.spanAll }
-
-    /// The standard placeholder for a name declared without a value yet.
-    let unknown = synthetic Unknown
-
-    let map (f: Exp -> Exp) (node: Node) = { node with Exp = f node.Exp }
+/// Re-range an expression, keeping its shape. Needed where a desugaring builds a
+/// tree bottom-up and only then learns the span of the construct it came from.
+let withRange (range: Range) (exp: Exp) : Exp =
+    match exp with
+    | Reference (_, e) -> Reference(range, e)
+    | DeclareLeft (_, h, a, b) -> DeclareLeft(range, h, a, b)
+    | DeclareRight (_, h, a, b) -> DeclareRight(range, h, a, b)
+    | ReferenceLeft (_, h, a, b) -> ReferenceLeft(range, h, a, b)
+    | ReferenceRight (_, h, a, b) -> ReferenceRight(range, h, a, b)
+    | PushScope (_, a, b) -> PushScope(range, a, b)
+    | PushMemberScope (_, a, b) -> PushMemberScope(range, a, b)
+    | Publish (_, s, access, e) -> Publish(range, s, access, e)
+    | Apply (_, f, a) -> Apply(range, f, a)
+    | Tuple (_, xs) -> Tuple(range, xs)
+    | Product (_, positional, fusion, s, named) -> Product(range, positional, fusion, s, named)
+    | Record (_, s, e) -> Record(range, s, e)
+    | Identifier (_, role) -> Identifier(range, role)
+    | Literal (_, lit) -> Literal(range, lit)
+    | Set (_, xs) -> Set(range, xs)
+    | List (_, xs) -> List(range, xs)
+    | StringLiteral (_, parts) -> StringLiteral(range, parts)
+    | Projection (_, s, e, m) -> Projection(range, s, e, m)
+    | MemberProjection (_, s, e, m) -> MemberProjection(range, s, e, m)
+    | This (_, role) -> This(range, role)
+    | Void _ -> Void range
+    | Primary (_, e) -> Primary(range, e)
+    | Candidate (_, e) -> Candidate(range, e)
+    | Local (_, s, e) -> Local(range, s, e)
+    | ScopeExp (_, s, e) -> ScopeExp(range, s, e)
+    | Unknown _ -> Unknown range
+    | Throw (_, e) -> Throw(range, e)
+    | Catch (_, a, b) -> Catch(range, a, b)
+    | IsDefined (_, e) -> IsDefined(range, e)
+    | Equals (_, a, b) -> Equals(range, a, b)
