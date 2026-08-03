@@ -35,57 +35,57 @@ and private addDefinitionScope (acc: ResizeArray<Scope>) (s: Scope) =
     | _ -> ()
 
 // Walk the analyzed Exp tree and collect relevant scopes into acc.
-and private collectDefinitionScopes (acc: ResizeArray<Scope>) (node: Node) : unit =
-    match node.Exp with
-    | Local (s, e) ->
+and private collectDefinitionScopes (acc: ResizeArray<Scope>) (node: Exp) : unit =
+    match node with
+    | Local (_, s, e) ->
         addDefinitionScope acc s
         collectDefinitionScopes acc e
-    | Apply (f, a) ->
+    | Apply (_, f, a) ->
         collectDefinitionScopes acc f
         collectDefinitionScopes acc a
-    | Tuple xs
-    | Set xs
-    | List xs ->
+    | Tuple (_, xs)
+    | Set (_, xs)
+    | List (_, xs) ->
         for x in xs do
             collectDefinitionScopes acc x
-    | Product (positional, _, s, named) ->
+    | Product (_, positional, _, s, named) ->
         addDefinitionScope acc s
         for x in positional do
             collectDefinitionScopes acc x
         for x in named do
             collectDefinitionScopes acc x
-    | Record (s, e) ->
+    | Record (_, s, e) ->
         addDefinitionScope acc s
         collectDefinitionScopes acc e
-    | Publish (s, _, e) ->
+    | Publish (_, s, _, e) ->
         addDefinitionScope acc s
         collectDefinitionScopes acc e
-    | ScopeExp (_, e) ->
+    | ScopeExp (_, _, e) ->
         collectDefinitionScopes acc e
-    | Identifier role
-    | This role ->
+    | Identifier (_, role)
+    | This (_, role) ->
         collectDefinitionScopesFromRole acc role
     | Literal _
-    | Void -> ()
-    | StringLiteral parts ->
+    | Void _ -> ()
+    | StringLiteral (_, parts) ->
         for p in parts do
             collectDefinitionScopesFromPart acc p
-    | Projection (s, e, m)
-    | MemberProjection (s, e, m) ->
+    | Projection (_, s, e, m)
+    | MemberProjection (_, s, e, m) ->
         addDefinitionScope acc s
         collectDefinitionScopes acc e
         collectDefinitionScopes acc m
-    | Equals (a, b)
-    | Catch (a, b) ->
+    | Equals (_, a, b)
+    | Catch (_, a, b) ->
         collectDefinitionScopes acc a
         collectDefinitionScopes acc b
-    | Throw e
-    | Primary e
-    | Candidate e
-    | IsDefined e ->
+    | Throw (_, e)
+    | Primary (_, e)
+    | Candidate (_, e)
+    | IsDefined (_, e) ->
         collectDefinitionScopes acc e
-    | Unknown -> ()
-    // Surface marker nodes: eliminated by the Binder before analysis.
+    | Unknown _ -> ()
+    // Surface markers: eliminated by the Binder before analysis.
     | Reference _
     | DeclareLeft _
     | DeclareRight _
@@ -95,7 +95,7 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (node: Node) : uni
     | PushMemberScope _ -> ()
 
 // Public helper to collect scopes from an analyzed Exp.
-let collectAllScopes (node: Node) : Scope list =
+let collectAllScopes (node: Exp) : Scope list =
     let acc = ResizeArray<Scope>()
     collectDefinitionScopes acc node
     acc |> Seq.toList
