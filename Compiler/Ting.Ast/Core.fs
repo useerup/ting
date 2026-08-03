@@ -23,86 +23,83 @@ open Exp
 // AccessModifier and Fusion all come from Exp. A declaration id means the same
 // thing in both trees, which is what lets the scope tables built during binding
 // and resolution stay valid across lowering.
+//
+// As in Exp, every case carries its source Range as its first field; read it
+// back with the `Range` member. Do not print this with %A — use
+// CoreDiagnostics.renderCore.
 
 [<RequireQualifiedAccess>]
 type CoreExp =
     // Application. `apply f a` applies f to a; there is no separate form for
     // multi-argument application, which is application to a tuple.
-    | Apply of CoreNode * CoreNode
+    | Apply of Range * CoreExp * CoreExp
 
     // Aggregates.
-    | Tuple of CoreNode list
+    | Tuple of Range * CoreExp list
     /// A product with a named section: positional elements, the fusion mode of
     /// the positional section, the scope its names are declared in, and the
     /// named elements.
-    | Product of CoreNode list * Fusion * Scope * CoreNode list
-    | Set of CoreNode list
-    | List of CoreNode list
+    | Product of Range * CoreExp list * Fusion * Scope * CoreExp list
+    | Set of Range * CoreExp list
+    | List of Range * CoreExp list
     /// The spec's `string` form: literal text segments and embedded expressions.
     /// A string with no holes is a Literal, not this.
-    | StringLiteral of CorePart list
+    | StringLiteral of Range * CorePart list
 
     // Terms.
-    | Literal of Literal
-    | Identifier of BindingRole
-    | This of BindingRole
-    | Void
+    | Literal of Range * Literal
+    | Identifier of Range * BindingRole
+    | This of Range * BindingRole
+    | Void of Range
     /// A placeholder for a subexpression that is not known.
-    | Unknown
+    | Unknown of Range
 
     // Scope introduction.
-    | Local of Scope * CoreNode
-    | Scoped of Scope * CoreNode
-    | Publish of AccessModifier * Scope * CoreNode
-    | Record of Scope * CoreNode
+    | Local of Range * Scope * CoreExp
+    | Scoped of Range * Scope * CoreExp
+    | Publish of Range * AccessModifier * Scope * CoreExp
+    | Record of Range * Scope * CoreExp
 
     // Projection.
-    | Project of CoreNode * CoreNode
-    | ProjectMembers of CoreNode * CoreNode
+    | Project of Range * CoreExp * CoreExp
+    | ProjectMembers of Range * CoreExp * CoreExp
 
     // Semantic primitives. There is deliberately no form for `==`: it lowers to
     // Equals over Primary operands.
-    | Equals of CoreNode * CoreNode
-    | Primary of CoreNode
-    | Candidate of CoreNode
-    | IsDefined of CoreNode
-    | Throw of CoreNode
-    | Catch of CoreNode * CoreNode
+    | Equals of Range * CoreExp * CoreExp
+    | Primary of Range * CoreExp
+    | Candidate of Range * CoreExp
+    | IsDefined of Range * CoreExp
+    | Throw of Range * CoreExp
+    | Catch of Range * CoreExp * CoreExp
 
-/// A core expression together with the source span it came from.
-///
-/// The span field is named Span rather than Range so that `.Range` keeps
-/// resolving to Exp.Node in inference; the same reason ParseError and
-/// Resolver.Diagnostic name theirs Span.
-///
-/// As with Node: do not print this with %A, each hop costs print depth. Use
-/// CoreDiagnostics.renderCore.
-and CoreNode = {
-    Core: CoreExp
-    Span: Range
-}
+    /// The source span this expression came from.
+    member this.Range =
+        match this with
+        | Apply (r, _, _)
+        | Tuple (r, _)
+        | Product (r, _, _, _, _)
+        | Set (r, _)
+        | List (r, _)
+        | StringLiteral (r, _)
+        | Literal (r, _)
+        | Identifier (r, _)
+        | This (r, _)
+        | Void r
+        | Unknown r
+        | Local (r, _, _)
+        | Scoped (r, _, _)
+        | Publish (r, _, _, _)
+        | Record (r, _, _)
+        | Project (r, _, _)
+        | ProjectMembers (r, _, _)
+        | Equals (r, _, _)
+        | Primary (r, _)
+        | Candidate (r, _)
+        | IsDefined (r, _)
+        | Throw (r, _)
+        | Catch (r, _, _) -> r
 
 and CorePart =
     | CoreText of string
-    | CoreHole of CoreNode
-
-[<RequireQualifiedAccess>]
-module CoreNode =
-    let at (span: Range) (core: CoreExp) = { Core = core; Span = span }
-
-    /// A node with no source text of its own.
-    let synthetic (core: CoreExp) = { Core = core; Span = Range.synthetic }
-
-    /// A node standing in for a surface node, reporting its span.
-    let like (source: Node) (core: CoreExp) = { Core = core; Span = source.Range }
-
-    /// A node spanning two operands.
-    let spanning (a: CoreNode) (b: CoreNode) (core: CoreExp) = {
-        Core = core
-        Span = Range.span a.Span b.Span
-    }
-
-/// Match a core node's expression while ignoring its span, for nested pattern
-/// positions. Prefer plain `match node.Core with` at the top level of a match so
-/// exhaustiveness checking keeps working.
-let inline (|C|) (node: CoreNode) = node.Core
+    | CoreHole of CoreExp
