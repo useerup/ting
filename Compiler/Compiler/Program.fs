@@ -49,34 +49,34 @@ let private compileTingProgramRaw (input: string) : string =
     // in its own operator scope and binds operator heads to it directly.
     let rootScope = Exp.LocalScope(Guid.Empty) :> Exp.Scope
 
-    rootScope.defineName(Guid.NewGuid(), "bool", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "bool", Exp.unknown)
 
-    rootScope.defineName(Guid.NewGuid(), "string", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "char", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "string", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "char", Exp.unknown)
 
-    rootScope.defineName(Guid.NewGuid(), "float", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "double", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "float", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "double", Exp.unknown)
 
-    rootScope.defineName(Guid.NewGuid(), "int", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "uint", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "byte", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "sbyte", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "short", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "ushort", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "long", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "ulong", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "half", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "int", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "uint", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "byte", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "sbyte", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "short", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "ushort", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "long", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "ulong", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "half", Exp.unknown)
 
-    rootScope.defineName(Guid.NewGuid(), "decimal", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "decimal", Exp.unknown)
 
-    rootScope.defineName(Guid.NewGuid(), "DateTime", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "DateTimeOffset", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "DateTime", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "DateTimeOffset", Exp.unknown)
 
-    rootScope.defineName(Guid.NewGuid(), "set", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "any", Unknown)
-    rootScope.defineName(Guid.NewGuid(), "Func", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "set", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "any", Exp.unknown)
+    rootScope.defineName(Guid.NewGuid(), "Func", Exp.unknown)
 
-    rootScope.defineName(Guid.NewGuid(), "_all_", Unknown)
+    rootScope.defineName(Guid.NewGuid(), "_all_", Exp.unknown)
 
     match parse rootScope input with
     | ParseSucceeded analyzed ->
@@ -84,8 +84,8 @@ let private compileTingProgramRaw (input: string) : string =
         // and referential candidate scopes.
         let resolved, diagnostics = Resolver.resolve rootScope [ Parser.operatorScope ] analyzed
         let scopes = renderScopeReport resolved
-        // Rendered with renderExpression rather than %A: the Node wrapper costs
-        // print depth at every level, so %A truncates nested trees to `(..., ...)`.
+        // Rendered with renderExpression rather than %A: the ranges every case
+        // carries would drown the structure.
         let expText = renderExpression resolved
         // The core tree every pass after resolution works on. Shown next to the
         // surface tree so the snapshot records what lowering did.
