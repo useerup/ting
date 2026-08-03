@@ -11,19 +11,19 @@ open Exp
 // range could be wrong and all 35 snapshots would still pass. These assert
 // concrete line/column spans instead.
 
-let private parseNode (source: string) : Node =
+let private parseNode (source: string) : Exp =
     let rootScope = LocalScope(Guid.Empty) :> Scope
     match Parser.parseNamed rootScope "test.ting" source with
     | ParseResult.ParseSucceeded node -> node
     | ParseResult.ParseFailed err -> failwith $"parse failed: {err}"
 
 /// (startLine, startColumn, endLine, endColumn)
-let private span (n: Node) =
+let private span (n: Exp) =
     (n.Range.Start.Line, n.Range.Start.Column, n.Range.End.Line, n.Range.End.Column)
 
 /// The source text a node's range points at, to prove ranges index the original
 /// text correctly rather than merely being self-consistent.
-let private sliceOf (source: string) (n: Node) =
+let private sliceOf (source: string) (n: Exp) =
     source.Substring(int n.Range.Start.Index, int (n.Range.End.Index - n.Range.Start.Index))
 
 [<Fact>]
@@ -48,8 +48,8 @@ let ``binary operator node spans both operands`` () =
 [<Fact>]
 let ``operand ranges point at their own text`` () =
     let source = "1 + 2"
-    match (parseNode source).Exp with
-    | Apply (_, E (Tuple [ left; right ])) ->
+    match parseNode source with
+    | Apply (_, _, Tuple (_, [ left; right ])) ->
         Assert.Equal("1", sliceOf source left)
         Assert.Equal("2", sliceOf source right)
     | other -> failwith $"unexpected shape: {other}"
@@ -57,8 +57,8 @@ let ``operand ranges point at their own text`` () =
 [<Fact>]
 let ``operator head range points at the operator token`` () =
     let source = "1 + 2"
-    match (parseNode source).Exp with
-    | Apply (head, _) ->
+    match parseNode source with
+    | Apply (_, head, _) ->
         Assert.Equal("+", sliceOf source head)
         Assert.Equal((1L, 3L, 1L, 4L), span head)
     | other -> failwith $"unexpected shape: {other}"
@@ -66,8 +66,8 @@ let ``operator head range points at the operator token`` () =
 [<Fact>]
 let ``multi character operator head range is correct`` () =
     let source = "a == b"
-    match (parseNode source).Exp with
-    | Apply (head, _) -> Assert.Equal("==", sliceOf source head)
+    match parseNode source with
+    | Apply (_, head, _) -> Assert.Equal("==", sliceOf source head)
     | other -> failwith $"unexpected shape: {other}"
 
 [<Fact>]

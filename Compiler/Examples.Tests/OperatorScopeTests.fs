@@ -13,7 +13,7 @@ open Exp
 // the *result* of resolution, so they cannot tell a head bound to the operator
 // scope from one that happened to resolve lexically.
 
-let private parseNode (source: string) : Node =
+let private parseNode (source: string) : Exp =
     let rootScope = LocalScope(Guid.Empty) :> Scope
     match Parser.parseNamed rootScope "test.ting" source with
     | ParseResult.ParseSucceeded node -> node
@@ -21,40 +21,40 @@ let private parseNode (source: string) : Node =
 
 /// Every binding role in the tree. Written without a wildcard so that adding an
 /// Exp case is a compile error here rather than a silently unvisited subtree.
-let rec private allRoles (node: Node) : BindingRole list =
+let rec private allRoles (node: Exp) : BindingRole list =
     let self =
-        match node.Exp with
-        | Identifier role
-        | This role -> [ role ]
+        match node with
+        | Identifier (_, role)
+        | This (_, role) -> [ role ]
         | _ -> []
 
     let children =
-        match node.Exp with
-        | Reference e
-        | Local (_, e)
-        | ScopeExp (_, e)
-        | Record (_, e)
-        | Publish (_, _, e)
-        | Throw e
-        | Primary e
-        | Candidate e
-        | IsDefined e -> [ e ]
-        | DeclareLeft (a, b, c)
-        | DeclareRight (a, b, c)
-        | ReferenceLeft (a, b, c)
-        | ReferenceRight (a, b, c) -> [ a; b; c ]
-        | Apply (a, b)
-        | PushScope (a, b)
-        | PushMemberScope (a, b)
-        | Projection (_, a, b)
-        | MemberProjection (_, a, b)
-        | Catch (a, b)
-        | Equals (a, b) -> [ a; b ]
-        | Tuple xs
-        | Set xs
-        | List xs -> xs
-        | Product (positional, _, _, named) -> positional @ named
-        | StringLiteral parts ->
+        match node with
+        | Reference (_, e)
+        | Local (_, _, e)
+        | ScopeExp (_, _, e)
+        | Record (_, _, e)
+        | Publish (_, _, _, e)
+        | Throw (_, e)
+        | Primary (_, e)
+        | Candidate (_, e)
+        | IsDefined (_, e) -> [ e ]
+        | DeclareLeft (_, a, b, c)
+        | DeclareRight (_, a, b, c)
+        | ReferenceLeft (_, a, b, c)
+        | ReferenceRight (_, a, b, c) -> [ a; b; c ]
+        | Apply (_, a, b)
+        | PushScope (_, a, b)
+        | PushMemberScope (_, a, b)
+        | Projection (_, _, a, b)
+        | MemberProjection (_, _, a, b)
+        | Catch (_, a, b)
+        | Equals (_, a, b) -> [ a; b ]
+        | Tuple (_, xs)
+        | Set (_, xs)
+        | List (_, xs) -> xs
+        | Product (_, positional, _, _, named) -> positional @ named
+        | StringLiteral (_, parts) ->
             parts
             |> List.choose (function
                 | HolePart e -> Some e
@@ -62,8 +62,8 @@ let rec private allRoles (node: Node) : BindingRole list =
         | Identifier _
         | This _
         | Literal _
-        | Void
-        | Unknown -> []
+        | Void _
+        | Unknown _ -> []
 
     self @ List.collect allRoles children
 
