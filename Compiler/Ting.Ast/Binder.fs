@@ -1,5 +1,6 @@
 module Binder
 
+open System
 open Exp
 open ExpScopes
 
@@ -15,25 +16,88 @@ open ExpScopes
 
 module private ScopeStackOps =
     let addDeclarative (s: Scope) (scopes: ScopeStack) : ScopeStack =
-        let (decls, refs) = scopes
-        (s :: decls, s :: refs)
+        { Scope = s; Mode = DeclarativeScope } :: scopes
 
     let addReferential (s: Scope) (scopes: ScopeStack) : ScopeStack =
-        let (decls, refs) = scopes
-        (decls, s :: refs)
+        { Scope = s; Mode = ReferentialScope } :: scopes
 
     let makeReferential (scopes: ScopeStack) : ScopeStack =
-        let (_, refs) = scopes
-        ([], refs)
+        scopes |> List.map (fun f -> { f with Mode = ReferentialScope })
+
+    let referentialCandidateIds (scopes: ScopeStack) : Guid list =
+        scopes
+        |> List.choose (fun f ->
+            match f.Mode with
+            | ReferentialScope -> Some(scopeId f.Scope)
+            | DeclarativeScope -> None)
+
+    let declarativeScopes (scopes: ScopeStack) : Scope list =
+        scopes
+        |> List.choose (fun f ->
+            match f.Mode with
+            | DeclarativeScope -> Some f.Scope
+            | ReferentialScope -> None)
+
+module private NameLookup =
+    let hasHole (parts: InterpolatedParts) =
+        parts
+        |> List.exists (function
+            | HolePart _ -> true
+            | TextPart _ -> false)
+
+    // Lexical lookup ignores hosted names; hosted names are resolved only via
+    // projection/member-projection in Resolver.
+    let tryLookupUnhostedByName (scope: Scope) (name: InterpolatedParts) : Guid option =
+        if hasHole name then
+            None
+        else
+            scope.Names
+            |> Seq.tryPick (fun kv ->
+                if kv.Value.Host.IsNone && kv.Value.NameParts = name then
+                    Some kv.Key
+                else
+                    None)
 
 module private Binding =
-    let bindingRole ((decls, refs): ScopeStack) (name: InterpolatedParts) : BindingRole =
-        if decls.IsEmpty then
-            Referential (refs |> List.map scopeId, name)
-        else
-            let id = System.Guid.NewGuid()
-            declareNameInScopes id name decls
-            Declarative (id, name)
+    open ScopeStackOps
+    open NameLookup
+
+    let private ensureDeclaredInScope (id: Guid) (name: InterpolatedParts) (scope: Scope) : unit =
+        match tryLookupUnhostedByName scope name with
+        | Some _ -> ()
+        | None -> scope.defineName(id, name, Exp.unknown)
+
+    let bindingRole (scopes: ScopeStack) (name: InterpolatedParts) : BindingRole =
+        let refs = referentialCandidateIds scopes
+
+        let rec walk (frames: ScopeStack) : BindingRole option =
+            match frames with
+            | [] -> None
+            | frame :: rest ->
+                match frame.Mode with
+                | ReferentialScope ->
+                    match tryLookupUnhostedByName frame.Scope name with
+                    | Some _ -> Some(Referential(refs, name))
+                    | None -> walk rest
+                | DeclarativeScope ->
+                    let targets =
+                        frames
+                        |> List.choose (fun f ->
+                            match f.Mode with
+                            | DeclarativeScope -> Some f.Scope
+                            | ReferentialScope -> None)
+
+                    let declId =
+                        targets
+                        |> List.tryPick (fun s -> tryLookupUnhostedByName s name)
+                        |> Option.defaultValue (Guid.NewGuid())
+
+                    targets |> List.iter (ensureDeclaredInScope declId name)
+                    Some(Declarative(declId, name))
+
+        match walk scopes with
+        | Some role -> role
+        | None -> Referential(refs, name)
 
 module private Marking =
     open ScopeStackOps
@@ -168,12 +232,12 @@ module private Marking =
         | Projection (r, s, e, m) ->
             let receiver = recur e (makeReferential scopes)
             let memberExp = recur m scopes
-            attachHost (fst scopes) (DirectPropertyHost receiver) memberExp
+            attachHost (declarativeScopes scopes) (DirectPropertyHost receiver) memberExp
             Projection(r, s, receiver, memberExp)
         | MemberProjection (r, s, e, m) ->
             let receiver = recur e (makeReferential scopes)
             let memberExp = recur m scopes
-            attachHost (fst scopes) (MemberPropertyHost receiver) memberExp
+            attachHost (declarativeScopes scopes) (MemberPropertyHost receiver) memberExp
             MemberProjection(r, s, receiver, memberExp)
         | This (r, Unbound _) ->
             This(r, bindingRole scopes [])

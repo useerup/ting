@@ -248,9 +248,20 @@ and ExpressionMemberScope(id: Guid, expression: Exp) =
     inherit ChildScope(id)
     member _.Expression = expression
 
-// Declarative scopes (names being introduced) and referential scopes
-// (candidates for name lookup), nearest first.
-type ScopeStack = Scope list * Scope list
+// Binding mode of a scope frame for a specific expression region.
+type ScopeMode =
+    | DeclarativeScope
+    | ReferentialScope
+
+// Ordered scope stack, nearest first. Each frame keeps its own mode so nested
+// operators can mix declarative and referential behavior without losing frame
+// order.
+type ScopeFrame = {
+    Scope: Scope
+    Mode: ScopeMode
+}
+
+type ScopeStack = ScopeFrame list
 
 let scopeId (s: Scope) = s.Id
 

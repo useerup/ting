@@ -76,7 +76,7 @@ let isNotDoubleQuote c = c <> '"'
 
 let keywords =
     System.Collections.Generic.HashSet<string>(
-        [| "this"; "void"; "let"; "public"; "private"; "internal"; "protected"; "in"; "where"; "catch"; "throw"; "then"; "else"; "true"; "false"; "record"; "records"; "tuple"; "tuples"; "fn"; "class"; "primary"; "candidate" |]
+        [| "this"; "void"; "let"; "public"; "private"; "internal"; "protected"; "in"; "where"; "catch"; "throw"; "then"; "else"; "contract"; "true"; "false"; "record"; "records"; "tuple"; "tuples"; "fn"; "class"; "primary"; "candidate"; "total"; "partial" |]
     )
 
 let pIdentifier: Parser<Exp> =
@@ -407,6 +407,7 @@ addFunctionInfix "=" 10 Associativity.Left referenceRightOperator
 addFunctionInfix "?=" 10 Associativity.Left referenceRightOperator
 addFunctionInfix "then" 15 Associativity.Right referenceRightOperator
 addFunctionInfix "else" 15 Associativity.Right operator
+addFunctionInfix "contract" 18 Associativity.Right declareLeftOperator
 addFunctionInfix "->" 20 Associativity.Left referenceRightOperator
 
 addFunctionInfix ">>" 30 Associativity.Left operator
@@ -480,6 +481,8 @@ addPrefix "throw" 155 true (prefixWrap "throw" (fun r b -> Throw(r, b)))
 // field of the same name on a programmer-authored record, class or entity.
 addPrefix "primary" 155 true (prefixWrap "primary" (fun r b -> Primary(r, b)))
 addPrefix "candidate" 155 true (prefixWrap "candidate" (fun r b -> Candidate(r, b)))
+addFunctionPrefix "total" 155 prefixOperator
+addFunctionPrefix "partial" 155 prefixOperator
 
 addInfix "." 160 Associativity.Left (fun _ a b -> Projection(spanning a b, ExpScopes.createNamesScope(), a, b))
 addInfix ".." 160 Associativity.Left (fun _ a b -> MemberProjection(spanning a b, ExpScopes.createNamesScope(), a, b))
@@ -507,7 +510,9 @@ let tryParseExpression (streamName: string) (input: string) =
 // therefore make known to later passes (see Resolver.resolve).
 let parseNamed (rootScope: Scope) (streamName: string) (input: string) : ParseResult =
     match tryParseExpression streamName input with
-    | Success(result, _, _) -> ParseSucceeded(Binder.markDeclarations result ([], [ rootScope ]))
+    | Success(result, _, _) ->
+        let rootStack = [ { Scope = rootScope; Mode = ReferentialScope } ]
+        ParseSucceeded(Binder.markDeclarations result rootStack)
     | Failure(errorMsg, error, _) ->
         let position = toPosition error.Position
         ParseFailed

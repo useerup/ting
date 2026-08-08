@@ -304,8 +304,10 @@ let rec private resolveRole (ctx: Context) (span: Range.Range) (role: BindingRol
             role
         else
             let mutable resolved = None
-            // Distinct non-root local scopes that declare the name (for shadow detection).
-            let declaringLocalScopes = HashSet<Guid>()
+            // Distinct declaration identities found in non-root local scopes.
+            // The same declaration id may intentionally be recorded in several
+            // local scopes by layered declarative contexts; that is not shadowing.
+            let declaringLocalDeclIds = HashSet<Guid>()
             let mutable hasDeferredScope = false
 
             for sid in candidates do
@@ -318,7 +320,7 @@ let rec private resolveRole (ctx: Context) (span: Range.Range) (role: BindingRol
                             if resolved.IsNone then
                                 resolved <- Some declId
                             if sid <> Guid.Empty then
-                                declaringLocalScopes.Add sid |> ignore
+                                declaringLocalDeclIds.Add declId |> ignore
                         | None -> ()
                     | :? ExpressionScope
                     | :? ExpressionMemberScope ->
@@ -330,7 +332,7 @@ let rec private resolveRole (ctx: Context) (span: Range.Range) (role: BindingRol
                     // Candidate scope not in the registry; be conservative and defer.
                     hasDeferredScope <- true
 
-            if declaringLocalScopes.Count >= 2 then
+            if declaringLocalDeclIds.Count >= 2 then
                 report (IllegalShadowing(formatName name))
 
             match resolved with
