@@ -64,7 +64,7 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `->`                             | mapping                                              |
 | `>>` `<<` `\|>` `<\|`            | composition and application                          |
 | `=>`                             | lambda                                               |
-| `./` `../`                       | expression scope, expression-member scope            |
+| `./` `../`                       | left-referential expression scope, left-referential expression-member scope            |
 | `catch`                          | exception handling                                   |
 | `\`                              | such-that / restriction                              |
 | `\|` `\|\|` `\|\|\|`             | disjunction, guarded disjunction, mutually guarded disjunction |
@@ -303,18 +303,22 @@ Format specifiers
 ## Declarations and Binding
 
 Ting has no separate declaration syntax. Whether an identifier occurrence declares a
-name or refers to one is determined by the ordered stack of scopes covering that
-occurrence. Each frame on the stack is independently either **declarative** or
-**referential** at that point in the expression.
+name or refers to one is determined by walking the ordered stack of scopes covering
+that occurrence after any enclosing scope-introducing operands have been analyzed and
+their scopes materialized. Each frame on the stack is independently either
+**declarative** or **referential** at that point in the expression, but the role of
+the occurrence is an outcome of the whole walk, not a property of the top frame alone.
 
-Name binding walks the stack from the innermost frame outward:
+Name binding walks the stack from the innermost frame outward, using the scopes that
+have already been introduced by surrounding operators and declarations:
 
 1. In a referential frame, an existing declaration with the same name resolves the
   occurrence and ends the walk. If the frame has no such declaration, the walk
   continues outward.
-2. On reaching a declarative frame, the occurrence becomes a declaration. The same
-  declaration identity is contributed to that frame and to following declarative frames
-  only for as long as they remain adjacent in the walk.
+2. If the walk reaches a declarative frame without being resolved by an earlier
+  referential frame, the occurrence becomes a declaration. The same declaration
+  identity is contributed to that frame and to following declarative frames only for
+  as long as they remain adjacent in the walk.
 3. The first referential frame encountered after declaration has started is a barrier:
   declaration propagation stops there and does not resume in farther declarative frames.
 4. Contributing a name already present in a declarative frame adds a constraint to the
@@ -325,8 +329,20 @@ Name binding walks the stack from the innermost frame outward:
 This makes declaration composition sensitive to the order and mode of individual scope
 frames. An inner referential frame can resolve a name before an outer declarative frame
 is reached, while a name absent from that inner frame may be declared by the outer one.
-When declaration starts, only the contiguous declarative segment participates in the same
-declaration identity; interleaved referential frames are hard boundaries.
+Scope-introducing operators such as `./` and `../` first analyze the operand that
+defines the scope, then analyze the other operand under that scope; the binding walk is
+therefore performed after the relevant scope has been populated. When declaration starts,
+only the contiguous declarative segment participates in the same declaration identity;
+interleaved referential frames are hard boundaries.
+
+Classification of an occurrence may be deferred. An occurrence whose stack begins with
+a declarative frame declares immediately; every other occurrence stays undecided until
+the scopes its walk crosses are populated. Declarations are settled first, to a
+fixpoint, and references are resolved only afterwards, so no reference resolves before
+every reachable declaration has been recorded. The names provided by an expression
+scope (`./`, `../`) are the members of the set its defining operand denotes; while that
+structure is not derivable, occurrences whose walk reaches such a frame remain
+undecided rather than in error.
 
 ### Scope-introducing forms
 
@@ -844,7 +860,9 @@ the modes of inherited scope frames.
 
 A **right-referential** operator introduces no scope. Over its right operand it converts
 every declarative frame already on the scope stack to referential, preserving the frames
-and their order. Its left operand is ambient.
+and their order. Its left operand is analyzed first and may itself introduce the scope
+used by the right operand. The right operand is then analyzed against that materialized
+scope stack.
 
 A **left-referential** operator is the mirror image: over its left operand it converts
 every declarative frame already on the stack to referential, while its right operand is
@@ -1103,14 +1121,15 @@ the value of the left operand on the condition that the right operand evaluates 
 
 #### `./`
 
-Expression scope. The declarations of the left operand are made available as a scope for
-the right operand, and `this` is bound to the left operand within the right operand.
+Left-referential expression scope. The left operand is analyzed first to produce a scope,
+and that scope is then made available to the right operand. `this` is bound to the left
+operand within the right operand.
 
 #### `../`
 
-Expression member scope. The declarations of the *members* of the left operand are made
-available as a scope for the right operand, and `this` is bound to a member of the left
-operand within the right operand.
+Left-referential expression member scope. The left operand is analyzed first to produce a
+member scope, and that scope is then made available to the right operand. `this` is bound
+to a member of the left operand within the right operand.
 
 #### `=>`
 

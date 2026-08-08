@@ -125,18 +125,19 @@ Two consequences are worth making explicit:
 
 ## Binding roles
 
-Every identifier and `this` occurrence carries one of three roles:
+Every identifier and `this` occurrence carries one of two roles once analysis is
+complete, plus an intermediate state used while classification is still possible:
 
-- **Declarative** — the scope walk reached a declarative frame before resolving the name. The occurrence carries a declaration identity, and that identity is recorded in the contiguous declarative segment starting at that frame. A referential frame ends the segment. An existing declaration with the same name in one of those frames receives another unifying constraint rather than being shadowed.
-- **Referential** — the occurrence refers to a name declared elsewhere. It carries the ordered list of candidate scopes, nearest enclosing first.
-- **Resolved** — a referential occurrence that name resolution has paired with a specific declaration identity.
+- **Bound declared** - the binding walk reached a declarative frame before resolving the name. The occurrence carries a declaration identity, and that identity is recorded in the contiguous declarative segment starting at that frame. A referential frame ends the segment. An existing declaration with the same name in one of those frames receives another unifying constraint rather than being shadowed.
+- **Bound referenced** - the walk resolved the occurrence to an existing declaration identity in a referential frame.
+- **Pending** - the walk is not yet decidable. The occurrence carries the ordered stack of scope frames covering it, each with its mode, so the walk can be completed once the scopes it depends on are populated. An occurrence whose stack begins with a declarative frame is decidable immediately; every other occurrence is pending until classification.
 
 Each frame in the ordered scope stack is independently declarative or referential at an
 occurrence. Binding walks the stack from the innermost frame outward:
 
 1. A referential frame containing the name resolves the occurrence and stops the walk.
 2. A referential frame not containing the name is skipped.
-3. The first declarative frame makes the occurrence declarative. Its declaration identity
+3. The first declarative frame makes the occurrence a declaration. Its declaration identity
     is contributed to that frame and to following declarative frames only while they are
     adjacent in the walk.
 4. The first referential frame encountered after declaration has started is a barrier:
@@ -145,8 +146,15 @@ occurrence. Binding walks the stack from the innermost frame outward:
 5. If the walk exhausts only referential frames without finding the name, the occurrence
     is unresolved.
 
+The walk is completed in two phases. Declarations are settled first, to a fixpoint:
+a deferred declaration can enable another, so declaration sweeps repeat until none
+lands. Only then are references resolved, so no reference resolves before every
+reachable declaration has been recorded. A referential frame that is an expression
+scope answers membership from the structure of its defining expression; while that
+structure is not derivable the occurrence stays pending rather than erroring.
+
 Nothing in the identifier itself decides the outcome. It follows from the ordered frame
-stack and the declarations already available in referential frames.
+stack and the declarations available in referential frames once the walk completes.
 
 ## Scopes
 
@@ -172,11 +180,11 @@ Hosted names are invisible to bare lexical lookup. They are reachable only throu
 
 ## Resolution
 
-A referential occurrence is resolved in this order:
+A pending occurrence is resolved in this order:
 
-1. **Lexical** — search the candidate scopes, nearest first, skipping hosted names.
-2. **Member** — for `project`/`projectMembers`, resolve the member against the receiver: first as a field of the receiver's record scope, then as a hosted name whose host matches the receiver (a direct host matches the receiver itself; a member host matches the receiver's set).
-3. **Implicit `this`** — if a covering scope binds `this`, resolve the name as a member of the set `this` belongs to.
+1. **Lexical** - complete the binding walk over the occurrence's frame stack, nearest frame first, skipping hosted names.
+2. **Member** - for `project`/`projectMembers`, resolve the member against the receiver: first as a field of the receiver's record scope, then as a hosted name whose host matches the receiver (a direct host matches the receiver itself; a member host matches the receiver's set).
+3. **Implicit `this`** - if a covering scope binds `this`, resolve the name as a member of the set `this` belongs to.
 
 If none succeeds, an unresolved-name diagnostic is reported.
 
