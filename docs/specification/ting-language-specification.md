@@ -313,16 +313,20 @@ Name binding walks the stack from the innermost frame outward:
   occurrence and ends the walk. If the frame has no such declaration, the walk
   continues outward.
 2. On reaching a declarative frame, the occurrence becomes a declaration. The same
-  declaration identity is contributed to that frame and to every remaining covering
-  declarative frame. Referential frames receive no declaration once this has happened.
-3. Contributing a name already present in a declarative frame adds a constraint to the
+  declaration identity is contributed to that frame and to following declarative frames
+  only for as long as they remain adjacent in the walk.
+3. The first referential frame encountered after declaration has started is a barrier:
+  declaration propagation stops there and does not resume in farther declarative frames.
+4. Contributing a name already present in a declarative frame adds a constraint to the
   existing binding; the declarations are unified rather than shadowing one another.
-4. If every frame is referential and none contains the name, the occurrence is
+5. If every frame is referential and none contains the name, the occurrence is
   unresolved.
 
 This makes declaration composition sensitive to the order and mode of individual scope
 frames. An inner referential frame can resolve a name before an outer declarative frame
 is reached, while a name absent from that inner frame may be declared by the outer one.
+When declaration starts, only the contiguous declarative segment participates in the same
+declaration identity; interleaved referential frames are hard boundaries.
 
 ### Scope-introducing forms
 

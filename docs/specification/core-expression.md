@@ -127,7 +127,7 @@ Two consequences are worth making explicit:
 
 Every identifier and `this` occurrence carries one of three roles:
 
-- **Declarative** — the scope walk reached a declarative frame before resolving the name. The occurrence carries a declaration identity, and that identity is recorded in every remaining declarative scope covering the occurrence. An existing declaration with the same name in one of those frames receives another unifying constraint rather than being shadowed.
+- **Declarative** — the scope walk reached a declarative frame before resolving the name. The occurrence carries a declaration identity, and that identity is recorded in the contiguous declarative segment starting at that frame. A referential frame ends the segment. An existing declaration with the same name in one of those frames receives another unifying constraint rather than being shadowed.
 - **Referential** — the occurrence refers to a name declared elsewhere. It carries the ordered list of candidate scopes, nearest enclosing first.
 - **Resolved** — a referential occurrence that name resolution has paired with a specific declaration identity.
 
@@ -137,9 +137,12 @@ occurrence. Binding walks the stack from the innermost frame outward:
 1. A referential frame containing the name resolves the occurrence and stops the walk.
 2. A referential frame not containing the name is skipped.
 3. The first declarative frame makes the occurrence declarative. Its declaration identity
-    is contributed to that frame and every remaining declarative frame; intervening
-    referential frames receive nothing.
-4. If the walk exhausts only referential frames without finding the name, the occurrence
+    is contributed to that frame and to following declarative frames only while they are
+    adjacent in the walk.
+4. The first referential frame encountered after declaration has started is a barrier:
+    declaration propagation stops there and does not resume in farther declarative
+    frames.
+5. If the walk exhausts only referential frames without finding the name, the occurrence
     is unresolved.
 
 Nothing in the identifier itself decides the outcome. It follows from the ordered frame

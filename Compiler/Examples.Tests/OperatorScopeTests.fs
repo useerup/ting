@@ -74,6 +74,56 @@ let private formatName (parts: InterpolatedParts) =
         | HolePart _ -> "{...}")
     |> String.concat ""
 
+let rec private allScopes (node: Exp) : Scope list =
+    let self =
+        match node with
+        | Local (_, s, _)
+        | Record (_, s, _)
+        | Projection (_, s, _, _)
+        | MemberProjection (_, s, _, _)
+        | Publish (_, s, _, _) -> [ s ]
+        | Product (_, _, _, s, _) -> [ s ]
+        | _ -> []
+
+    let children =
+        match node with
+        | Reference (_, e)
+        | Local (_, _, e)
+        | ScopeExp (_, _, e)
+        | Record (_, _, e)
+        | Publish (_, _, _, e)
+        | Throw (_, e)
+        | Primary (_, e)
+        | Candidate (_, e)
+        | IsDefined (_, e) -> [ e ]
+        | DeclareLeft (_, a, b, c)
+        | DeclareRight (_, a, b, c)
+        | ReferenceLeft (_, a, b, c)
+        | ReferenceRight (_, a, b, c) -> [ a; b; c ]
+        | Apply (_, a, b)
+        | PushScope (_, a, b)
+        | PushMemberScope (_, a, b)
+        | Projection (_, _, a, b)
+        | MemberProjection (_, _, a, b)
+        | Catch (_, a, b)
+        | Equals (_, a, b) -> [ a; b ]
+        | Tuple (_, xs)
+        | Set (_, xs)
+        | List (_, xs) -> xs
+        | Product (_, positional, _, _, named) -> positional @ named
+        | StringLiteral (_, parts) ->
+            parts
+            |> List.choose (function
+                | HolePart e -> Some e
+                | TextPart _ -> None)
+        | Identifier _
+        | This _
+        | Literal _
+        | Void _
+        | Unknown _ -> []
+
+    self @ List.collect allScopes children
+
 /// The names bound to the operator scope in a parsed expression.
 let private operatorNamesIn (source: string) : string list =
     parseNode source
@@ -174,3 +224,16 @@ let ``ordinary identifiers are not bound to the operator scope`` () =
 
     for candidates in lexical do
         Assert.DoesNotContain(Parser.operatorScope.Id, candidates)
+
+[<Fact>]
+let ``declaration propagation stops at referential barriers`` () =
+    let node = parseNode "p where ((q where n) where r)"
+
+    let nDeclarationsAcrossScopes =
+        allScopes node
+        |> List.sumBy (fun s ->
+            s.Names
+            |> Seq.filter (fun kvp -> formatName kvp.Value.NameParts = "n")
+            |> Seq.length)
+
+    Assert.Equal(1, nDeclarationsAcrossScopes)

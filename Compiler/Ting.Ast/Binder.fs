@@ -38,6 +38,16 @@ module private ScopeStackOps =
             | DeclarativeScope -> Some f.Scope
             | ReferentialScope -> None)
 
+    let contiguousDeclarativeScopes (frames: ScopeStack) : Scope list =
+        let rec takeAdjacentDeclarative (acc: Scope list) (remaining: ScopeStack) : Scope list =
+            match remaining with
+            | { Scope = s; Mode = DeclarativeScope } :: rest -> takeAdjacentDeclarative (s :: acc) rest
+            | _ -> List.rev acc
+
+        match frames with
+        | { Scope = s; Mode = DeclarativeScope } :: rest -> takeAdjacentDeclarative [ s ] rest
+        | _ -> []
+
 module private NameLookup =
     let hasHole (parts: InterpolatedParts) =
         parts
@@ -80,12 +90,7 @@ module private Binding =
                     | Some _ -> Some(Referential(refs, name))
                     | None -> walk rest
                 | DeclarativeScope ->
-                    let targets =
-                        frames
-                        |> List.choose (fun f ->
-                            match f.Mode with
-                            | DeclarativeScope -> Some f.Scope
-                            | ReferentialScope -> None)
+                    let targets = contiguousDeclarativeScopes frames
 
                     let declId =
                         targets
