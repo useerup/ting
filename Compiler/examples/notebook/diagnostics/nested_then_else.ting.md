@@ -4,13 +4,18 @@ a==2 then a==3 then 0 else 1 else 2
 ```ting-output
 Compilation succeeded.
 
-(id(resolved:#0) ((id(resolved:#1) (id(ref:[00000000-0000-0000-0000-000000000000]), 2)), (id(resolved:#0) ((id(resolved:#1) (id(ref:[00000000-0000-0000-0000-000000000000]), 3)), (id(resolved:#2) (0, (id(resolved:#2) (1, 2))))))))
-
-Core:
-(id(resolved:#0) (equals(primary(id(ref:[00000000-0000-0000-0000-000000000000])), primary(2)), (id(resolved:#0) (equals(primary(id(ref:[00000000-0000-0000-0000-000000000000])), primary(3)), (id(resolved:#2) (0, (id(resolved:#2) (1, 2))))))))
-
 Scopes:
 No scopes collected.
+
+Identifiers:
+[0] (1,1) name='a' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[1] (1,2) name='_==_' role=referential(resolved) resolved-declaration=#0
+[2] (1,6) name='_then_' role=referential(resolved) resolved-declaration=#1
+[3] (1,11) name='a' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[4] (1,12) name='_==_' role=referential(resolved) resolved-declaration=#0
+[5] (1,16) name='_then_' role=referential(resolved) resolved-declaration=#1
+[6] (1,23) name='_else_' role=referential(resolved) resolved-declaration=#2
+[7] (1,30) name='_else_' role=referential(resolved) resolved-declaration=#2
 
 Diagnostics:
 - (1,1-1,2) unresolved name 'a'

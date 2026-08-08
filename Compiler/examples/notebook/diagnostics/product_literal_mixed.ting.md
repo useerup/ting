@@ -5,15 +5,11 @@
 ```ting-output
 Compilation succeeded.
 
-(1, 2 @[#0] (id(resolved:#1) (id(decl:#2), 3)))
-
-Core:
-(1, 2 @[#0] equals(id(decl:#2), 3))
-
 Scopes:
 [0] NamesScope           #0
     names=[Result<name>]
 
-Value:
-(1, 2 @ Result = 3)
+Identifiers:
+[0] (1,9) name='Result' role=declarative bound-scopes=[#0]
+[1] (1,16) name='_=_' role=referential(resolved) resolved-declaration=#1
 ```

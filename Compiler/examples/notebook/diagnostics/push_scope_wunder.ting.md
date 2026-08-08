@@ -4,11 +4,9 @@
 ```ting-output
 Compilation succeeded.
 
-(id(ref:[#0, 00000000-0000-0000-0000-000000000000]))
-
-Core:
-(id(ref:[#0, 00000000-0000-0000-0000-000000000000]))
-
 Scopes:
 No scopes collected.
+
+Identifiers:
+[0] (1,6) name='wunder' role=referential candidate-scopes=[#0, 00000000-0000-0000-0000-000000000000]
 ```

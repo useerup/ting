@@ -4,11 +4,9 @@
 ```ting-output
 Compilation succeeded.
 
-{}
-
-Core:
-{}
-
 Scopes:
 No scopes collected.
+
+Identifiers:
+No identifier occurrences found.
 ```

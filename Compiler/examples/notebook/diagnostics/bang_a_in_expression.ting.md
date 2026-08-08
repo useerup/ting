@@ -4,13 +4,18 @@
 ```ting-output
 Compilation succeeded.
 
-(id(resolved:#0) ((id(resolved:#1) id(ref:[00000000-0000-0000-0000-000000000000])), (id(resolved:#2) (id(ref:[00000000-0000-0000-0000-000000000000]), (id(resolved:#3) (id(ref:[00000000-0000-0000-0000-000000000000]), id(ref:[00000000-0000-0000-0000-000000000000])))))))
-
-Core:
-(id(resolved:#0) ((id(resolved:#1) id(ref:[00000000-0000-0000-0000-000000000000])), (id(resolved:#2) (id(ref:[00000000-0000-0000-0000-000000000000]), (id(resolved:#3) (id(ref:[00000000-0000-0000-0000-000000000000]), id(ref:[00000000-0000-0000-0000-000000000000])))))))
-
 Scopes:
 No scopes collected.
+
+Identifiers:
+[0] (1,1) name='!_' role=referential(resolved) resolved-declaration=#0
+[1] (1,2) name='a' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[2] (1,4) name='_in_' role=referential(resolved) resolved-declaration=#1
+[3] (1,7) name='b' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[4] (1,9) name='_+_' role=referential(resolved) resolved-declaration=#2
+[5] (1,11) name='c' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[6] (1,13) name='_*_' role=referential(resolved) resolved-declaration=#3
+[7] (1,15) name='d' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
 
 Diagnostics:
 - (1,2-1,3) unresolved name 'a'

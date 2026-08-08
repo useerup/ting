@@ -4,11 +4,9 @@
 ```ting-output
 Compilation succeeded.
 
-{(id(resolved:#0) (1, 10))}
-
-Core:
-{(id(resolved:#0) (1, 10))}
-
 Scopes:
 No scopes collected.
+
+Identifiers:
+[0] (1,4) name='_..._' role=referential(resolved) resolved-declaration=#0
 ```

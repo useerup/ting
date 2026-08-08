@@ -4,13 +4,19 @@
 ```ting-output
 Compilation succeeded.
 
-(id(resolved:#0) ((id(resolved:#1) (((id(resolved:#2) (id(ref:[00000000-0000-0000-0000-000000000000]), id(ref:[00000000-0000-0000-0000-000000000000])))), ((id(resolved:#3) (id(ref:[00000000-0000-0000-0000-000000000000]), id(ref:[00000000-0000-0000-0000-000000000000])))))), id(ref:[00000000-0000-0000-0000-000000000000])))
-
-Core:
-(id(resolved:#0) ((id(resolved:#1) (((id(resolved:#2) (id(ref:[00000000-0000-0000-0000-000000000000]), id(ref:[00000000-0000-0000-0000-000000000000])))), ((id(resolved:#3) (id(ref:[00000000-0000-0000-0000-000000000000]), id(ref:[00000000-0000-0000-0000-000000000000])))))), id(ref:[00000000-0000-0000-0000-000000000000])))
-
 Scopes:
 No scopes collected.
+
+Identifiers:
+[0] (1,2) name='x' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[1] (1,4) name='_+_' role=referential(resolved) resolved-declaration=#0
+[2] (1,6) name='y' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[3] (1,9) name='_*_' role=referential(resolved) resolved-declaration=#1
+[4] (1,12) name='a' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[5] (1,14) name='_-_' role=referential(resolved) resolved-declaration=#2
+[6] (1,16) name='b' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+[7] (1,19) name='_in_' role=referential(resolved) resolved-declaration=#3
+[8] (1,22) name='z' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
 
 Diagnostics:
 - (1,2-1,3) unresolved name 'x'

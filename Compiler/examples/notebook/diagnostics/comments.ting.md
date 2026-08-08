@@ -7,15 +7,14 @@ let x = 1 /* a block comment /* nested */ inside an expression */ + 2 in
 ```ting-output
 Compilation succeeded.
 
-local[#0] (id(resolved:#1) ((id(resolved:#2) (id(decl:#3), (id(resolved:#4) (1, 2)))), id(resolved:#3)))
-
-Core:
-local[#0] (id(resolved:#1) (equals(id(decl:#3), (id(resolved:#4) (1, 2))), id(resolved:#3)))
-
 Scopes:
 [0] NamesScope           #0
     names=[x<name>]
 
-Value:
-3
+Identifiers:
+[0] (2,5) name='x' role=declarative bound-scopes=[#0]
+[1] (2,7) name='_=_' role=referential(resolved) resolved-declaration=#1
+[2] (2,67) name='_+_' role=referential(resolved) resolved-declaration=#2
+[3] (2,71) name='_in_' role=referential(resolved) resolved-declaration=#3
+[4] (3,5) name='x' role=referential(resolved) resolved-declaration=#4
 ```

@@ -4,12 +4,12 @@
 ```ting-output
 Compilation succeeded.
 
-(id(resolved:#0) (local[#1] (id(resolved:#2) ((id(resolved:#3) (42, 6)), 1))))
-
-Core:
-(id(resolved:#0) (local[#1] (id(resolved:#2) ((id(resolved:#3) (42, 6)), 1))))
-
 Scopes:
-[0] NamesScope           #1
+[0] NamesScope           #0
     names=[]
+
+Identifiers:
+[0] (1,1) name='!_' role=referential(resolved) resolved-declaration=#1
+[1] (1,10) name='_/_' role=referential(resolved) resolved-declaration=#2
+[2] (1,14) name='_-_' role=referential(resolved) resolved-declaration=#3
 ```

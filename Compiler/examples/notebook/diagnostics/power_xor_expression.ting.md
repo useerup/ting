@@ -4,11 +4,12 @@ int^2 ^^ int
 ```ting-output
 Compilation succeeded.
 
-(id(resolved:#0) ((id(resolved:#1) (id(resolved:#2), 2)), id(resolved:#2)))
-
-Core:
-(id(resolved:#0) ((id(resolved:#1) (id(resolved:#2), 2)), id(resolved:#2)))
-
 Scopes:
 No scopes collected.
+
+Identifiers:
+[0] (1,1) name='int' role=referential(resolved) resolved-declaration=#0
+[1] (1,4) name='_^_' role=referential(resolved) resolved-declaration=#1
+[2] (1,7) name='_^^_' role=referential(resolved) resolved-declaration=#2
+[3] (1,10) name='int' role=referential(resolved) resolved-declaration=#0
 ```
