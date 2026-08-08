@@ -375,10 +375,10 @@ are nondeterministic logical variables ranging together over the mappings of the
 function. The predicate constrains the relationship between each accepted argument and
 its result.
 
-### Function cases via fn
-- Case function form: `fn{ p1 -> r1, p2 -> r2, ... }`
-- Supports typed patterns and guarded patterns shown in examples.
-- The case form lowers to an ordered choice of lambdas, `(p1 => r1) || (p2 => r2) || …`, so cases are tried in order and earlier cases take priority (see [`fn`](#fn)).
+### Functions via fn mapping collections
+- `fn` is a unary operator over a collection of mappings.
+- `fn { p1 -> r1, p2 -> r2, ... }` is unary `fn` applied to a set literal of mappings.
+- If several mappings in that collection share the same argument part, the resulting function is nondeterministic at that argument.
 
 ## Sets
 
@@ -445,7 +445,7 @@ whose first component is itself a two-tuple.
 Functions map argument values to result values. A function permits, at each argument
 value, a set of result values: applied to an argument it may be deterministic (one
 result), nondeterministic (several results), or undefined (no result). Function values
-can be defined by lambdas or case expressions (`fn`).
+can be defined by lambdas or by applying `fn` to a collection of mappings.
 
 ### Partial functions
 
@@ -969,15 +969,10 @@ underlying collection is `S`. Where `S` contains several mappings with the same 
 part the function is nondeterministic at that argument; where `S` is a multiset,
 multiplicities are retained as solution multiplicities.
 
-The *case form*, `fn { p1 -> r1, p2 -> r2, … }`, where the cases are declarative
-patterns, is a distinct syntactic form: it lowers to the ordered choice of lambdas
-
-    (p1 => r1) || (p2 => r2) || …
-
-so cases are tried in order and the first case defined for the argument decides the
-result. The two readings coincide where the cases are ground and disjoint; they differ
-where cases overlap — the case form gives the earlier case priority, while `fn` applied
-to a set value containing overlapping mappings is nondeterministic there.
+`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of
+mappings. It introduces no additional ordered-dispatch semantics beyond the mapping
+collection itself. Where several mappings in that collection share the same argument part,
+the resulting function is nondeterministic at that argument.
 
 #### `!`
 
