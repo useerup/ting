@@ -9,13 +9,15 @@ Ting is logic programming language. The logic oriented core allows it to unify t
 
 ## Programs
 
-A program is a single expression, held in a single source file. There are no modules and
-no declaration list at file level: the file *is* the expression, and everything a program
-declares it declares through the scope-introducing operators within that expression.
+A compilation unit is a single expression held in a single source file. There is no
+declaration list at file level: the file *is* the expression, and everything it declares
+it declares through scope-introducing forms within that expression.
 
-This is a deliberate restriction of the current draft, not a final position. It removes
-any need for a separate program grammar, and it means the language has exactly one
-syntactic category to define.
+The surface syntax for combining compilation units into modules is not yet specified.
+The semantic boundary required for separate compilation is specified by function
+contracts: the defining compilation context may analyze an implementation body, while a
+consumer of an exported value may use only its contract. This does not require a second
+syntactic category for module-level declarations.
 
 
 ## Lexical Structure
@@ -46,7 +48,7 @@ The following tokens exists:
 
 The remaining prefix operators are keyword tokens: `let`, `public`, `private`,
 `protected`, `internal`, `record`, `records`, `tuple`, `tuples`, `fn`, `class`,
-`primary`, `candidate` and `throw`.
+`primary`, `candidate`, `total`, `partial` and `throw`.
 
 #### Binary infix
 
@@ -54,11 +56,16 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 
 | Tokens                           | Role                                                 |
 | -------------------------------- | ---------------------------------------------------- |
+| `where`                          | right-declarative condition                          |
+| `in`                             | conditional value                                    |
 | `=` `?=`                         | identity, unify                                      |
+| `then` `else`                    | implication, alternative                             |
+| `contract`                       | function abstraction contract                        |
 | `->`                             | mapping                                              |
 | `>>` `<<` `\|>` `<\|`            | composition and application                          |
 | `=>`                             | lambda                                               |
 | `./` `../`                       | expression scope, expression-member scope            |
+| `catch`                          | exception handling                                   |
 | `\`                              | such-that / restriction                              |
 | `\|` `\|\|` `\|\|\|`             | disjunction, guarded disjunction, mutually guarded disjunction |
 | `&` `&&` `&&&`                   | conjunction, guarded conjunction, mutually guarded conjunction |
@@ -73,6 +80,10 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `*` `/` `%` `/%`                 | multiplication, division, modulo, divmod             |
 | `^`                              | exponentiation                                       |
 | `.` `..`                         | property, member property                            |
+
+The alphabetic entries in the table are keyword binary infix operators. The binding
+power of `contract` makes `f = p => b contract C` group as
+`f = ((p => b) contract C)`.
 
 #### Unary suffix
 
@@ -291,12 +302,41 @@ Format specifiers
 
 ## Declarations and Binding
 
-### Scope-introducing operators
-The reference documents identify these as declaration-forming contexts:
-- Visibility and module scope operators: `public`, `private`, `protected`, `local`
-- Aggregate scope operators: `record`, `records`, `tuple`, `tuples`
-- Function scope operators: `fn`, lambda `=>`
+Ting has no separate declaration syntax. Whether an identifier occurrence declares a
+name or refers to one is determined by the ordered stack of scopes covering that
+occurrence. Each frame on the stack is independently either **declarative** or
+**referential** at that point in the expression.
+
+Name binding walks the stack from the innermost frame outward:
+
+1. In a referential frame, an existing declaration with the same name resolves the
+  occurrence and ends the walk. If the frame has no such declaration, the walk
+  continues outward.
+2. On reaching a declarative frame, the occurrence becomes a declaration. The same
+  declaration identity is contributed to that frame and to every remaining covering
+  declarative frame. Referential frames receive no declaration once this has happened.
+3. Contributing a name already present in a declarative frame adds a constraint to the
+  existing binding; the declarations are unified rather than shadowing one another.
+4. If every frame is referential and none contains the name, the occurrence is
+  unresolved.
+
+This makes declaration composition sensitive to the order and mode of individual scope
+frames. An inner referential frame can resolve a name before an outer declarative frame
+is reached, while a name absent from that inner frame may be declared by the outer one.
+
+### Scope-introducing forms
+
+The following forms introduce declarative scopes:
+
+- Visibility scopes: `public`, `private`, `protected`, `internal`
+- Aggregate scopes: `record`, `records`, and the named section of a product
 - Local binder: `let`
+- Left-declarative operators: lambda `=>`, such-that `\`, contract `contract`
+- Right-declarative operator: `where`
+
+`let` introduces a local scope that is declarative throughout its operand. A
+left-declarative or right-declarative operator instead introduces a mixed-mode local
+scope as described under [Declarative and referential operators](#declarative-and-referential-operators).
 
 ### Local binding
 - Canonical form: `let pattern = expr in body`
@@ -304,8 +344,32 @@ The reference documents identify these as declaration-forming contexts:
 
 ### Lambda
 - Form: `pattern => expression`
-- Left side is declarative pattern context.
-- Right side is referential expression context under the bound names.
+- The operator introduces one local scope spanning both operands.
+- That new scope is declarative in the parameter pattern and referential in the body.
+- Scope frames inherited from the surrounding expression keep their existing modes.
+- The body can therefore resolve a parameter in the lambda scope while declaring a
+  different name in an outer declarative scope.
+
+For example:
+
+    (int x => x * 2 + k) \ k = 42
+
+In the parameter pattern, `x` is contributed to both the lambda scope and the enclosing
+such-that scope, since both are declarative there. The application callee `int` is
+referential and therefore cannot become a declaration. In the body, the lambda frame is
+referential. The body occurrence of `x` resolves there, but `k` is absent, so the walk
+continues to the still-declarative such-that frame and declares `k`. On the right of `\`,
+that frame is referential and both names can be used as constraints.
+
+The ability of an enclosing declarative scope to collect declarations from a nested
+function is intentional:
+
+    (int x => c) \ c = x * 2
+
+This denotes the same relation as `int x => x * 2`. In the such-that scope, `x` and `c`
+are nondeterministic logical variables ranging together over the mappings of the
+function. The predicate constrains the relationship between each accepted argument and
+its result.
 
 ### Function cases via fn
 - Case function form: `fn{ p1 -> r1, p2 -> r2, ... }`
@@ -381,26 +445,60 @@ can be defined by lambdas or case expressions (`fn`).
 
 ### Partial functions
 
-A function is **total** where it has a result for every argument its domain admits, and
-**partial** where it does not. Partiality is not a separate kind of function: a function
-declares the values it can be applied to, and is partial when applying it to some such
-value nevertheless produces no result.
+Three sets must be distinguished for a function:
 
-A function is undefined at an argument either because no mapping covers it, or because
-the body evaluates to `void` there — the two are the same outcome. Evaluating to `void`
-is not returning a distinguished result; it is returning nothing, and it is essentially
-the same as throwing an `UndefinedException` at that argument.
+1. Its **declared argument set**, such as `float` in `float ^^ float`.
+2. Its **admitted domain**, which refines the declared argument set with restrictions in
+   the parameter pattern.
+3. Its **defined subset**, the admitted arguments for which evaluation actually returns
+   at least one result.
 
-    let F = int n => n < 0 then void else n * 2
+A function is **total** where its defined subset equals its admitted domain. It is
+**partial** where an admitted argument may produce no result. Membership in `A ^^ B`
+states the declared argument and result sets but says nothing about totality: `A ^^ B`
+contains both total and partial functions. `total (A ^^ B)` is the subset guaranteed to
+return at least one result for every admitted argument.
 
-`F` is a partial function on `int`: it is defined on the non-negative `int`s and
-undefined on the rest, even though its declared domain is all of `int`. Its underlying
-collection of mappings contains no mapping whose argument part is negative, so
-`dom F` is `int x \ x >= 0`.
+`total` applies to sets of functions, not to function bodies. It is primarily useful in
+contracts, where it makes a definedness guarantee available across an opaque compilation
+boundary. A visible implementation need not be annotated with `total`; the compiler may
+prove from its body that it belongs to a total function set.
 
-Undefinedness at an argument is observable only through the constructs that observe
-definedness — `;;`, `?`, `;`, the guarded logical operators and `catch`. Because `void`
-is not a value (see [`void`](#void)), a caller cannot test for it by comparison.
+There are two ways to make a potentially undefined operation explicit. The preferred
+way, when its definedness condition is known, is to narrow the admitted domain:
+
+    float x ? != 0 => 1 / x
+
+Zero is not admitted by this function. The function is total because division returns a
+result for every argument it does admit.
+
+The admitted domain may instead remain broad while the body is marked `partial`:
+
+    float x => partial 1 / x
+
+Here every `float` is admitted, but evaluation may be undefined for an admitted argument.
+`partial` tells the compiler not to derive a more precise definedness condition by
+inspecting the marked expression. A consumer must conservatively allow any invocation to
+be undefined.
+
+`partial` has no second meaning as a filter over function sets. It is comparable to an
+unspecified throws clause: it records that undefinedness may escape from the marked
+expression without describing the condition that causes it. If that undefinedness is
+handled before leaving the function, the function may still satisfy a `total` contract.
+
+    float x => (partial 1 / x) ;; 0
+
+Without `partial`, a body may still be inferred to have a smaller defined subset. For
+example, the body of `float x => 1 / x` reveals that evaluation is undefined at zero. At
+a call site the compiler propagates that potential undefinedness unless it can prove the
+actual argument is nonzero. The caller may establish that restriction, handle
+undefinedness, or itself remain potentially undefined.
+
+Undefinedness is not a value and is never added to the result set. Evaluation either
+continues with a result or transfers to an undefined continuation, essentially by
+throwing `UndefinedException`. It cannot be bound, stored, passed, or compared.
+Undefinedness is observable only through constructs that handle or observe definedness,
+including `;;`, `?`, `;`, guarded logical operators and `catch`.
 
 ### Mappings and the underlying collection
 
@@ -420,10 +518,12 @@ many solutions at that argument. The `fn` operator is the inverse of `AsSet`: it
 a collection of mappings into a function.
 
 For a function `F : A ^^ B`, the underlying collection satisfies
-`F.AsSet <= A * records(B Result)`; the domain and range are recovered as
-`dom F = F.AsSet / records(B Result)` and `range F = F.AsSet..Result`. Functions whose
-arguments are themselves nested tuples use `**` domains; the nesting survives because
-fusion is one level deep.
+`F.AsSet <= A * records(B Result)`. Its successful mappings recover its defined subset,
+`def F = F.AsSet / records(B Result)`, and its successful result values recover
+`range F = F.AsSet..Result`. Neither the declared argument set nor the admitted domain
+can in general be reconstructed from successful mappings: they are part of the function's
+declaration and restrictions. Functions whose arguments are themselves nested tuples use
+`**` argument sets; the nesting survives because fusion is one level deep.
 
 Where several mappings of `F` share the same argument part, `F` is nondeterministic at
 that argument, yielding the `Result` of each such mapping; multiplicities are observable
@@ -435,6 +535,83 @@ functions compare extensionally.
 > Note (draft): the mechanism that names the result field — a structural named field
 > `Result` versus a name published on the last position of a plain tuple by the
 > `->`/`fn`/`^^` machinery — is not yet final.
+
+### Function contracts and separate compilation
+
+A function contract is a set of admissible function values. Attaching a contract to an
+implementation has the form:
+
+    implementation contract ContractSet
+
+`contract` is left-declarative. It introduces one local scope spanning both operands;
+that frame is declarative over the implementation and referential over the contract.
+Inherited scope frames retain their modes. Declarations collected from a function inside
+the implementation, including its argument and result variables, are therefore available
+to an inline contract expression.
+
+The implementation must be a member of `ContractSet`. While compiling the defining
+compilation unit, the compiler may inspect the implementation and use its full symbolic
+relation. Across a separate-compilation boundary, the compiled implementation remains
+callable, but its body is opaque: consumers may use only constraints entailed by the
+contract set. Facts inferred from the hidden body do not cross the boundary.
+
+Contracts are sets rather than individual functions so ordinary set operators compose
+their requirements. Intersection requires a function to satisfy both contracts:
+
+    NonZeroArg = { x ? != 0 => _ }
+    Forward = { bound x => _ }
+
+    Reciprocal =
+        float x => 1 / x
+        contract total (float ^^ float) & NonZeroArg & Forward
+
+`!= 0` is the binary `!=` operator used in prefix position, and therefore denotes the
+predicate `value => value != 0`. The restriction `x ? != 0` admits every value satisfying
+that predicate; by itself it is not restricted to numbers. `float ^^ float` separately
+states the visible argument and result sets, while `total` guarantees a result for every
+admitted argument. `_` leaves the corresponding value
+unconstrained, so the set expression ranges over every function satisfying the stated
+restriction rather than exposing a particular result relation.
+
+The contract is deliberately allowed to reveal less than the compiler can infer from the
+implementation. A complete opaque contract must explicitly state every fact on which a
+consumer may rely, including argument and result sets, admitted-domain restrictions,
+supported binding modes, and any totality guarantee. If the contract does not use
+`total`, the consumer must conservatively allow the function to be undefined at an
+admitted argument even where the hidden implementation is known to be total in its
+defining compilation unit.
+
+### Binding status and implementation modes
+
+`bound` and `free` are built-in predicates over the current binding state of logical
+variables. They support compiler flow analysis and allow one relation to provide
+different implementations for different directions of use. For example, a contract for
+integer addition can describe three solving modes:
+
+    {
+        (int a, int b) => int c \
+            (bound(a, b) & free(c) |
+             bound(a, c) & free(b) |
+             bound(b, c) & free(a))
+    }
+
+The first mode computes `c` from `a` and `b`; the others solve for `b` or `a`. These are
+not three different mathematical functions. They are implementations of the same
+relation `a + b = c` selected according to available information.
+
+Mode applicability is monotonic with respect to additional bindings. A mode that can
+produce a variable when it is free remains usable when that variable is already bound:
+the compiler may introduce a fresh free output for the selected implementation, compute
+it, and unify it with the bound actual value. Thus, when `a`, `b` and `c` are all bound,
+the compiler may use any of the three modes and the call succeeds exactly when the
+computed value unifies with the actual value. Directional implementations of one
+function are required to realize the same relation, so mode selection may affect
+execution strategy but not meaning.
+
+Supported modes and totality guarantees are function metadata rather than successful
+mappings. Contract membership and structural equality `=` observe this metadata, while
+attribute-erasing equality `==` continues to compare functions extensionally by their
+underlying mappings.
 
 ### Named arguments
 
@@ -648,19 +825,26 @@ Multiple `catch` operators may be nested.
 
 ## Operators
 
-Ting has no operators of its own. Every prefix and infix operator is surface syntax for
-the application of an ordinary function: `a + b` applies `_+_` to the tuple `(a, b)`, and
-`!p` applies `!_` to `p`. 
+Ting's ordinary operators are surface syntax for applying functions: `a + b` applies
+`_+_` to the tuple `(a, b)`, and `!p` applies `!_` to `p`. Scope operators and semantic
+markers such as `contract`, `partial` and `throw` retain dedicated core forms because
+their compile-time meaning cannot be recovered from an ordinary function application.
 
 The functions an operator can name are taken from a scope available to the parser, so they are never looked up lexically and cannot be shadowed by a declaration.
 
 ### Declarative and referential operators
 
-A **declarative operator** is an operator which introduces a new declarative scope over one of its operand(s).
+A **declarative operator** introduces a new local scope spanning its operands. The new
+scope is declarative over one operand and referential over the other. It does not change
+the modes of inherited scope frames.
 
-A **right-referential** operator is a binary infix operator which converts any declarative scope to referential scopes over its right operand.
+A **right-referential** operator introduces no scope. Over its right operand it converts
+every declarative frame already on the scope stack to referential, preserving the frames
+and their order. Its left operand is ambient.
 
-A **left-referential** operator is a binary infix operator which converts any declarative scope to referential scopes over its left operand.
+A **left-referential** operator is the mirror image: over its left operand it converts
+every declarative frame already on the stack to referential, while its right operand is
+ambient.
 
 
 
@@ -675,7 +859,9 @@ Prefix operators are neutral in the same sense: their single operand is ambient.
 
 #### Right-referential
 
-The right operand is referential; the left operand is ambient. No scope is introduced.
+The right operand is referential in every covering scope; the left operand is ambient.
+No scope is introduced. Concretely, every declarative frame covering the operator is
+viewed as referential while traversing the right operand.
 
 This asymmetry is what gives `x = 5` its meaning. The right operand is a value to be read,
 while the left operand inherits the surrounding context and therefore introduces `x` when a
@@ -686,15 +872,20 @@ already in force.
 #### Left-declarative
 
 A left-declarative operator introduces a local scope spanning the whole operator
-expression. The left operand is declarative in that scope irrespective of the surrounding
-context, and the names it introduces are in scope in the right operand. The right operand
-remains ambient, so under a surrounding declarative context it may itself declare.
+expression. The new frame is declarative in the left operand and referential in the
+right. Inherited frames keep their modes in both operands. Consequently, a name absent
+from the new referential frame on the right may still be declared in an inherited
+declarative frame.
+
+This is not equivalent to placing an invisible `let` around a right-referential
+operator. `let` makes its frame declarative throughout its operand, whereas a
+left-declarative operator creates one frame whose mode differs between its operands.
 
 #### Right-declarative
 
 The mirror image of left-declarative. A local scope spanning the whole operator expression
-is introduced, the right operand is declarative in that scope irrespective of the
-surrounding context, and the names it introduces are in scope in the left operand.
+is introduced. Its new frame is referential in the left operand and declarative in the
+right, while inherited frames retain their modes.
 
 ### Operator Precedence and Associativity
 
@@ -721,8 +912,10 @@ operators](#binary-operators-used-as-unary-prefix-operators).
 
 #### `let`
 
-Introduces a local scope spanning its operand. Names declared by the operand are local to
-that scope. The canonical form is `let pattern = expr in body`.
+Introduces a local scope spanning its operand. The new frame is declarative throughout
+the operand. Names declared by the operand are local to that scope. The canonical form
+is `let pattern = expr in body`; the right-referential `=` and `in` operators make all
+covering frames referential over their right operands.
 
 #### `public`
 
@@ -812,8 +1005,8 @@ mapping that is not among `F`'s mappings. The set builder restricts the
 complement to mappings — `fn !(F.AsSet)` would be wrong, since the complement of a
 set also contains every value that is not a mapping at all. A function permits, at
 each argument value, a set of result values; `!F` permits exactly the values `F` does not
-permit. Applied to a member `x` of `dom F`, `!F x` is nondeterministically any value
-other than `F x`; applied to a value outside `dom F` it is nondeterministically any value
+permit. Applied to a member `x` of `def F`, `!F x` is nondeterministically any value
+other than `F x`; applied to a value outside `def F` it is nondeterministically any value
 at all. Negation on functions is an involution — `!!F` denotes `F` — and `F & !F` is
 undefined for every argument.
 
@@ -875,6 +1068,24 @@ preserves attributes.
 `primary` and `candidate` are keyword intrinsics rather than properties, so that they
 cannot be shadowed by a field of the same name.
 
+#### `total`
+
+Accepts a set of functions and denotes the subset guaranteed to return at least one
+result for every argument in each function's admitted domain. It does not change those
+functions or narrow their domains. A bare function set such as `A ^^ B` includes both
+total and partial functions; `total (A ^^ B)` adds the definedness guarantee.
+
+`total` is a set filter and has no expression-body meaning. Membership may be established
+by analysis of a visible implementation or supplied by an opaque contract.
+
+#### `partial`
+
+Marks its operand as potentially undefined without changing its admitted values or
+successful results. The operand is ambient. The compiler does not inspect through the
+marker to infer a narrower definedness condition; it conservatively assumes that the
+expression may transfer to the undefined continuation for any admitted bindings.
+`partial` neither catches undefinedness nor turns it into a value.
+
 #### `throw`
 
 Raises the exception denoted by its operand. The operand is ambient, as every prefix
@@ -905,8 +1116,19 @@ operand within the right operand.
 #### `=>`
 
 Left-declarative. `pattern => expression` denotes a function. The left operand is a
-declarative pattern; the right operand is evaluated with the names the pattern declares in
-scope.
+declarative pattern in the new lambda frame; that frame is referential in the right
+operand. Inherited frames retain their modes. Names declared by the pattern are therefore
+available in the body, while a body name absent from the lambda frame may still declare
+in an inherited declarative frame.
+
+#### `contract`
+
+Left-declarative. `implementation contract ContractSet` requires the implementation to
+be a member of the function set denoted by the right operand. The new contract frame is
+declarative over the implementation and referential over the contract expression, so the
+contract can refer to argument and result declarations collected from a nested function.
+The value is the implementation paired with its opaque external description; see
+[Function contracts and separate compilation](#function-contracts-and-separate-compilation).
 
 #### `->`
 
@@ -945,8 +1167,10 @@ Neutral. Backward application. `f <| x` denotes `f x`, with the same binding beh
 Neutral. Denotes the set of functions from the left operand set to the right operand set. Both operands must be sets. `int ^^ string` is the set of functions from
 `int` to `string`. The underlying collection of a member `F : A ^^ B` consists of
 mappings that fuse a member of `A` with a `Result` that is a member of `B`:
-`F.AsSet <= A * records(B Result)`. TODO: whether membership additionally requires
-totality on `A` is not yet specified.
+`F.AsSet <= A * records(B Result)`. `A` and `B` constrain the declared argument and
+result sets; `A ^^ B` includes both total and partial functions. Use `total (A ^^ B)`
+where totality over the admitted domain is required. Without that guarantee, potential
+undefinedness propagates to uses where it cannot be ruled out from a visible body.
 
 #### `**`
 
@@ -972,8 +1196,10 @@ Right-referential, and binds as tightly as `=`. Declaration by unification: the 
 operand is unified with the right rather than asserted equal to it, and where the two
 cannot be unified the expression is *undefined* rather than `false`.
 
-The name the left operand declares is in scope on the right, which is what distinguishes
-`?=` from `=` in practice: it is how a recursive binding is written.
+Declarations contributed by the left operand are available when the now-referential
+scope frames are searched on the right, so recursive bindings can be written with `?=`.
+Its distinction from `=` is semantic: failed unification is undefined rather than the
+boolean value `false`.
 
     let f ?= fn{ 0 -> 1, int n -> n * f (n - 1) } in f 3
 
@@ -1091,9 +1317,9 @@ use where the right operand's membership is only defined for members of the left
 
 For the signature `Funcs*Funcs^^Funcs`:
 
-Denotes the guarded counterpart of `&` on functions. The guard applies to the domain
-test: where `x` is not a member of `dom F` the result is undefined at `x` without
-consulting `G`, whose domain membership may itself be undefined there. Where `F` is
+Denotes the guarded counterpart of `&` on functions. The guard applies to the
+definedness test: where `x` is not a member of `def F` the result is undefined at `x`
+without consulting `G`, whose definedness may itself be undecidable there. Where `F` is
 defined at `x` the result at `x` is `F x ?= G x`, as for `&`.
 
 #### `&&&`
@@ -1127,8 +1353,9 @@ result. Otherwise membership in the result is undefined.
 For the signature `Funcs*Funcs^^Funcs`:
 
 Denotes the mutually guarded counterpart of `&` on functions. The guard applies to both
-domain tests: a defined non-membership of `x` in either operand's domain makes the result
-undefined at `x` even where the other operand's domain membership there is undefined.
+definedness tests: a defined non-membership of `x` in either operand's defined subset
+makes the result undefined at `x` even where the other operand's definedness there is
+undecidable.
 Where both operands are defined at `x` the result is `F x ?= G x`, as for `&`.
 
 #### `|`
@@ -1166,7 +1393,7 @@ For the signature `Funcs*Funcs^^Funcs`:
 
 The set overload applied to the operands' underlying collections of mappings. Denotes the
 function that permits, at each argument value, every result value that either operand
-permits. It is defined at `x` where either operand is defined at `x`; both domain tests
+permits. It is defined at `x` where either operand is defined at `x`; both definedness tests
 apply. Where only one operand is defined at `x` the result is that operand's result.
 Where both are defined at `x` with the same result, their mappings are identical and
 unify to a single member of the union, so the result there is deterministic; where their
@@ -1206,11 +1433,11 @@ right operand's membership is only defined for non-members of the left operand.
 For the signature `Funcs*Funcs^^Funcs`:
 
 Denotes ordered choice. Applied to `x`, the result is `F x` if and only if `F` is defined
-at `x`; `G` is ignored there — it does not narrow the result, and its domain membership
+at `x`; `G` is ignored there — it does not narrow the result, and its definedness
 may be undefined. Where `F` is not defined at `x` the result is `G x`. With `F` and `G`
 from the example under `|`, `F || G` applied to `2` yields only `20`. Unlike the strict
 operators, this is not the set overload on the underlying mappings — `F || G` is not
-`fn (F.AsSet || G.AsSet)` — because the guard applies to the domain test, not to mapping
+`fn (F.AsSet || G.AsSet)` — because the guard applies to the definedness test, not to mapping
 membership.
 
 #### `|||`
@@ -1244,8 +1471,8 @@ Otherwise membership in the result is undefined.
 For the signature `Funcs*Funcs^^Funcs`:
 
 Denotes the mutually guarded counterpart of `|` on functions. As for `|`, the result at
-`x` permits every value permitted by either operand. The guard applies to both domain
-tests: where one operand's domain membership at `x` is undefined but the other operand is
+`x` permits every value permitted by either operand. The guard applies to both
+definedness tests: where one operand's definedness at `x` is undecidable but the other operand is
 defined at `x`, the result is the defined operand's result.
 
 
@@ -1356,7 +1583,7 @@ The addition overload applied to the operands' underlying collections of mapping
 `F | G` it is defined at `x` where either operand is defined at `x` and permits every
 result value that either operand permits. The two differ in solution multiplicity:
 `F + G` retains both contributions wherever both operands are defined, so it is
-nondeterministic on exactly `dom F & dom G` — two solutions at every such argument, even
+nondeterministic on exactly `def F & def G` — two solutions at every such argument, even
 where the results agree — while `F | G` unifies agreeing mappings. With `F` and `G` from
 the example under `|`, `(F + G) 4` yields `40` twice under backtracking, where
 `(F | G) 4` yields it once; at `2` both yield `20` or `21`.
