@@ -29,12 +29,90 @@ let private nameOfRole = function
 let formatScope (s: Scope) =
     $"{s.Id}"
 
-let private scopeKindName (s: Scope) =
+let private scopeTypeName (s: Scope) =
     match s with
-    | :? LocalScope -> "NamesScope"
+    | :? LocalScope -> "LocalScope"
     | :? ExpressionScope -> "ExpressionScope"
     | :? ExpressionMemberScope -> "ExpressionMemberScope"
     | _ -> "UnknownScope"
+
+let private publishUsageName = function
+    | Exp.AccessModifier.Public -> "publish-public"
+    | Exp.AccessModifier.Private -> "publish-private"
+    | Exp.AccessModifier.Internal -> "publish-internal"
+    | Exp.AccessModifier.Protected -> "publish-protected"
+
+let private inferScopeUsages (exp: Exp) =
+    let usages = System.Collections.Generic.Dictionary<Guid, System.Collections.Generic.HashSet<string>>()
+
+    let addUsage (s: Scope) (usage: string) =
+        let set =
+            match usages.TryGetValue s.Id with
+            | true, existing -> existing
+            | _ ->
+                let created = System.Collections.Generic.HashSet<string>()
+                usages[s.Id] <- created
+                created
+        set.Add usage |> ignore
+
+    let rec walk (node: Exp) =
+        match node with
+        | Local (_, s, e) ->
+            addUsage s "local"
+            walk e
+        | Record (_, s, e) ->
+            addUsage s "record"
+            walk e
+        | Publish (_, s, access, e) ->
+            addUsage s (publishUsageName access)
+            walk e
+        | Product (_, positional, _, s, named) ->
+            addUsage s "product"
+            List.iter walk positional
+            List.iter walk named
+        | Projection (_, s, e, m) ->
+            addUsage s "projection"
+            walk e
+            walk m
+        | MemberProjection (_, s, e, m) ->
+            addUsage s "member-projection"
+            walk e
+            walk m
+        | ScopeExp (_, s, e) ->
+            addUsage s "scope-exp"
+            walk e
+        | Apply (_, f, a)
+        | Catch (_, f, a)
+        | Equals (_, f, a)
+        | DeclareLeft (_, f, a, _)
+        | DeclareRight (_, f, a, _)
+        | ReferenceLeft (_, f, a, _)
+        | ReferenceRight (_, f, a, _)
+        | PushScope (_, f, a)
+        | PushMemberScope (_, f, a) ->
+            walk f
+            walk a
+        | Tuple (_, xs)
+        | Set (_, xs)
+        | List (_, xs) -> List.iter walk xs
+        | StringLiteral (_, parts) ->
+            parts
+            |> List.iter (function
+                | TextPart _ -> ()
+                | HolePart e -> walk e)
+        | Throw (_, e)
+        | Primary (_, e)
+        | Candidate (_, e)
+        | IsDefined (_, e)
+        | Reference (_, e) -> walk e
+        | Identifier _
+        | This _
+        | Literal _
+        | Void _
+        | Unknown _ -> ()
+
+    walk exp
+    usages
 
 let private declarationKindText (entry: NameEntry) =
     match entry.Host with
