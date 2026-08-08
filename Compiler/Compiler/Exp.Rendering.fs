@@ -292,7 +292,10 @@ let renderIdentifierReportWith (ambient: Scope list) (exp: Exp) : string =
             (node.Range, line) :: acc
 
         match node with
-        | Identifier (_, role) -> emit role
+        | Identifier (_, role) ->
+            let name = nameOfRole role |> formatNameParts
+            emit name role
+        | This (_, role) -> emit "this" role
         | Local (_, _, e)
         | Record (_, _, e)
         | ScopeExp (_, _, e)
@@ -327,7 +330,6 @@ let renderIdentifierReportWith (ambient: Scope list) (exp: Exp) : string =
                     | HolePart e -> collect e st)
                 parts
                 acc
-        | This _
         | Literal _
         | Void _
         | Unknown _ -> acc
