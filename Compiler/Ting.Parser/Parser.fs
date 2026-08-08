@@ -215,15 +215,20 @@ let pExpr: Parser<Exp> = opp.ExpressionParser
 /// declares them all here.
 ///
 /// Because this scope is known at parse time, an operator head needs no later
-/// binding pass: the parser emits it as a Referential identifier whose single
-/// candidate scope is this one. Operator names are therefore never looked up
+/// binding pass: the parser emits it already Bound(Referenced) to the
+/// declaration it made here. Operator names are therefore never looked up
 /// lexically and can never be shadowed by user declarations.
 let operatorScope: Scope = LocalScope(Guid.NewGuid()) :> Scope
+
+// name -> declaration id, so heads can be emitted pre-resolved.
+let private operatorDeclIds = System.Collections.Generic.Dictionary<string, Guid>()
 
 /// Declare the function an operator lowers to. Called from the operator table
 /// below, so the scope cannot drift from the set of operators the parser accepts.
 let private declareOperatorFunction (name: string) =
-    operatorScope.defineName(Guid.NewGuid(), name, Exp.unknown)
+    let id = Guid.NewGuid()
+    operatorDeclIds[name] <- id
+    operatorScope.defineName(id, name, Exp.unknown)
 
 /// Parser used after every operator token: capture the position, then skip
 /// whitespace. Capturing before `ws` is what keeps operator ranges tight.
@@ -242,7 +247,7 @@ let private opRange (op: string) (posAfter: FParsec.Position) : Range.Range =
 // the synthesized head reports the operator's own span, while the expression as
 // a whole spans both operands.
 let private operatorFunction (range: Range.Range) (name: string) =
-    Identifier(range, Referential([ operatorScope.Id ], [ TextPart name ]))
+    Identifier(range, Bound(Referenced, operatorDeclIds[name], [ TextPart name ]))
 
 let private operatorHead (op: string) (name: string) (pos: FParsec.Position) =
     operatorFunction (opRange op pos) name
@@ -250,7 +255,11 @@ let private operatorHead (op: string) (name: string) (pos: FParsec.Position) =
 /// Whether an expression is the head the parser synthesizes for a given operator.
 let private isOperatorHead (name: string) (exp: Exp) =
     match exp with
-    | Identifier (_, Referential ([ sid ], [ TextPart s ])) -> sid = operatorScope.Id && s = name
+    | Identifier (_, Bound (Referenced, id, [ TextPart s ])) ->
+        s = name
+        && (match operatorDeclIds.TryGetValue name with
+            | true, declId -> declId = id
+            | _ -> false)
     | _ -> false
 
 let declareLeftOperator (op: string) =
@@ -500,9 +509,10 @@ let tryParseExpression (streamName: string) (input: string) =
 // no FParsec type leaks past this library and the parser can be swapped later.
 //
 // Parsing produces the analyzed AST directly: the raw parse tree is annotated
-// by the Binder before it is returned, so declarative identifiers already
-// carry their declaration ids (recorded in the declarative scopes) and
-// referential identifiers carry their ordered candidate scope-id lists.
+// by the Binder before it is returned, so identifiers whose scope stack starts
+// declaratively already carry their declaration ids (recorded in the
+// declarative scopes), while every other identifier is Pending with its
+// ordered moded frame stack for the Resolver to classify.
 // Every expression carries the source range it came from.
 // `rootScope` is the outermost (usually builtin-populated) scope, which is the
 // last referential candidate for every free name. Operator heads do not go

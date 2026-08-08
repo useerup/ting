@@ -14,6 +14,18 @@ let private formatNameParts (parts: InterpolatedParts) =
     |> List.map formatInterpolatedPartForScope
     |> String.concat ""
 
+let private formatIdentifierRole (role: BindingRole) =
+    match role with
+    | Unbound _ -> "undefined"
+    | Bound (Declared, _, _) -> "declarative"
+    | Pending _ -> "referential"
+    | Bound (Referenced, _, _) -> "referential(resolved)"
+
+let private nameOfRole = function
+    | Unbound p
+    | Pending (_, p)
+    | Bound (_, _, p) -> p
+
 let formatScope (s: Scope) =
     $"{s.Id}"
 
@@ -36,9 +48,8 @@ let private declarationKindText (entry: NameEntry) =
 let private formatHostSuffix (entry: NameEntry) =
     let rec hostName (n: Exp) =
         match n with
-        | Identifier (_, Declarative (_, parts))
-        | Identifier (_, Referential (_, parts))
-        | Identifier (_, Resolved (_, parts)) -> formatNameParts parts
+        | Identifier (_, Bound (_, _, parts))
+        | Identifier (_, Pending (_, parts)) -> formatNameParts parts
         | Local (_, _, x)
         | Record (_, _, x)
         | ScopeExp (_, _, x)
@@ -59,7 +70,7 @@ let private collectProjectedDeclarationKinds (exp: Exp) =
 
     let rec collectFromMember isMemberProjection (memberExp: Exp) =
         match memberExp with
-        | Identifier (_, Declarative (id, _)) ->
+        | Identifier (_, Bound (Declared, id, _)) ->
             setKind id (if isMemberProjection then "extension member-property" else "extension property")
         | Tuple (_, xs)
         | Set (_, xs)
@@ -146,6 +157,100 @@ let renderScopeReport (exp: Exp) : string =
 let printScopeReport (exp: Exp) : unit =
     printfn "%s" (renderScopeReport exp)
 
+// Render each identifier occurrence together with source position and binding
+// metadata from the Binder/Resolver roles.
+let renderIdentifierReport (exp: Exp) : string =
+    let scopes = collectAllScopes exp
+
+    let declarativeScopes (declId: Guid) =
+        scopes
+        |> List.filter (fun s -> s.Names.ContainsKey declId)
+        |> List.map formatScope
+        |> String.concat ", "
+
+    let rec collect (node: Exp) (acc: (Range.Range * string) list) =
+        let emit role =
+            let name = nameOfRole role |> formatNameParts
+            let roleText = formatIdentifierRole role
+
+            let details =
+                match role with
+                | Bound (Declared, declId, _) ->
+                    let scopesText = declarativeScopes declId
+                    $"bound-scopes=[{scopesText}]"
+                | Pending (frames, _) ->
+                    let candidateText =
+                        frames
+                        |> List.choose (fun f ->
+                            match f.Mode with
+                            | ReferentialScope -> Some(string f.Scope.Id)
+                            | DeclarativeScope -> None)
+                        |> String.concat ", "
+                    $"candidate-scopes=[{candidateText}]"
+                | Bound (Referenced, declId, _) ->
+                    $"resolved-declaration={declId}"
+                | Unbound _ -> ""
+
+            let line =
+                if String.IsNullOrWhiteSpace details then
+                    $"name='{name}' role={roleText}"
+                else
+                    $"name='{name}' role={roleText} {details}"
+
+            (node.Range, line) :: acc
+
+        match node with
+        | Identifier (_, role) -> emit role
+        | Local (_, _, e)
+        | Record (_, _, e)
+        | ScopeExp (_, _, e)
+        | Publish (_, _, _, e)
+        | Throw (_, e)
+        | Primary (_, e)
+        | Candidate (_, e)
+        | IsDefined (_, e)
+        | Reference (_, e) -> collect e acc
+        | Apply (_, f, a)
+        | Catch (_, f, a)
+        | Equals (_, f, a)
+        | DeclareLeft (_, f, a, _)
+        | DeclareRight (_, f, a, _)
+        | ReferenceLeft (_, f, a, _)
+        | ReferenceRight (_, f, a, _)
+        | PushScope (_, f, a)
+        | PushMemberScope (_, f, a)
+        | Projection (_, _, f, a)
+        | MemberProjection (_, _, f, a) ->
+            acc |> collect f |> collect a
+        | Tuple (_, xs)
+        | Set (_, xs)
+        | List (_, xs) -> List.foldBack collect xs acc
+        | Product (_, positional, _, _, named) ->
+            acc |> List.foldBack collect positional |> List.foldBack collect named
+        | StringLiteral (_, parts) ->
+            List.foldBack
+                (fun p st ->
+                    match p with
+                    | TextPart _ -> st
+                    | HolePart e -> collect e st)
+                parts
+                acc
+        | This _
+        | Literal _
+        | Void _
+        | Unknown _ -> acc
+
+    let rows =
+        collect exp []
+        |> List.rev
+        |> List.sortBy (fun (span, _) -> span.Start.Line, span.Start.Column, span.End.Line, span.End.Column)
+        |> List.mapi (fun i (span, line) -> $"[{i}] ({span.Start.Line},{span.Start.Column}) {line}")
+
+    if List.isEmpty rows then
+        "No identifier occurrences found."
+    else
+        String.concat Environment.NewLine rows
+
 // Render the analyzed Exp in a cycle-safe way for diagnostics/output files.
 let rec private renderInterpolatedPart = function
     | TextPart s -> s
@@ -153,10 +258,16 @@ let rec private renderInterpolatedPart = function
 
 and renderBindingRole = function
     | Unbound _ -> "unbound"
-    | Declarative (id, _) -> $"decl:{id}"
-    | Resolved (id, _) -> $"resolved:{id}"
-    | Referential (scopeIds, _) ->
-        let scopesText = scopeIds |> List.map string |> String.concat ", "
+    | Bound (Declared, id, _) -> $"decl:{id}"
+    | Bound (Referenced, id, _) -> $"resolved:{id}"
+    | Pending (frames, _) ->
+        let scopesText =
+            frames
+            |> List.choose (fun f ->
+                match f.Mode with
+                | ReferentialScope -> Some(string f.Scope.Id)
+                | DeclarativeScope -> None)
+            |> String.concat ", "
         $"ref:[{scopesText}]"
 
 and renderExpression (node: Exp) : string =

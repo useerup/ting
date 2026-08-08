@@ -80,22 +80,25 @@ let private compileTingProgramRaw (input: string) : string =
 
     match parse rootScope input with
     | ParseSucceeded analyzed ->
-        // Parsing already ran the Binder: `analyzed` carries declaration ids
-        // and referential candidate scopes.
+        // Resolve first: classification of deferred bindings populates scopes,
+        // so the reports below reflect the finished walk.
         let resolved, diagnostics = Resolver.resolve rootScope [ Parser.operatorScope ] analyzed
+
         let scopes = renderScopeReport resolved
-        // Rendered with renderExpression rather than %A: the ranges every case
-        // carries would drown the structure.
-        let expText = renderExpression resolved
-        // The core tree every pass after resolution works on. Shown next to the
-        // surface tree so the snapshot records what lowering did.
-        let core = Lowering.lower resolved
-        let coreText = CoreDiagnostics.renderCore core
+        let identifiers = renderIdentifierReport resolved
+
         let scopesSection =
             if String.IsNullOrWhiteSpace scopes then
                 "No scopes collected."
             else
                 scopes
+
+        let identifiersSection =
+            if String.IsNullOrWhiteSpace identifiers then
+                "No identifier occurrences found."
+            else
+                identifiers
+
         let diagnosticsSection =
             if List.isEmpty diagnostics then
                 ""
@@ -105,11 +108,8 @@ let private compileTingProgramRaw (input: string) : string =
                     |> List.map (fun d -> $"- {Resolver.formatDiagnostic d}")
                     |> String.concat "\n"
                 $"\n\nDiagnostics:\n{lines}"
-        let valueSection =
-            match Evaluator.evaluate rootScope core with
-            | Some v when Evaluator.isDisplayable v -> $"\n\nValue:\n{Evaluator.render v}"
-            | _ -> ""
-        $"Compilation succeeded.\n\n{expText}\n\nCore:\n{coreText}\n\nScopes:\n{scopesSection}{diagnosticsSection}{valueSection}"
+
+        $"Compilation succeeded.\n\nScopes:\n{scopesSection}\n\nIdentifiers:\n{identifiersSection}{diagnosticsSection}"
     | ParseFailed error ->
         $"Compilation failed.\n({error.Span.Start.Line},{error.Span.Start.Column}) {error.Message}"
 

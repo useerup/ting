@@ -124,17 +124,21 @@ let rec private allScopes (node: Exp) : Scope list =
 
     self @ List.collect allScopes children
 
+let private declaredInOperatorScope (name: string) =
+    Parser.operatorScope.Names
+    |> Seq.exists (fun kvp -> formatName kvp.Value.NameParts = name)
+
+let private operatorDeclId (name: string) : Guid option =
+    Parser.operatorScope.Names
+    |> Seq.tryPick (fun kvp -> if formatName kvp.Value.NameParts = name then Some kvp.Key else None)
+
 /// The names bound to the operator scope in a parsed expression.
 let private operatorNamesIn (source: string) : string list =
     parseNode source
     |> allRoles
     |> List.choose (function
-        | Referential ([ sid ], parts) when sid = Parser.operatorScope.Id -> Some(formatName parts)
+        | Bound (Referenced, id, parts) when operatorDeclId (formatName parts) = Some id -> Some(formatName parts)
         | _ -> None)
-
-let private declaredInOperatorScope (name: string) =
-    Parser.operatorScope.Names
-    |> Seq.exists (fun kvp -> formatName kvp.Value.NameParts = name)
 
 /// One source snippet per operator, paired with the function that operator
 /// lowers to. Keeping the whole table here is what makes the tests below a
@@ -177,21 +181,21 @@ let ``the operator scope declares every operator function`` () =
         Assert.True(declaredInOperatorScope $"{op}_", $"operator scope does not declare {op}_")
 
 [<Fact>]
-let ``operator heads carry the operator scope as their only candidate`` () =
+let ``operator heads are pre-resolved to the operator scope declarations`` () =
     // Nothing else may participate in resolving an operator head: it is not a
     // lexical lookup, so no enclosing scope can shadow or intercept it.
     let heads =
         allRoles (parseNode "let x = 1 in x + x")
         |> List.choose (function
-            | Referential (candidates, parts) ->
+            | Bound (Referenced, id, parts) ->
                 let name = formatName parts
-                if name.StartsWith "_" && name.EndsWith "_" then Some(name, candidates) else None
+                if name.StartsWith "_" && name.EndsWith "_" then Some(name, id) else None
             | _ -> None)
 
     Assert.Equal<string list>([ "_in_"; "_=_"; "_+_" ], heads |> List.map fst)
 
-    for (name, candidates) in heads do
-        Assert.Equal<Guid list>([ Parser.operatorScope.Id ], candidates)
+    for (name, id) in heads do
+        Assert.Equal(operatorDeclId name, Some id)
         Assert.True(declaredInOperatorScope name, $"{name} is not declared in the operator scope")
 
 [<Fact>]
@@ -205,7 +209,7 @@ let ``a user declaration of an operator function does not capture operator heads
     let declared =
         roles
         |> List.exists (function
-            | Declarative (_, parts) -> formatName parts = "_+_"
+            | Bound (Declared, _, parts) -> formatName parts = "_+_"
             | _ -> false)
 
     Assert.True(declared, "expected the quoted `_+_` declaration to stay declarative")
@@ -214,16 +218,17 @@ let ``a user declaration of an operator function does not capture operator heads
 let ``ordinary identifiers are not bound to the operator scope`` () =
     let roles = allRoles (parseNode "a + b")
 
-    let lexical =
+    let lexicalPendings =
         roles
         |> List.choose (function
-            | Referential (candidates, parts) when formatName parts <> "_+_" -> Some candidates
+            | Pending (frames, parts) when formatName parts <> "_+_" ->
+                Some(frames |> List.map (fun f -> f.Scope.Id))
             | _ -> None)
 
-    Assert.NotEmpty(lexical)
+    Assert.NotEmpty(lexicalPendings)
 
-    for candidates in lexical do
-        Assert.DoesNotContain(Parser.operatorScope.Id, candidates)
+    for scopeIds in lexicalPendings do
+        Assert.DoesNotContain(Parser.operatorScope.Id, scopeIds)
 
 [<Fact>]
 let ``declaration propagation stops at referential barriers`` () =
@@ -237,3 +242,96 @@ let ``declaration propagation stops at referential barriers`` () =
             |> Seq.length)
 
     Assert.Equal(1, nDeclarationsAcrossScopes)
+
+let private resolveNode (source: string) : Exp * Resolver.Diagnostic list =
+    let rootScope = LocalScope(Guid.Empty) :> Scope
+    match Parser.parseNamed rootScope "test.ting" source with
+    | ParseResult.ParseSucceeded node -> Resolver.resolve rootScope [ Parser.operatorScope ] node
+    | ParseResult.ParseFailed err -> failwith $"parse failed for '{source}': {err}"
+
+let private rolesOf (name: string) (node: Exp) : BindingRole list =
+    allRoles node
+    |> List.filter (fun role ->
+        match role with
+        | Unbound p
+        | Pending (_, p)
+        | Bound (_, _, p) -> formatName p = name)
+
+[<Fact>]
+let ``a where-bound name is referential in the left operand`` () =
+    // `y` left of `where` must resolve to the where-scope declaration, not
+    // declare into an enclosing declarative scope.
+    let resolved, diags = resolveNode "(y where y = 2) \\ k = 42"
+
+    let ys = rolesOf "y" resolved
+    let declared = ys |> List.choose (function Bound (Declared, id, _) -> Some id | _ -> None)
+    let referenced = ys |> List.choose (function Bound (Referenced, id, _) -> Some id | _ -> None)
+
+    Assert.Equal(1, List.length declared)
+    Assert.Equal(1, List.length referenced)
+    Assert.Equal(declared.Head, referenced.Head)
+
+    let unresolvedYs =
+        diags
+        |> List.filter (fun d ->
+            match d.Kind with
+            | Resolver.UnresolvedName "y" -> true
+            | _ -> false)
+
+    Assert.Empty(unresolvedYs)
+
+[<Fact>]
+let ``a lambda body name declares into the enclosing such-that scope`` () =
+    // `k` in the body crosses the referential lambda frame and declares in the
+    // such-that scope; the guard `k` then references that declaration.
+    let resolved, _ = resolveNode "(int x => x * 2 + k) \\ k = 42"
+
+    let ks = rolesOf "k" resolved
+    let declared = ks |> List.choose (function Bound (Declared, id, _) -> Some id | _ -> None)
+    let referenced = ks |> List.choose (function Bound (Referenced, id, _) -> Some id | _ -> None)
+
+    Assert.Equal(1, List.length declared)
+    Assert.Equal(1, List.length referenced)
+    Assert.Equal(declared.Head, referenced.Head)
+
+    let xs = rolesOf "x" resolved
+    let xDeclared = xs |> List.choose (function Bound (Declared, id, _) -> Some id | _ -> None)
+    let xReferenced = xs |> List.choose (function Bound (Referenced, id, _) -> Some id | _ -> None)
+
+    Assert.Equal(1, List.length xDeclared)
+    Assert.Equal(1, List.length xReferenced)
+    Assert.Equal(xDeclared.Head, xReferenced.Head)
+
+[<Fact>]
+let ``an expression scope resolves member names and passes unknown names outward`` () =
+    // `Name` must resolve through the scope `person ./ ...` pushes, while
+    // `Title` passes through it and declares in the such-that scope.
+    let source = "let person = record(Name = \"Bob\") in (person ./ (Title + Name)) \\ Title = \"mr. \""
+    let resolved, diags = resolveNode source
+
+    let names = rolesOf "Name" resolved
+    let nameDeclared = names |> List.choose (function Bound (Declared, id, _) -> Some id | _ -> None)
+    let nameReferenced = names |> List.choose (function Bound (Referenced, id, _) -> Some id | _ -> None)
+
+    // One declaration (the record field), one reference (inside ./), same id.
+    Assert.Equal(1, List.length nameDeclared)
+    Assert.Equal(1, List.length nameReferenced)
+    Assert.Equal(nameDeclared.Head, nameReferenced.Head)
+
+    let titles = rolesOf "Title" resolved
+    let titleDeclared = titles |> List.choose (function Bound (Declared, id, _) -> Some id | _ -> None)
+    let titleReferenced = titles |> List.choose (function Bound (Referenced, id, _) -> Some id | _ -> None)
+
+    Assert.Equal(1, List.length titleDeclared)
+    Assert.Equal(1, List.length titleReferenced)
+    Assert.Equal(titleDeclared.Head, titleReferenced.Head)
+    Assert.NotEqual<Guid>(nameDeclared.Head, titleDeclared.Head)
+
+    let unresolved =
+        diags
+        |> List.filter (fun d ->
+            match d.Kind with
+            | Resolver.UnresolvedName _ -> true
+            | _ -> false)
+
+    Assert.Empty(unresolved)

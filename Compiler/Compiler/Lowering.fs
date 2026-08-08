@@ -21,9 +21,9 @@ open Core
 // The plain (non-interpolated) name of an operator head.
 let private headName (node: Exp) : string option =
     match node with
-    | Identifier (_, Resolved (_, [ TextPart s ]))
-    | Identifier (_, Referential (_, [ TextPart s ]))
-    | Identifier (_, Declarative (_, [ TextPart s ])) -> Some s
+    | Identifier (_, Bound (_, _, [ TextPart s ]))
+    | Identifier (_, Pending (_, [ TextPart s ]))
+    | Identifier (_, Unbound [ TextPart s ]) -> Some s
     | _ -> None
 
 // Relations that compare values up to attribute erasure. `==` is not in this

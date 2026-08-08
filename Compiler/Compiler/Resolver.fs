@@ -5,17 +5,23 @@ open System.Collections.Generic
 open Exp
 open ExpScopeAnalysis
 
-// Name resolution pass.
+// Name classification and resolution pass.
 //
 // markDeclarations (Binder, run as part of parsing) produces an analyzed Exp
-// where every referential occurrence
-// carries the ordered list of candidate scope ids (nearest enclosing scope first,
-// root/published scope last). This pass walks that list, finds the nearest scope
-// that declares a matching name, and rewrites the occurrence to BindingRole.Resolved
-// carrying the concrete declaration id.
+// where identifiers whose scope stack starts declaratively are already Bound
+// (Declared), while every other identifier is Pending, carrying the ordered
+// moded frame stack (nearest frame first) of the scopes covering it.
+//
+// This pass finishes the binding walk the Binder deferred. It runs declaration
+// sweeps to a fixpoint - a deferred declaration can make another Pending
+// occurrence declarable - and only then resolves references, so no reference
+// resolves before every reachable declaration has been recorded. A referential
+// frame that is an expression scope answers membership from the record
+// structure of its defining expression; where that structure is not derivable
+// the occurrence stays Pending (deferred, not an error).
 //
 // It also surfaces two diagnostics derived directly from the design model:
-//   - UnresolvedName: a non-interpolated name that no candidate scope declares.
+//   - UnresolvedName: a non-interpolated name whose walk misses every frame.
 //   - IllegalShadowing: the same name is declared in two or more distinct enclosing
 //     local scopes (local scopes may shadow published names but not each other).
 
@@ -94,9 +100,8 @@ let private buildRegistry (rootScope: Scope) (baseScopes: Scope list) (exp: Exp)
 let private nameOfRole (role: BindingRole) : InterpolatedParts =
     match role with
     | Unbound p
-    | Declarative (_, p)
-    | Referential (_, p)
-    | Resolved (_, p) -> p
+    | Pending (_, p)
+    | Bound (_, _, p) -> p
 
 // Map a declaration id to the expression it is bound to by `=` (e.g. the record
 // value in `let person = record(Name:string)`). Only `_=_` applications whose
@@ -116,7 +121,7 @@ let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp> =
         | Apply (_, op, Tuple (_, [ left; right ])) ->
             if isEqOp op then
                 match left with
-                | Identifier (_, Declarative (id, _)) ->
+                | Identifier (_, Bound (Declared, id, _)) ->
                     if not (map.ContainsKey id) then
                         map.Add(id, right)
                 | _ -> ()
@@ -175,7 +180,7 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dict
 
     let rec walk (n: Exp) =
         match n with
-        | Apply (_, typeExpr, This (_, Declarative (thisId, _))) ->
+        | Apply (_, typeExpr, This (_, Bound (Declared, thisId, _))) ->
             match declToScope.TryGetValue thisId with
             | true, sid when not (map.ContainsKey sid) -> map[sid] <- typeExpr
             | _ -> ()
@@ -224,13 +229,12 @@ type private Context =
 // following a receiver (e.g. `person`) to the value it denotes.
 let private tryResolveRoleToDecl (ctx: Context) (role: BindingRole) : Guid option =
     match role with
-    | Resolved (id, _)
-    | Declarative (id, _) -> Some id
-    | Referential (cands, name) when not (nameHasHole name) ->
-        cands
-        |> List.tryPick (fun sid ->
-            match ctx.Registry.TryGetValue sid with
-            | true, (:? LocalScope as scope) -> lookupInScope scope name
+    | Bound (_, id, _) -> Some id
+    | Pending (frames, name) when not (nameHasHole name) ->
+        frames
+        |> List.tryPick (fun f ->
+            match f.Mode, f.Scope with
+            | ReferentialScope, (:? LocalScope as scope) -> lookupInScope scope name
             | _ -> None)
     | _ -> None
 
@@ -291,74 +295,201 @@ let private lookupHostedInScope
         else
             None)
 
-let rec private resolveRole (ctx: Context) (span: Range.Range) (role: BindingRole) : BindingRole =
-    let report kind = ctx.Diags.Add { Kind = kind; Span = span }
+// Find the record scope denoted by an expression, following identifier bindings
+// (e.g. `person` -> `record(Name:string)`) with cycle protection.
+let rec private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Exp) : Scope option =
+    match exp with
+    | Record (_, recScope, _) -> Some recScope
+    // A product literal's named section carries its field names, so a product
+    // with named fields answers member lookups exactly as a record does.
+    | Product (_, _, _, productScope, _) -> Some productScope
+    | Set (_, [ single ]) -> recordScopeOf ctx visited single
+    | Local (_, _, e)
+    | Publish (_, _, _, e)
+    | ScopeExp (_, _, e) -> recordScopeOf ctx visited e
+    | Identifier (_, role) ->
+        match tryResolveRoleToDecl ctx role with
+        | Some id when visited.Add id ->
+            match ctx.BindingMap.TryGetValue id with
+            | true, def -> recordScopeOf ctx visited def
+            | _ -> None
+        | _ -> None
+    | _ -> None
 
-    match role with
-    | Unbound _
-    | Declarative _
-    | Resolved _ -> role
-    | Referential (candidates, name) ->
-        if nameHasHole name then
-            // Interpolated names cannot be resolved statically; leave as-is.
-            role
-        else
-            let mutable resolved = None
-            // Distinct declaration identities found in non-root local scopes.
-            // The same declaration id may intentionally be recorded in several
-            // local scopes by layered declarative contexts; that is not shadowing.
-            let declaringLocalDeclIds = HashSet<Guid>()
-            let mutable hasDeferredScope = false
+// How a referential frame answers "does this scope provide the name?".
+type private Membership =
+    | Contains of Guid
+    | Lacks
+    | UnknownMembers
 
-            for sid in candidates do
-                match ctx.Registry.TryGetValue sid with
-                | true, scope ->
-                    match scope with
-                    | :? LocalScope ->
-                        match lookupUnhostedInScope scope name with
-                        | Some declId ->
-                            if resolved.IsNone then
-                                resolved <- Some declId
-                            if sid <> Guid.Empty then
-                                declaringLocalDeclIds.Add declId |> ignore
-                        | None -> ()
-                    | :? ExpressionScope
-                    | :? ExpressionMemberScope ->
-                        // Members of an expression scope depend on the expression's set,
-                        // which is not computed yet. Defer rather than report unresolved.
-                        hasDeferredScope <- true
-                    | _ -> ()
-                | _ ->
-                    // Candidate scope not in the registry; be conservative and defer.
-                    hasDeferredScope <- true
+let private frameMembership (ctx: Context) (frame: ScopeFrame) (name: InterpolatedParts) : Membership =
+    match frame.Scope with
+    | :? LocalScope as scope ->
+        match lookupUnhostedInScope scope name with
+        | Some id -> Contains id
+        | None -> Lacks
+    | :? ExpressionScope as scope ->
+        // The names an expression scope provides are the members of the set its
+        // defining expression denotes.
+        match recordScopeOf ctx (HashSet<Guid>()) scope.Expression with
+        | Some recScope ->
+            match lookupInScope recScope name with
+            | Some id -> Contains id
+            | None -> Lacks
+        | None -> UnknownMembers
+    | _ ->
+        // ExpressionMemberScope: member-of-member structure is not derivable yet.
+        UnknownMembers
 
-            if declaringLocalDeclIds.Count >= 2 then
-                report (IllegalShadowing(formatName name))
+// What the deferred binding walk would do for a Pending occurrence.
+type private WalkOutcome =
+    | WouldReference of Guid
+    | WouldDeclare of Scope list
+    | Undecidable
+    | Missing
 
-            match resolved with
-            | Some declId -> Resolved(declId, name)
-            | None ->
-                // Fallback: a bare name may be an implicit member of a `this`
-                // parameter whose set is known in scope (e.g. `S this => ...Year...`
-                // where `Year` is a field of the record `S`, such as `DateTime`).
-                // Resolve it against that set's members.
-                let thisHit =
-                    candidates
-                    |> List.tryPick (fun sid ->
-                        match ctx.ThisTypes.TryGetValue sid with
-                        | true, typeExpr ->
-                            recordScopeOf ctx (HashSet<Guid>()) typeExpr
-                            |> Option.bind (fun recScope -> lookupInScope recScope name)
-                        | _ -> None)
+let private walkPending (ctx: Context) (frames: ScopeFrame list) (name: InterpolatedParts) : WalkOutcome =
+    let rec go (fs: ScopeFrame list) =
+        match fs with
+        | [] -> Missing
+        | f :: rest ->
+            match f.Mode with
+            | DeclarativeScope ->
+                // Contiguous declarative segment; the first referential frame is
+                // a barrier per the declaration composition rules.
+                let targets =
+                    fs
+                    |> List.takeWhile (fun fr -> fr.Mode = DeclarativeScope)
+                    |> List.map (fun fr -> fr.Scope)
+                WouldDeclare targets
+            | ReferentialScope ->
+                match frameMembership ctx f name with
+                | Contains id -> WouldReference id
+                | Lacks -> go rest
+                | UnknownMembers -> Undecidable
+    go frames
 
-                match thisHit with
-                | Some declId -> Resolved(declId, name)
+let private applyDeclare (targets: Scope list) (name: InterpolatedParts) : Guid =
+    let declId =
+        targets
+        |> List.tryPick (fun s -> lookupUnhostedInScope s name)
+        |> Option.defaultValue (Guid.NewGuid())
+    for s in targets do
+        if (lookupUnhostedInScope s name).IsNone then
+            s.defineName(declId, name, Exp.unknown)
+    declId
+
+// Distinct declaration identities for the name across the non-root local
+// referential frames. Two or more means nested local scopes shadow each other.
+let private shadowingIds (frames: ScopeFrame list) (name: InterpolatedParts) : HashSet<Guid> =
+    let ids = HashSet<Guid>()
+    for f in frames do
+        if f.Mode = ReferentialScope then
+            match f.Scope with
+            | :? LocalScope as s when s.Id <> Guid.Empty ->
+                match lookupUnhostedInScope s name with
+                | Some id -> ids.Add id |> ignore
+                | None -> ()
+            | _ -> ()
+    ids
+
+// Fallback: a bare name may be an implicit member of a `this` parameter whose
+// set is known in scope (e.g. `S this => ...Year...` where `Year` is a field of
+// the record `S`).
+let private tryThisMember (ctx: Context) (frames: ScopeFrame list) (name: InterpolatedParts) : Guid option =
+    frames
+    |> List.tryPick (fun f ->
+        match f.Mode with
+        | ReferentialScope ->
+            match ctx.ThisTypes.TryGetValue f.Scope.Id with
+            | true, typeExpr ->
+                recordScopeOf ctx (HashSet<Guid>()) typeExpr
+                |> Option.bind (fun recScope -> lookupInScope recScope name)
+            | _ -> None
+        | _ -> None)
+
+// One classification sweep. Declarations are always applied; references only
+// when `final` is true, so no reference resolves before every reachable
+// declaration has been recorded. Scope mutation during the sweep is
+// intentional: later occurrences in the same sweep see earlier declarations.
+// Returns the rewritten tree and the number of declarations applied.
+let private classifyPass (ctx: Context) (final: bool) (exp: Exp) : Exp * int =
+    let mutable applied = 0
+
+    let classifyRole (span: Range.Range) (role: BindingRole) : BindingRole =
+        match role with
+        | Unbound _
+        | Bound _ -> role
+        | Pending (frames, name) ->
+            match walkPending ctx frames name with
+            | WouldDeclare targets ->
+                applied <- applied + 1
+                Bound(Declared, applyDeclare targets name, name)
+            | WouldReference id when final ->
+                if (shadowingIds frames name).Count >= 2 then
+                    ctx.Diags.Add { Kind = IllegalShadowing(formatName name); Span = span }
+                Bound(Referenced, id, name)
+            | Missing when final ->
+                match tryThisMember ctx frames name with
+                | Some id -> Bound(Referenced, id, name)
                 | None ->
-                    if not hasDeferredScope then
-                        report (UnresolvedName(formatName name))
+                    if not (nameHasHole name) then
+                        ctx.Diags.Add { Kind = UnresolvedName(formatName name); Span = span }
                     role
+            | _ -> role
 
-and private resolveExp (ctx: Context) (node: Exp) : Exp =
+    let rec go (node: Exp) : Exp =
+        let goPart =
+            function
+            | TextPart _ as p -> p
+            | HolePart e -> HolePart(go e)
+
+        match node with
+        | Local (r, s, e) -> Local(r, s, go e)
+        | Apply (r, f, a) -> Apply(r, go f, go a)
+        | Tuple (r, xs) -> Tuple(r, List.map go xs)
+        | Product (r, positional, fusion, s, named) ->
+            Product(r, List.map go positional, fusion, s, List.map go named)
+        | Record (r, s, e) -> Record(r, s, go e)
+        | Publish (r, s, access, e) -> Publish(r, s, access, go e)
+        | Identifier (r, role) -> Identifier(r, classifyRole r role)
+        | ScopeExp (r, s, e) -> ScopeExp(r, s, go e)
+        | Literal _ -> node
+        | Set (r, xs) -> Set(r, List.map go xs)
+        | List (r, xs) -> List(r, List.map go xs)
+        | StringLiteral (r, parts) -> StringLiteral(r, List.map goPart parts)
+        | Projection (r, s, e, m) ->
+            // The member of `receiver.member` resolves against the receiver's
+            // structure, not lexically; leave identifier members for
+            // resolveMember.
+            let m' =
+                match m with
+                | Identifier _ -> m
+                | _ -> go m
+            Projection(r, s, go e, m')
+        | MemberProjection (r, s, e, m) -> MemberProjection(r, s, go e, go m)
+        | This (r, role) -> This(r, classifyRole r role)
+        | Void _ -> node
+        | Unknown _ -> node
+        | Throw (r, e) -> Throw(r, go e)
+        | Catch (r, a, b) -> Catch(r, go a, go b)
+        | IsDefined (r, e) -> IsDefined(r, go e)
+        | Equals (r, a, b) -> Equals(r, go a, go b)
+        | Primary (r, e) -> Primary(r, go e)
+        | Candidate (r, e) -> Candidate(r, go e)
+        // Surface markers: eliminated by the Binder before resolution.
+        | Reference _
+        | DeclareLeft _
+        | DeclareRight _
+        | ReferenceLeft _
+        | ReferenceRight _
+        | PushScope _
+        | PushMemberScope _ -> node
+
+    let rewritten = go exp
+    rewritten, applied
+
+let rec private resolveExp (ctx: Context) (node: Exp) : Exp =
     let go = resolveExp ctx
     // Resolution only rewrites binding roles, so every rebuilt expression keeps
     // the range of the one it replaced.
@@ -376,7 +507,7 @@ and private resolveExp (ctx: Context) (node: Exp) : Exp =
         Product(r, List.map go positional, fusion, s, List.map go named)
     | Record (r, s, e) -> Record(r, s, go e)
     | Publish (r, s, access, e) -> Publish(r, s, access, go e)
-    | Identifier (r, role) -> Identifier(r, resolveRole ctx r role)
+    | Identifier _ -> node
     | ScopeExp (r, s, e) -> ScopeExp(r, s, go e)
     | Literal _ -> node
     | Set (r, xs) -> Set(r, List.map go xs)
@@ -388,7 +519,7 @@ and private resolveExp (ctx: Context) (node: Exp) : Exp =
         let receiver = go e
         Projection(r, s, receiver, resolveMember ctx receiver m)
     | MemberProjection (r, s, e, m) -> MemberProjection(r, s, go e, go m)
-    | This (r, role) -> This(r, resolveRole ctx r role)
+    | This _ -> node
     | Void _ -> node
     | Unknown _ -> node
     | Throw (r, e) -> Throw(r, go e)
@@ -412,7 +543,7 @@ and private resolveExp (ctx: Context) (node: Exp) : Exp =
 // lexically scoped. If the receiver's structure is unknown, defer silently.
 and private resolveMember (ctx: Context) (receiver: Exp) (memberExp: Exp) : Exp =
     match memberExp with
-    | Identifier (r, Referential (cands, name)) when not (nameHasHole name) ->
+    | Identifier (r, Pending (frames, name)) when not (nameHasHole name) ->
         let recScopeOpt = recordScopeOf ctx (HashSet<Guid>()) receiver
         let fieldHit = recScopeOpt |> Option.bind (fun rs -> lookupInScope rs name)
 
@@ -422,14 +553,14 @@ and private resolveMember (ctx: Context) (receiver: Exp) (memberExp: Exp) : Exp 
             | None ->
                 let receiverIdentity = exprIdentity ctx receiver
                 let receiverType = receiverTypeIdentity ctx receiver
-                cands
-                |> List.tryPick (fun sid ->
-                    match ctx.Registry.TryGetValue sid with
-                    | true, scope -> lookupHostedInScope ctx scope name receiverIdentity receiverType
+                frames
+                |> List.tryPick (fun f ->
+                    match f.Mode with
+                    | ReferentialScope -> lookupHostedInScope ctx f.Scope name receiverIdentity receiverType
                     | _ -> None)
 
         match fieldHit |> Option.orElse hostedHit with
-        | Some id -> Identifier(r, Resolved(id, name))
+        | Some id -> Identifier(r, Bound(Referenced, id, name))
         | None ->
             // A field was sought on a known record but not found: a real error.
             // Otherwise the receiver structure is unknown, so defer.
@@ -440,43 +571,33 @@ and private resolveMember (ctx: Context) (receiver: Exp) (memberExp: Exp) : Exp 
             memberExp
     | _ -> resolveExp ctx memberExp
 
-// Find the record scope denoted by an expression, following identifier bindings
-// (e.g. `person` -> `record(Name:string)`) with cycle protection.
-and private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Exp) : Scope option =
-    match exp with
-    | Record (_, recScope, _) -> Some recScope
-    // A product literal's named section carries its field names, so a product
-    // with named fields answers member lookups exactly as a record does.
-    | Product (_, _, _, productScope, _) -> Some productScope
-    | Set (_, [ single ]) -> recordScopeOf ctx visited single
-    | Local (_, _, e)
-    | Publish (_, _, _, e)
-    | ScopeExp (_, _, e) -> recordScopeOf ctx visited e
-    | Identifier (_, role) ->
-        match tryResolveRoleToDecl ctx role with
-        | Some id when visited.Add id ->
-            match ctx.BindingMap.TryGetValue id with
-            | true, def -> recordScopeOf ctx visited def
-            | _ -> None
-        | _ -> None
-    | _ -> None
-
-// Resolve referential occurrences against the program's scopes.
-// `baseScopes` are scopes that referential candidate lists name but that are not
-// reachable from the tree — currently the parser's operator scope, which
-// declares the functions operators lower to.
+// Classify the deferred binding walks, then resolve member projections.
+// `baseScopes` are scopes that Pending frames may name but that are not
+// reachable from the tree — currently the parser's operator scope.
 // Returns the rewritten tree and any diagnostics collected along the way.
 let resolve (rootScope: Scope) (baseScopes: Scope list) (exp: Exp) : Exp * Diagnostic list =
-    let registry = buildRegistry rootScope baseScopes exp
+    let diags = ResizeArray<Diagnostic>()
 
-    let ctx =
+    // The binding map and this-types change as deferred declarations land, so
+    // rebuild the context between sweeps. The registry maps ids to the same
+    // mutable scope objects throughout.
+    let mkCtx (e: Exp) =
+        let registry = buildRegistry rootScope baseScopes e
         { Registry = registry
-          BindingMap = buildBindingMap exp
-          ThisTypes = buildThisTypes registry exp
-          Diags = ResizeArray<Diagnostic>() }
+          BindingMap = buildBindingMap e
+          ThisTypes = buildThisTypes registry e
+          Diags = diags }
 
-    let resolved = resolveExp ctx exp
-    resolved, List.ofSeq ctx.Diags
+    // Declaration sweeps to a fixpoint: a deferred declaration can enable
+    // another (or change a later reference), so repeat until none lands.
+    let rec settle (e: Exp) =
+        let e', applied = classifyPass (mkCtx e) false e
+        if applied > 0 then settle e' else e'
+
+    let settled = settle exp
+    let classified, _ = classifyPass (mkCtx settled) true settled
+    let resolved = resolveExp (mkCtx classified) classified
+    resolved, List.ofSeq diags
 
 let formatDiagnostic (d: Diagnostic) =
     let message =

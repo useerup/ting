@@ -28,6 +28,11 @@ type Fusion =
     /// `@@` — the positional section stays a single field, nested whole.
     | NonFusing
 
+// Binding mode of a scope frame for a specific expression region.
+type ScopeMode =
+    | DeclarativeScope
+    | ReferentialScope
+
 /// The abstract syntax tree.
 ///
 /// Every case carries its source Range as its **first** field. There is no
@@ -45,15 +50,17 @@ type Fusion =
 ///     ReferenceLeft/Right, PushScope, PushMemberScope), and
 ///   - identifiers in the Unbound binding role, except for the operator heads it
 ///     synthesizes: the parser knows every operator it can parse, so it emits
-///     those already Referential against its own operator scope.
+///     those already Bound(Referenced) against its own operator scope.
 ///
 /// The Binder (run as part of parsing) rewrites the tree in place-of-type:
 ///   - marker cases are eliminated (lowered to Local/Apply/scope pushes),
-///   - every Unbound identifier becomes Declarative (with a fresh declaration
-///     id recorded in its declarative scopes) or Referential (with the ordered
-///     candidate scope-id list, nearest enclosing scope first).
+///   - every Unbound identifier becomes Bound(Declared) when its scope stack
+///     starts declaratively, or Pending (carrying the ordered moded frame
+///     stack, nearest frame first) when classification needs scopes that are
+///     populated later.
 ///
-/// The Resolver later upgrades Referential occurrences to Resolved.
+/// The Resolver classifies Pending occurrences to Bound once the scopes they
+/// depend on are populated.
 ///
 /// Source patterns per case (the leading Range is omitted throughout):
 ///
@@ -90,9 +97,9 @@ type Fusion =
 ///                    Binder fills it with the record's declarations.
 ///   Identifier       An identifier occurrence carrying its BindingRole. The parser
 ///                    emits Unbound for identifiers written in source, and the
-///                    already-Referential head of each operator desugaring
+///                    already-Bound head of each operator desugaring
 ///                    (`_+_`, `_=>_`, `!_`, `fn_`, ...). The Binder rewrites
-///                    Unbound to Declarative/Referential and leaves the rest alone.
+///                    Unbound to Bound/Pending and leaves the rest alone.
 ///   Literal          A literal term; see the Literal type.
 ///   Set              Brace comma-separated list `{a, b, ...}`; also `records E`,
 ///                    `tuples E`.
@@ -200,15 +207,29 @@ and InterpolatedPart =
 
 and InterpolatedParts = InterpolatedPart list
 
+// How an occurrence's binding walk ended: it either contributed a declaration
+// or resolved to an existing one. Distinct from ScopeMode, which describes a
+// frame during the walk rather than the occurrence's outcome.
+and BindingKind =
+    | Declared
+    | Referenced
+
 // Unbound is the parser's role for every identifier occurrence. The Binder
-// rewrites it: Declarative carries declaration identity; Referential carries the
-// ordered candidate scope ids + name pattern. Resolved carries the declaration
-// id a referential occurrence was bound to during name resolution.
+// rewrites it: Bound is the terminal outcome (kind + declaration id); Pending
+// carries the ordered moded frame stack (nearest first) for occurrences whose
+// walk needs scopes that are only populated by later analysis. The Resolver
+// classifies Pending to Bound.
 and BindingRole =
     | Unbound of InterpolatedParts
-    | Declarative of Guid * InterpolatedParts
-    | Referential of Guid list * InterpolatedParts
-    | Resolved of Guid * InterpolatedParts
+    | Pending of ScopeFrame list * InterpolatedParts
+    | Bound of BindingKind * Guid * InterpolatedParts
+
+// A scope together with its binding mode at a particular point in the
+// expression. The stack of these frames is what name binding walks.
+and ScopeFrame = {
+    Scope: Scope
+    Mode: ScopeMode
+}
 
 and NameHost =
     | DirectPropertyHost of Exp
@@ -248,19 +269,9 @@ and ExpressionMemberScope(id: Guid, expression: Exp) =
     inherit ChildScope(id)
     member _.Expression = expression
 
-// Binding mode of a scope frame for a specific expression region.
-type ScopeMode =
-    | DeclarativeScope
-    | ReferentialScope
-
 // Ordered scope stack, nearest first. Each frame keeps its own mode so nested
 // operators can mix declarative and referential behavior without losing frame
 // order.
-type ScopeFrame = {
-    Scope: Scope
-    Mode: ScopeMode
-}
-
 type ScopeStack = ScopeFrame list
 
 let scopeId (s: Scope) = s.Id

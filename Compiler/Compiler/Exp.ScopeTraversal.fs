@@ -15,12 +15,12 @@ and private collectDefinitionScopesFromScope (acc: ResizeArray<Scope>) (s: Scope
     | :? ExpressionMemberScope as k -> collectDefinitionScopes acc k.Expression
     | _ -> ()
 
-// Referential/unbound roles are traversed only through interpolated name holes.
+// Bound roles carry no nested expressions; unbound/pending names are traversed
+// only through interpolated name holes.
 and private collectDefinitionScopesFromRole (acc: ResizeArray<Scope>) = function
-    | Declarative _ -> ()
-    | Resolved _ -> ()
+    | Bound _ -> ()
     | Unbound nameParts
-    | Referential (_, nameParts) ->
+    | Pending (_, nameParts) ->
         for p in nameParts do
             collectDefinitionScopesFromPart acc p
 

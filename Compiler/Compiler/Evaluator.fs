@@ -25,15 +25,15 @@ and Env = Map<Guid, Value>
 // (non-interpolated) name.
 let private opName (e: CoreExp) : string option =
     match e with
-    | CoreExp.Identifier (_, Resolved (_, [ TextPart s ]))
-    | CoreExp.Identifier (_, Referential (_, [ TextPart s ]))
-    | CoreExp.Identifier (_, Declarative (_, [ TextPart s ])) -> Some s
+    | CoreExp.Identifier (_, Bound (_, _, [ TextPart s ]))
+    | CoreExp.Identifier (_, Pending (_, [ TextPart s ]))
+    | CoreExp.Identifier (_, Unbound [ TextPart s ]) -> Some s
     | _ -> None
 
 // The declaration id introduced by the left-hand side of a binding, if any.
 let rec private declIdOf (lhs: CoreExp) : Guid option =
     match lhs with
-    | CoreExp.Identifier (_, Declarative (id, _)) -> Some id
+    | CoreExp.Identifier (_, Bound (Declared, id, _)) -> Some id
     | CoreExp.Project (_, _, m)
     | CoreExp.ProjectMembers (_, _, m) -> declIdOf m
     | CoreExp.Local (_, _, e) -> declIdOf e
@@ -42,7 +42,7 @@ let rec private declIdOf (lhs: CoreExp) : Guid option =
 // The parameter declaration ids bound by a lambda's parameter expression.
 let rec private paramIds (param: CoreExp) : Guid list =
     match param with
-    | CoreExp.Identifier (_, Declarative (id, _)) -> [ id ]
+    | CoreExp.Identifier (_, Bound (Declared, id, _)) -> [ id ]
     | CoreExp.Tuple (_, xs) -> xs |> List.collect paramIds
     | CoreExp.Local (_, _, e) -> paramIds e
     | _ -> []
@@ -157,7 +157,7 @@ let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
         | CoreExp.Local (_, _, inner)
         | CoreExp.Scoped (_, _, inner)
         | CoreExp.Publish (_, _, _, inner) -> eval env inner
-        | CoreExp.Identifier (_, Resolved (id, _)) -> Map.tryFind id env
+        | CoreExp.Identifier (_, Bound (Referenced, id, _)) -> Map.tryFind id env
         | CoreExp.Tuple (_, xs) -> evalList env xs |> Option.map VTuple
         | CoreExp.Product (_, positional, fusion, _, named) -> evalProduct env positional fusion named
         | CoreExp.Project (_, receiver, m) -> evalProjection env receiver m
@@ -250,7 +250,7 @@ let evaluate (rootScope: Scope) (exp: CoreExp) : Value option =
 
     and evalProjection (env: Env) (receiver: CoreExp) (m: CoreExp) : Value option =
         match m with
-        | CoreExp.Identifier (_, Resolved (id, _)) ->
+        | CoreExp.Identifier (_, Bound (Referenced, id, _)) ->
             match Map.tryFind id env with
             | Some v ->
                 match hostOf id with

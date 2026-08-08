@@ -5,14 +5,18 @@ open Exp
 open ExpScopes
 
 // Scope-annotation pass over the unified AST. Runs as part of parsing (see
-// Parser.parse): it eliminates the parser's binding-intent markers, assigns
-// declaration ids to declarative identifiers (recording them in their
-// declarative scopes), and attaches the ordered candidate scope-id list to
-// every referential identifier.
+// Parser.parse): it eliminates the parser's binding-intent markers, declares
+// identifiers whose scope stack starts declaratively (Bound Declared), and
+// leaves every other identifier Pending with its ordered moded frame stack for
+// the Resolver to classify once the scopes involved are populated.
+//
+// No reference is ever resolved here: whether a referential frame contains a
+// name is only decidable after all declarations (including deferred ones) have
+// been recorded, so references are always Pending.
 //
 // Operator heads are not its business: the parser knows the operators it parses
 // and emits their heads already bound to its own operator scope, so they arrive
-// here as ordinary Referential identifiers and pass through untouched.
+// here as Bound identifiers and pass through untouched.
 
 module private ScopeStackOps =
     let addDeclarative (s: Scope) (scopes: ScopeStack) : ScopeStack =
@@ -23,13 +27,6 @@ module private ScopeStackOps =
 
     let makeReferential (scopes: ScopeStack) : ScopeStack =
         scopes |> List.map (fun f -> { f with Mode = ReferentialScope })
-
-    let referentialCandidateIds (scopes: ScopeStack) : Guid list =
-        scopes
-        |> List.choose (fun f ->
-            match f.Mode with
-            | ReferentialScope -> Some(scopeId f.Scope)
-            | DeclarativeScope -> None)
 
     let declarativeScopes (scopes: ScopeStack) : Scope list =
         scopes
@@ -77,32 +74,22 @@ module private Binding =
         | Some _ -> ()
         | None -> scope.defineName(id, name, Exp.unknown)
 
+    // Classification is eager only where it is sound without any lookup: a
+    // stack that starts with declarative frames declares into the contiguous
+    // declarative segment. Any leading referential frame makes the outcome
+    // depend on that frame's eventual contents, so the occurrence stays
+    // Pending for the Resolver.
     let bindingRole (scopes: ScopeStack) (name: InterpolatedParts) : BindingRole =
-        let refs = referentialCandidateIds scopes
+        match contiguousDeclarativeScopes scopes with
+        | [] -> Pending(scopes, name)
+        | targets ->
+            let declId =
+                targets
+                |> List.tryPick (fun s -> tryLookupUnhostedByName s name)
+                |> Option.defaultValue (Guid.NewGuid())
 
-        let rec walk (frames: ScopeStack) : BindingRole option =
-            match frames with
-            | [] -> None
-            | frame :: rest ->
-                match frame.Mode with
-                | ReferentialScope ->
-                    match tryLookupUnhostedByName frame.Scope name with
-                    | Some _ -> Some(Referential(refs, name))
-                    | None -> walk rest
-                | DeclarativeScope ->
-                    let targets = contiguousDeclarativeScopes frames
-
-                    let declId =
-                        targets
-                        |> List.tryPick (fun s -> tryLookupUnhostedByName s name)
-                        |> Option.defaultValue (Guid.NewGuid())
-
-                    targets |> List.iter (ensureDeclaredInScope declId name)
-                    Some(Declarative(declId, name))
-
-        match walk scopes with
-        | Some role -> role
-        | None -> Referential(refs, name)
+            targets |> List.iter (ensureDeclaredInScope declId name)
+            Bound(Declared, declId, name)
 
 module private Marking =
     open ScopeStackOps
@@ -116,7 +103,7 @@ module private Marking =
 
         let rec walk (n: Exp) =
             match n with
-            | Identifier (_, Declarative (id, _)) -> acc.Add id
+            | Identifier (_, Bound (Declared, id, _)) -> acc.Add id
             | Apply (_, f, a) ->
                 walk f
                 walk a
@@ -180,8 +167,10 @@ module private Marking =
         | DeclareRight (r, f, left, right) ->
             let s = createNamesScope()
             let head = recur f (makeReferential scopes)
-            let left = recur left (addReferential s scopes)
+            // The declarative operand populates the scope, so analyze it before
+            // the referential operand that reads from it.
             let right = recur right (addDeclarative s scopes)
+            let left = recur left (addReferential s scopes)
             let args = Tuple(spanning left right, [ left; right ])
             Local(r, s, Apply(r, head, args))
         | ReferenceLeft (r, f, left, right) ->

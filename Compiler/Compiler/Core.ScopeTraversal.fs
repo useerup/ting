@@ -20,13 +20,13 @@ and private collectFromScope (acc: ResizeArray<Scope>) (s: Scope) =
     | :? ExpressionMemberScope as k -> ExpScopeAnalysis.collectAllScopes k.Expression |> List.iter acc.Add
     | _ -> ()
 
-// Referential/unbound roles are traversed only through interpolated name holes,
-// which are surface expressions for the same reason.
+// Bound roles carry no nested expressions; unbound/pending names are traversed
+// only through interpolated name holes, which are surface expressions for the
+// same reason.
 and private collectFromRole (acc: ResizeArray<Scope>) = function
-    | Declarative _
-    | Resolved _ -> ()
+    | Bound _ -> ()
     | Unbound nameParts
-    | Referential (_, nameParts) ->
+    | Pending (_, nameParts) ->
         for p in nameParts do
             match p with
             | TextPart _ -> ()
