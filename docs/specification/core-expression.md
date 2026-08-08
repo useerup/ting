@@ -4,7 +4,7 @@ Ting's semantics are defined over a small internal form called the **core expres
 
 Two properties explain why the core is as small as it is.
 
-**There are no operators in the core.** Every infix and prefix operator is surface syntax for the application of an ordinary function. `a + b` applies the function named `_+_` to the tuple `(a, b)`; `x => body` applies `_=>_`; `!p` applies `!_`. The core has one application form and no operator forms at all. Operator functions live in a scope fixed by the grammar, so they are never looked up lexically and can never be shadowed by a user declaration.
+**There are no ordinary operators in the core.** Ordinary infix and prefix operators are surface syntax for the application of functions. `a + b` applies the function named `_+_` to the tuple `(a, b)`; `x => body` applies `_=>_`; `!p` applies `!_`. Scope operators and semantic markers may retain dedicated core forms, such as `contract`, `total`, `partial` and `throw`. Operator functions live in a scope fixed by the grammar, so they are never looked up lexically and can never be shadowed by a user declaration.
 
 **There is no declaration form.** Declaring and referencing are not different constructs. They are the same identifier occurrence, interpreted against a different kind of scope (§2.4).
 
@@ -12,7 +12,7 @@ Two properties explain why the core is as small as it is.
 
 ### Application
 
-`apply f a` applies `f` to `a`. Juxtaposition (`f x`), every infix operator and every prefix operator lower to this form. An infix operator applies its function to a two-element tuple.
+`apply f a` applies `f` to `a`. Juxtaposition (`f x`) and every ordinary infix or prefix operator lower to this form. An infix operator applies its function to a two-element tuple. Scope operators and semantic markers use their dedicated forms.
 
 ### Aggregates
 
@@ -42,6 +42,7 @@ The `this` keyword. It carries a binding role exactly as an identifier does, and
 - `scoped S e` — evaluate `e` under an explicitly supplied scope. `./` and `../` lower to this.
 - `publish A S e` — declare the names introduced by `e` in scope `S` with access modifier `A`. `public`, `private`, `protected` and `internal` lower to this.
 - `record S e` — evaluate `e` as a record scope; every name `e` declares becomes a field of the record.
+- `contract S i c` — retain implementation `i` together with the function set `c` that forms its opaque external description. Scope `S` is declarative over `i` and referential over `c`.
 
 Note that the right-referential operators (`=`, `in`, `:`, `<`, `==`, …) introduce **no** scope. They only decide how their operands are interpreted against the scopes already in force.
 
@@ -74,6 +75,8 @@ These forms have no surface syntax of their own beyond the constructs that norma
 | `primary e` | attribute erasure | `primary e` |
 | `candidate e` | class erasure | `candidate e` |
 | `isDefined e` | definedness test | guards, `;;`, `?` |
+| `total e` | total-function subset | `total e` |
+| `partial e` | suppress precise definedness inference | `partial e` |
 | `throw e` | raise an exception | `throw e` |
 | `catch e h` | handle an exception | `e catch h` |
 
@@ -124,15 +127,32 @@ Two consequences are worth making explicit:
 
 Every identifier and `this` occurrence carries one of three roles:
 
-- **Declarative** — the occurrence introduces a name. It carries a declaration identity, and that identity is recorded in *every* declarative scope covering the occurrence. An occurrence covered by more than one declarative scope declares the name in all of them and unifies the results.
+- **Declarative** — the scope walk reached a declarative frame before resolving the name. The occurrence carries a declaration identity, and that identity is recorded in every remaining declarative scope covering the occurrence. An existing declaration with the same name in one of those frames receives another unifying constraint rather than being shadowed.
 - **Referential** — the occurrence refers to a name declared elsewhere. It carries the ordered list of candidate scopes, nearest enclosing first.
 - **Resolved** — a referential occurrence that name resolution has paired with a specific declaration identity.
 
-An occurrence is declarative if any declarative scope covers it, and referential otherwise. Nothing in the identifier itself decides this; only the scopes in force at that point do.
+Each frame in the ordered scope stack is independently declarative or referential at an
+occurrence. Binding walks the stack from the innermost frame outward:
+
+1. A referential frame containing the name resolves the occurrence and stops the walk.
+2. A referential frame not containing the name is skipped.
+3. The first declarative frame makes the occurrence declarative. Its declaration identity
+    is contributed to that frame and every remaining declarative frame; intervening
+    referential frames receive nothing.
+4. If the walk exhausts only referential frames without finding the name, the occurrence
+    is unresolved.
+
+Nothing in the identifier itself decides the outcome. It follows from the ordered frame
+stack and the declarations already available in referential frames.
 
 ## Scopes
 
 A scope maps declaration identities to entries. Each entry records the name, the expression the name is bound to (`unknown` until known), and optionally a **host**.
+
+Declarative and referential are traversal modes of a scope frame, not permanent kinds of
+scope. An operator may view an existing frame as referential over one operand without
+removing or reordering that frame. A declarative operator adds a new frame whose mode
+differs between its operands while inherited frames retain their modes.
 
 There are three kinds of scope:
 
@@ -161,12 +181,12 @@ Member resolution is **structural, not lexical**. Members are never found by lex
 
 ## Surface forms and their lowering
 
-This section indexes the surface syntax against the core. It covers the constructs the grammar currently accepts. Operator sections — a binary operator written in prefix position, such as `(= rhs)`, denoting partial application — appear in reference material but have no lowering yet.
+This section indexes the specified surface syntax against the core. Operator sections — a binary operator written in prefix position, such as `(= rhs)`, denoting partial application — are specified at the surface level but their core lowering remains to be defined.
 
 Two things are recorded for each construct. **Core** is the form of §2.1 or §2.2 it produces. **Binding** is how it affects the binding role (§2.4) of its operands, using two terms:
 
 - **Ambient** — the operand inherits whatever context surrounds the construct. It therefore *declares* where a declarative scope covers it and *refers* where none does. Ambient is the default; it is what makes a construct binding-neutral.
-- **Referential** — the operand is a use-site regardless of the surrounding context. A name written there is always read, never introduced.
+- **Referential** — every declarative frame already on the stack is viewed as referential over the operand. A name written there is always read, never introduced.
 
 ### Terms
 
@@ -190,7 +210,11 @@ Two things are recorded for each construct. **Core** is the form of §2.1 or §2
 | `⊕ x` | `apply ⊕_ x` | `x` ambient |
 | `x ⊕ y` | `apply _⊕_ (x, y)` | per operator class, below |
 
-Juxtaposition makes the callee referential and leaves the argument ambient. This is why `let float a = 42` declares `a`: `float a` reads `float` and, being under a declarative scope, declares `a`.
+Juxtaposition makes the callee referential in every covering frame and leaves the argument
+ambient. This is why `let float a = 42` declares `a`: `float a` reads `float` and, being
+under a declarative scope, declares `a`. Converting every frame is essential when
+declarative scopes nest; a callee can never leak through an inner frame and become a
+declaration in an outer one.
 
 ### Operator binding classes
 
@@ -200,17 +224,23 @@ Operators are ordinary functions (§2), but they differ in how they interpret th
 
 `else`, `>>`, `<<`, `|>`, `<|`, `|`, `||`, `|||`, `&`, `&&`, `&&&`, `...`, `...<`, `<...`, `<...<`, `;`, `;;`, `^^`, `**`, `+`, `-`, `*`, `/`, `%`, `/%`, `^`, and the prefix operators `!`, `-`, `fn`, `class`.
 
-**Right-referential** — left operand ambient, right operand referential; no scope introduced:
+**Right-referential** — left operand ambient; over the right operand every declarative
+frame already on the stack is viewed as referential. No scope is introduced:
 
-`=`, `?=`, `?=`, `in`, `then`, `->`, `catch`, `?`, `??`, `:`, `::`, `:::`, `<`, `<=`, `>=`, `>`, `==`, `!=`, `!:`.
+`=`, `?=`, `in`, `then`, `->`, `catch`, `?`, `??`, `:`, `::`, `:::`, `<`, `<=`, `>=`, `>`, `==`, `!=`, `!:`.
 
 This class is what gives `x = 5` its asymmetry. The right side is a value to be read; the left side inherits the surrounding context and so introduces `x` when a declarative scope covers it. Nothing about `=` itself declares anything.
 
-**Left-declarative** — introduces a local scope `S`; the left operand declares into `S` and the right operand refers to it. `x ⊕ y` lowers to `local S (apply _⊕_ (x, y))`:
+**Left-declarative** — introduces a local scope `S`. The new frame is declarative over
+the left operand and referential over the right; inherited frames retain their modes in
+both operands. `x ⊕ y` lowers to `local S (apply _⊕_ (x, y))`:
 
-`=>` (lambda parameter), `\` (comprehension binder).
+`=>` (lambda parameter), `\` (comprehension binder). `contract` has the same binding
+class but retains the dedicated core form `contract S i c` so opacity survives lowering.
 
-**Right-declarative** — the mirror image: `S` is introduced, the right operand declares into it, the left refers to it:
+**Right-declarative** — the mirror image: `S` is introduced, its new frame is referential
+over the left operand and declarative over the right, and inherited frames retain their
+modes:
 
 `where`.
 
@@ -224,6 +254,7 @@ These do not lower to function application.
 | `public E`, `private E`, `protected E`, `internal E` | `publish A S E` | `S` declarative over `E` |
 | `record E` | `record S E` | `S` declarative over `E` |
 | `records E` | `set {record S E}` | as `record` |
+| `i contract c` | `contract S i c` | new `S` declarative over `i`, referential over `c`; inherited frames unchanged |
 | `(a, b @ n = v, …)` | `product (a, b) fusing S (n = v, …)` | positional ambient, named declarative over `S` |
 | `(a, b @@ n = v, …)` | `product (a, b) nonfusing S (n = v, …)` | as above |
 | `tuple E` | `E` | unchanged |
@@ -234,6 +265,8 @@ These do not lower to function application.
 | `a .. b` | `projectMembers a b` | `a` referential, `b` resolved against `a` |
 | `primary E` | `primary E` | `E` ambient |
 | `candidate E` | `candidate E` | `E` ambient |
+| `total E` | `total E` | `E` ambient |
+| `partial E` | `partial E` | `E` ambient |
 | `throw E` | `throw E` | `E` ambient |
 
 `primary` and `candidate` leave their operand ambient, so `primary a = primary b` still declares `a` where a declarative scope covers it. The declaration is simply weaker: it constrains `a` only up to attribute erasure.
