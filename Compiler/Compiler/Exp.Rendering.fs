@@ -140,18 +140,33 @@ let private formatScopeNames (projectedKinds: System.Collections.Generic.Diction
         $"{formatNameParts entry.NameParts}<{kindText}>{formatHostSuffix entry}")
     |> String.concat ", "
 
+// Scopes the tree does not point at (the root scope, the parser's operator
+// scope) followed by every scope reachable from the tree, without duplicates.
+let private allReportedScopes (ambient: Scope list) (exp: Exp) : Scope list =
+    let seen = System.Collections.Generic.HashSet<Guid>()
+    ambient @ collectAllScopes exp
+    |> List.filter (fun s -> seen.Add s.Id)
+
 // Build a textual scope report used by console and file output.
-let renderScopeReport (exp: Exp) : string =
+let renderScopeReportWith (ambient: Scope list) (exp: Exp) : string =
     let projectedKinds = collectProjectedDeclarationKinds exp
-    collectAllScopes exp
+    let usagesByScope = inferScopeUsages exp
+    let ambientIds = ambient |> List.map (fun s -> s.Id) |> Set.ofList
+    allReportedScopes ambient exp
     |> List.mapi (fun i s ->
         let namesText = formatScopeNames projectedKinds s
+        let usagesText =
+            match usagesByScope.TryGetValue s.Id with
+            | true, entries when entries.Count > 0 -> entries |> Seq.sort |> String.concat ", "
+            | _ -> if ambientIds.Contains s.Id then "ambient" else "unknown"
         [
-            $"[{i}] {scopeKindName s, -20} {formatScope s}"
+            $"[{i}] type={scopeTypeName s} usage={usagesText} id={formatScope s}"
             $"    names=[{namesText}]"
         ])
     |> List.concat
     |> String.concat Environment.NewLine
+
+let renderScopeReport (exp: Exp) : string = renderScopeReportWith [] exp
 
 // Print each collected scope, its kind, and the names currently present in that scope.
 let printScopeReport (exp: Exp) : unit =
@@ -159,8 +174,8 @@ let printScopeReport (exp: Exp) : unit =
 
 // Render each identifier occurrence together with source position and binding
 // metadata from the Binder/Resolver roles.
-let renderIdentifierReport (exp: Exp) : string =
-    let scopes = collectAllScopes exp
+let renderIdentifierReportWith (ambient: Scope list) (exp: Exp) : string =
+    let scopes = allReportedScopes ambient exp
 
     let declarativeScopes (declId: Guid) =
         scopes
@@ -169,8 +184,7 @@ let renderIdentifierReport (exp: Exp) : string =
         |> String.concat ", "
 
     let rec collect (node: Exp) (acc: (Range.Range * string) list) =
-        let emit role =
-            let name = nameOfRole role |> formatNameParts
+        let emit name role =
             let roleText = formatIdentifierRole role
 
             let details =
@@ -250,6 +264,8 @@ let renderIdentifierReport (exp: Exp) : string =
         "No identifier occurrences found."
     else
         String.concat Environment.NewLine rows
+
+let renderIdentifierReport (exp: Exp) : string = renderIdentifierReportWith [] exp
 
 // Render the analyzed Exp in a cycle-safe way for diagnostics/output files.
 let rec private renderInterpolatedPart = function

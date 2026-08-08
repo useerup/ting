@@ -84,8 +84,9 @@ let private compileTingProgramRaw (input: string) : string =
         // so the reports below reflect the finished walk.
         let resolved, diagnostics = Resolver.resolve rootScope [ Parser.operatorScope ] analyzed
 
-        let scopes = renderScopeReport resolved
-        let identifiers = renderIdentifierReport resolved
+        // The root scope is ambient: nothing in the tree points at it.
+        let scopes = renderScopeReportWith [ rootScope ] resolved
+        let identifiers = renderIdentifierReportWith [ rootScope ] resolved
 
         let scopesSection =
             if String.IsNullOrWhiteSpace scopes then
