@@ -1,0 +1,11 @@
+/*
+    On sets, `||` is guarded union: membership in the right set is only tested for values
+    that are not already members of the left.
+    The members are the same as for `|`, but the right operand may safely be one whose
+    membership test is undefined for values the left already accepts.
+*/
+
+let Small = { 1, 2 } in
+let Evens = { int n \ n % 2 == 0 } in
+
+Small || Evens

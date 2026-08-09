@@ -1,0 +1,8 @@
+/*
+    On sets, `|` is UNION: the members of `A | B` are the values that are members of
+    either.
+    Union is how a sum type is written, and no tags or constructors are involved: the
+    members of `int | string` are simply all the ints and all the strings.
+*/
+
+int | string

@@ -1,0 +1,10 @@
+/*
+    On functions, `|||` is mutually guarded union of relations: neither function is
+    privileged as the fallback, so either may supply a result where the other has none.
+    Where both are defined and disagree, the result is nondeterministic, as with `|`.
+*/
+
+let F = fn { 1 -> 10 } in
+let G = fn { 2 -> 20 } in
+
+F ||| G

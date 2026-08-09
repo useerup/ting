@@ -1,0 +1,9 @@
+/*
+    On booleans, `||` is guarded disjunction: the right operand is evaluated only if the
+    left is false. If the left is true, the result is true and the right is never touched.
+    As with `&&`, the guard runs one way only.
+*/
+
+let n = 0 in
+
+n == 0 || 100 / n > 1

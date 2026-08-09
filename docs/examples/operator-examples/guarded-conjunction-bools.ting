@@ -1,0 +1,10 @@
+/*
+    On booleans, `&&` is guarded conjunction: the right operand is evaluated only if the
+    left is true. If the left is false, the result is false and the right is never
+    touched, even where evaluating it would be undefined.
+    The guard is one-directional, which is what distinguishes `&&` from `&&&`.
+*/
+
+let n = 0 in
+
+n != 0 && 100 / n > 1

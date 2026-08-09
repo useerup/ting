@@ -1,0 +1,11 @@
+/*
+    On functions, `!` is the relational complement: `!F = fn { x -> y \ (x -> y) !: F.AsSet }`.
+    Note that this is NOT `fn !(F.AsSet)`: the complement of a set also contains values
+    that are not mappings at all, so it must be restricted to mappings.
+    `!F` applied to `1` yields nondeterministically any value other than `10`.
+    Negation on functions is an involution, and `F & !F` is undefined everywhere.
+*/
+
+let F = fn { 1 -> 10, 2 -> 20 } in
+
+!F

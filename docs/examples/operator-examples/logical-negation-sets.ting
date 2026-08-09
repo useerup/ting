@@ -1,0 +1,10 @@
+/*
+    On sets, `!` is complement: `!A = { x \ !(x : A) }`.
+    The members of `!Evens` are exactly the values that are not members of `Evens`.
+    This is the same operator as the boolean one; the definition is written in terms
+    of the boolean case applied pointwise to membership.
+*/
+
+let Evens = { int n \ n % 2 == 0 } in
+
+!Evens

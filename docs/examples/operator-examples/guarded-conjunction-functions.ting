@@ -1,0 +1,11 @@
+/*
+    On functions, `&&` is guarded conjunction of relations: the right function is only
+    consulted for arguments the left one already maps.
+    So the left operand determines the domain, and the right can refine the result
+    without having to be defined everywhere.
+*/
+
+let F = fn { 1 -> 10, 2 -> 20 } in
+let G = fn { int n -> n * 10 } in
+
+F && G

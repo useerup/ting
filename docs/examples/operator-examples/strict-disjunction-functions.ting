@@ -1,0 +1,12 @@
+/*
+    On functions, `|` is the UNION OF RELATIONS: a mapping is in `F | G` when it is in
+    either.
+    Where the two disagree, both results are in the relation, so applying the function is
+    nondeterministic rather than an error and rather than a left-biased choice.
+    This is the mechanism by which a set of mappings under `fn` becomes one function.
+*/
+
+let F = fn { 1 -> 10, 2 -> 20 } in
+let G = fn { 2 -> 99, 3 -> 30 } in
+
+F | G

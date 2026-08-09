@@ -1,0 +1,11 @@
+/*
+    On functions, `&` is the CONJUNCTION OF RELATIONS: a mapping is in `F & G` when it is
+    in both. So the result is defined only where both agree, and undefined elsewhere.
+    Contrast with `|` on functions, which unions the relations and so is nondeterministic
+    where the two disagree.
+*/
+
+let F = fn { 1 -> 10, 2 -> 20 } in
+let G = fn { 2 -> 20, 3 -> 30 } in
+
+F & G

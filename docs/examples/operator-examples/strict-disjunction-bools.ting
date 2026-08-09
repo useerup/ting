@@ -1,0 +1,11 @@
+/*
+    On booleans, `|` is strict disjunction: both operands are evaluated and the result is
+    true when either is true.
+    Being strict, it is undefined if either operand is undefined, even where the other
+    operand is true. Use `||` to guard the right operand with the left.
+*/
+
+let a = true in
+let b = false in
+
+a | b

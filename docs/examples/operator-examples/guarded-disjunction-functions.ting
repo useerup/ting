@@ -1,0 +1,11 @@
+/*
+    On functions, `||` is guarded union of relations: the right function is consulted
+    only for arguments the left does not map.
+    This gives a deterministic fallback where `|` would be nondeterministic, which is how
+    a default case is written.
+*/
+
+let Special = fn { 0 -> "zero" } in
+let General = fn { int n -> "some number" } in
+
+Special || General

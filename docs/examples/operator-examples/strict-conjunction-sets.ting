@@ -1,0 +1,12 @@
+/*
+    On sets, `&` is INTERSECTION: the members of `A & B` are the values that are members
+    of both.
+    This is the same operator as the boolean one, applied pointwise to membership:
+    `A & B = { x \ x : A & x : B }`.
+    Intersection is how constraints are combined, e.g. `int & Positive`.
+*/
+
+let Evens = { int n \ n % 2 == 0 } in
+let Positives = { int n \ n > 0 } in
+
+Evens & Positives

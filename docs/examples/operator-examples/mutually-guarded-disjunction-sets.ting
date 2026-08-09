@@ -1,0 +1,10 @@
+/*
+    On sets, `|||` is mutually guarded union: either operand may guard the other, so
+    membership can be settled from whichever side is decidable.
+    The members are the same as for `|`.
+*/
+
+let Small = { 1, 2 } in
+let Evens = { int n \ n % 2 == 0 } in
+
+Small ||| Evens

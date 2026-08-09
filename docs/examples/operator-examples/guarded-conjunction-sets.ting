@@ -1,0 +1,10 @@
+/*
+    On sets, `&&` is guarded intersection: membership in the right set is only tested for
+    values already in the left.
+    This lets the right operand assume what the left has established, so the refinement
+    may safely mention a projection that only exists for members of the left set.
+*/
+
+let People = records (string Name, int Age) in
+
+People && { x \ x.Age >= 18 }

@@ -1,0 +1,9 @@
+/*
+    On booleans, `|||` is MUTUALLY guarded disjunction: each operand guards the other.
+    The result is true when either is true, false when both are false, and undefined only
+    when neither can be settled - no matter which operand is examined first.
+*/
+
+let n = 0 in
+
+n == 0 ||| 100 / n > 1

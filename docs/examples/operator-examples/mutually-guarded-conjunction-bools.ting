@@ -1,0 +1,11 @@
+/*
+    On booleans, `&&&` is MUTUALLY guarded conjunction: each operand guards the other.
+    The result is true when both are true, false when either is false, and undefined only
+    when neither can be settled - regardless of which operand is examined first.
+    Where `&&` picks a direction, `&&&` is symmetric, which is what makes it the right
+    choice when either side may be the one that is cheap or defined.
+*/
+
+let n = 0 in
+
+n != 0 &&& 100 / n > 1

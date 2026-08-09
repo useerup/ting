@@ -1,0 +1,9 @@
+/*
+    `!` is logical negation on booleans.
+    Undefinedness is not a third truth value: `!` of an undefined operand is undefined,
+    because there is no value there to negate.
+*/
+
+let flag = true in
+
+!flag

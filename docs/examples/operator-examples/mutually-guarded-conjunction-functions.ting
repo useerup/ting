@@ -1,0 +1,10 @@
+/*
+    On functions, `&&&` is mutually guarded conjunction of relations: either function may
+    supply the domain restriction for the other.
+    The resulting relation is the same as for `&`, but neither operand is privileged.
+*/
+
+let F = fn { 1 -> 10, 2 -> 20 } in
+let G = fn { 2 -> 20, 3 -> 30 } in
+
+F &&& G

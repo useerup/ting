@@ -1,0 +1,10 @@
+/*
+    On sets, `&&&` is mutually guarded intersection: either operand may serve as the
+    guard for the other, so the implementation is free to test whichever is decidable.
+    The members are the same as for `&`, but membership is settled in more cases.
+*/
+
+let Evens = { int n \ n % 2 == 0 } in
+let Positives = { int n \ n > 0 } in
+
+Evens &&& Positives

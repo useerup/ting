@@ -1,0 +1,12 @@
+/*
+    On booleans, `&` is strict conjunction: BOTH operands are evaluated, and the result
+    is true only when both are true.
+    Strictness matters because of undefinedness: if either operand is undefined, the
+    whole expression is undefined, even where the other operand is false.
+    Use `&&` where the right operand must be guarded by the left.
+*/
+
+let a = true in
+let b = false in
+
+a & b
