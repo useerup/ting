@@ -1,0 +1,7 @@
+/*
+    In a declarative context the right operand of `.` DECLARES the property instead of
+    reading it, so the same syntax that reads a field also describes one.
+    Here the pattern says: accept records that have a `Name` field, and bind that field.
+*/
+
+(@ Name = string n) => n

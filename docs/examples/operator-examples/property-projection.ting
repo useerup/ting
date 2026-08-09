@@ -1,0 +1,10 @@
+/*
+    `.` projects a property. It is left-referential: the left operand is read to produce
+    a scope, and the right operand names a member of it.
+    The right operand is neither declarative nor referential in the ordinary sense - it
+    is looked up in the projected scope only, never in the enclosing scopes.
+*/
+
+let person = record (Name = "Bob", Age = 42) in
+
+person.Name

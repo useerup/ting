@@ -1,0 +1,10 @@
+/*
+    `..` is MEMBER property projection, the elementwise counterpart of `.`.
+    The left operand denotes a set, and the projection is applied to each MEMBER, so the
+    result is the set of those property values.
+    Compare `./` and `../`, which stand in exactly the same relation.
+*/
+
+let People = records (string Name, int Age) in
+
+People..Name

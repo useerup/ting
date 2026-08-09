@@ -1,0 +1,7 @@
+/*
+    In a declarative context the right operand of `..` declares the member property, so
+    the expression describes the set of all values whose members have that property.
+    Here `Name` is declared rather than read.
+*/
+
+records (string Name, int Age) ..Name

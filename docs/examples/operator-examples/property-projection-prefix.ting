@@ -1,0 +1,9 @@
+/*
+    Written in prefix position, `.Name` is partial application of the projection: the
+    function that accepts a value and yields its `Name` property.
+    This works because every binary operator may be partially applied in prefix position.
+*/
+
+let person = record (Name = "Bob", Age = 42) in
+
+(.Name) person

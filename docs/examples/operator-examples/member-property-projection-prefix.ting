@@ -1,0 +1,8 @@
+/*
+    In prefix position, `..Name` is the partially applied member projection: the function
+    that accepts a set and yields the set of its members' `Name` properties.
+*/
+
+let People = records (string Name, int Age) in
+
+(..Name) People
