@@ -1,0 +1,8 @@
+/*
+    `protected` behaves as `public`, but publishes the names its operand declares
+    with protected access.
+*/
+
+protected (
+    BaseRate = 0.05
+)

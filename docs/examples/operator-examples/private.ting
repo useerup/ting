@@ -1,0 +1,10 @@
+/*
+    `private` behaves as `public`, but publishes the names its operand declares
+    with private access.
+    The access modifier only changes who may refer to the name; it does not change
+    how the operand is analyzed, which is declarative in every case.
+*/
+
+private (
+    Secret = 1234
+)

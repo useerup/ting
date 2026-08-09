@@ -1,0 +1,8 @@
+/*
+    `internal` behaves as `public`, but publishes the names its operand declares
+    with internal access.
+*/
+
+internal (
+    BufferSize = 4096
+)

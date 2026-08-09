@@ -1,0 +1,12 @@
+/*
+    `public` introduces a scope in which its operand is declarative, and publishes
+    every name that operand declares with public access.
+    Unlike `let`, the declared names are visible to other compilation units.
+    A compilation unit is a single expression, so several declarations are grouped
+    in one operand.
+*/
+
+public (
+    Answer = 42,
+    Greeting = "hello"
+)

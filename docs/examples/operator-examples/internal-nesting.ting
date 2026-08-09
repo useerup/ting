@@ -1,0 +1,10 @@
+/*
+    Publishing operators nest, and a name declared under two overlapping publishing
+    contexts is unified rather than duplicated.
+    This declares one `Answer` that is both protected and internal, not two separate
+    declarations that happen to share a name.
+*/
+
+protected internal (
+    Answer = 42
+)
