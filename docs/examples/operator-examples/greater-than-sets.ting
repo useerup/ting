@@ -1,0 +1,9 @@
+/*
+    On sets, `>` is PROPER SUPERSET: `A > B` holds when every member of `B` is a member
+    of `A` and the two sets are not equal.
+*/
+
+let Large = { 1, 2, 3 } in
+let Small = { 1, 2 } in
+
+Large > Small

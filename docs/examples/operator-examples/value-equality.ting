@@ -1,0 +1,10 @@
+/*
+    `==` ignores attributes but observes class membership and the structural core.
+    It is not primitive: `a == b` denotes `=` applied to the attribute-erased operands,
+    that is `primary a = primary b`.
+    For set operands it yields true when both sets have the same members.
+*/
+
+let x = 42 in
+
+x == 42

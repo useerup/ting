@@ -1,0 +1,9 @@
+/*
+    `!=` is the negation of `==`, so it too ignores attributes and observes class
+    membership and structural core.
+    Like every attribute-blind relation it wraps its operands in `primary`.
+*/
+
+let x = 42 in
+
+x != 43

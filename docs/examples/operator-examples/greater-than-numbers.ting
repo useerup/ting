@@ -1,0 +1,5 @@
+/*
+    On numbers, `>` is strictly greater than.
+*/
+
+3 > 2

@@ -1,0 +1,5 @@
+/*
+    On numbers, `>=` is greater-than-or-equal, the mirror image of `<=`.
+*/
+
+3 >= 3

@@ -1,0 +1,7 @@
+/*
+    On numbers, `<` is the ordinary strictly-less-than relation.
+    Like every attribute-blind relation it compares `primary` operands, so attributes
+    play no part in the ordering.
+*/
+
+1 < 2

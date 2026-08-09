@@ -1,0 +1,11 @@
+/*
+    On sets, `<` is PROPER SUBSET: `A < B` holds when every member of `A` is a member of
+    `B` and the two sets are not equal.
+    The comparison operators are one family, read as an ordering in both signatures: on
+    numbers by magnitude, on sets by containment.
+*/
+
+let Small = { 1, 2 } in
+let Large = { 1, 2, 3 } in
+
+Small < Large

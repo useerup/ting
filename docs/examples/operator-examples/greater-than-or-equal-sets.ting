@@ -1,0 +1,9 @@
+/*
+    On sets, `>=` is SUPERSET, allowing equality: `A >= B` denotes `B <= A`.
+    Nothing new is being defined here; the operator is simply read from the other side.
+*/
+
+let Large = { 1, 2, 3 } in
+let Small = { 1, 2 } in
+
+Large >= Small

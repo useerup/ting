@@ -1,0 +1,6 @@
+/*
+    On numbers, `<=` is less-than-or-equal.
+    It is the disjunction of `<` and `==`, so it inherits their attribute blindness.
+*/
+
+2 <= 2

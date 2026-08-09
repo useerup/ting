@@ -1,0 +1,13 @@
+/*
+    On sets, `<=` is subset, allowing equality: `A <= B` holds when every member of `A`
+    is a member of `B`.
+    This is the relation that says a set is a valid substitute wherever the other is
+    admitted, which is how subtyping is expressed without a subtyping feature.
+    Both operands must be sets. Where the left operand is a multiset, `::` is the relation
+    to reach for: it admits duplicates, whereas a set unifies them.
+*/
+
+let Small = { 1, 2 } in
+let Large = { 1, 2, 3 } in
+
+Small <= Large
