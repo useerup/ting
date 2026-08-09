@@ -225,13 +225,16 @@ module private Marking =
             StringLiteral(r, List.map (fun p -> markDeclarationsPart p scopes) parts)
         | Projection (r, s, e, m) ->
             let receiver = recur e (makeReferential scopes)
-            let memberExp = recur m scopes
-            attachHost (declarativeScopes scopes) (DirectPropertyHost receiver) memberExp
+            // `.` opens a declarative frame of its own over the member operand.
+            let inner = addDeclarative s scopes
+            let memberExp = recur m inner
+            attachHost (declarativeScopes inner) (DirectPropertyHost receiver) memberExp
             Projection(r, s, receiver, memberExp)
         | MemberProjection (r, s, e, m) ->
             let receiver = recur e (makeReferential scopes)
-            let memberExp = recur m scopes
-            attachHost (declarativeScopes scopes) (MemberPropertyHost receiver) memberExp
+            let inner = addDeclarative s scopes
+            let memberExp = recur m inner
+            attachHost (declarativeScopes inner) (MemberPropertyHost receiver) memberExp
             MemberProjection(r, s, receiver, memberExp)
         | This (r, Unbound _) ->
             This(r, bindingRole scopes [])

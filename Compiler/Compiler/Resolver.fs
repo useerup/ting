@@ -83,18 +83,19 @@ let private lookupUnhostedInScope (scope: Scope) (name: InterpolatedParts) : Gui
         else
             None)
 
-// Map every scope id reachable from the program (plus the root and base scopes)
-// to its Scope. Base scopes are ambient scopes that no node points at but that
-// candidate lists refer to — the parser's operator scope is one.
-let private buildRegistry (rootScope: Scope) (baseScopes: Scope list) (exp: Exp) : Dictionary<Guid, Scope> =
+// Every scope the program can reach, in a stable order: the root scope, the
+// ambient base scopes, then the scopes the tree points at. Base scopes are
+// ambient scopes that no node points at but that candidate lists refer to -
+// the parser's operator scope is one.
+let private buildScopeList (rootScope: Scope) (baseScopes: Scope list) (exp: Exp) : Scope list =
+    let seen = HashSet<Guid>()
+    (rootScope :: baseScopes) @ collectAllScopes exp
+    |> List.filter (fun s -> seen.Add s.Id)
+
+let private buildRegistry (scopes: Scope list) : Dictionary<Guid, Scope> =
     let registry = Dictionary<Guid, Scope>()
-    registry[rootScope.Id] <- rootScope
-    for s in baseScopes do
-        if not (registry.ContainsKey s.Id) then
-            registry[s.Id] <- s
-    for s in collectAllScopes exp do
-        if not (registry.ContainsKey s.Id) then
-            registry[s.Id] <- s
+    for s in scopes do
+        registry[s.Id] <- s
     registry
 
 let private nameOfRole (role: BindingRole) : InterpolatedParts =
@@ -221,6 +222,7 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dict
 // Shared state threaded through the resolution pass.
 type private Context =
     { Registry: Dictionary<Guid, Scope>
+      Scopes: Scope list
       BindingMap: Dictionary<Guid, Exp>
       ThisTypes: Dictionary<Guid, Exp>
       Diags: ResizeArray<Diagnostic> }
@@ -271,17 +273,20 @@ let private receiverTypeIdentity (ctx: Context) (receiver: Exp) : Guid option =
 // Find a hosted name in a scope whose host matches the receiver:
 //   DirectPropertyHost h  matches when the receiver *is* h        (e.g. int.Zero)
 //   MemberPropertyHost h  matches when the receiver is a member of h (e.g. 21.Double)
+// `excluded` is the occurrence's own declaration, which a projection always
+// contributes to its own scope and which must therefore never match itself.
 let private lookupHostedInScope
     (ctx: Context)
     (scope: Scope)
     (name: InterpolatedParts)
     (receiverIdentity: Guid option)
     (receiverType: Guid option)
+    (excluded: Guid)
     : Guid option =
     scope.Names
     |> Seq.tryPick (fun kvp ->
         let entry = kvp.Value
-        if namePartsEqual entry.NameParts name then
+        if kvp.Key <> excluded && namePartsEqual entry.NameParts name then
             match entry.Host with
             | Some (DirectPropertyHost h) ->
                 match exprIdentity ctx h, receiverIdentity with
@@ -467,7 +472,12 @@ let private classifyPass (ctx: Context) (final: bool) (exp: Exp) : Exp * int =
                 | Identifier _ -> m
                 | _ -> go m
             Projection(r, s, go e, m')
-        | MemberProjection (r, s, e, m) -> MemberProjection(r, s, go e, go m)
+        | MemberProjection (r, s, e, m) ->
+            let m' =
+                match m with
+                | Identifier _ -> m
+                | _ -> go m
+            MemberProjection(r, s, go e, m')
         | This (r, role) -> This(r, classifyRole r role)
         | Void _ -> node
         | Unknown _ -> node
@@ -517,8 +527,10 @@ let rec private resolveExp (ctx: Context) (node: Exp) : Exp =
         // The member of `receiver.member` is resolved against the record structure
         // of the receiver, not the enclosing lexical scopes.
         let receiver = go e
-        Projection(r, s, receiver, resolveMember ctx receiver m)
-    | MemberProjection (r, s, e, m) -> MemberProjection(r, s, go e, go m)
+        Projection(r, s, receiver, resolveMember ctx s false receiver m)
+    | MemberProjection (r, s, e, m) ->
+        let receiver = go e
+        MemberProjection(r, s, receiver, resolveMember ctx s true receiver m)
     | This _ -> node
     | Void _ -> node
     | Unknown _ -> node
@@ -537,38 +549,60 @@ let rec private resolveExp (ctx: Context) (node: Exp) : Exp =
     | PushScope _
     | PushMemberScope _ -> node
 
-// Resolve `receiver.member`. The member is resolved against (a) the record
-// structure of the receiver, then (b) hosted extension properties/members whose
+// Resolve `receiver.member` (or `receiver..member` when `overMembers`). A
+// projection declares its member into its own scope, so every member arrives
+// here already declared. A member that was *also* contributed to a scope
+// outside the projection stood in a declarative context: it introduces a hosted
+// extension property and is left alone. Otherwise it is a read, resolved
+// against (a) the record structure of the receiver, then (b) hosted names whose
 // host matches the receiver. There is no lexical fallback: member names are not
 // lexically scoped. If the receiver's structure is unknown, defer silently.
-and private resolveMember (ctx: Context) (receiver: Exp) (memberExp: Exp) : Exp =
+and private resolveMember (ctx: Context) (projectionScope: Scope) (overMembers: bool) (receiver: Exp) (memberExp: Exp) : Exp =
     match memberExp with
-    | Identifier (r, Pending (frames, name)) when not (nameHasHole name) ->
-        let recScopeOpt = recordScopeOf ctx (HashSet<Guid>()) receiver
-        let fieldHit = recScopeOpt |> Option.bind (fun rs -> lookupInScope rs name)
+    | Tuple (r, xs) -> Tuple(r, xs |> List.map (resolveMember ctx projectionScope overMembers receiver))
+    | Identifier (r, Bound (Declared, declId, name)) when not (nameHasHole name) ->
+        let declaresExtension =
+            ctx.Scopes
+            |> List.exists (fun s -> s.Id <> projectionScope.Id && s.Names.ContainsKey declId)
 
-        let hostedHit =
-            match fieldHit with
-            | Some _ -> None
-            | None ->
-                let receiverIdentity = exprIdentity ctx receiver
-                let receiverType = receiverTypeIdentity ctx receiver
-                frames
-                |> List.tryPick (fun f ->
-                    match f.Mode with
-                    | ReferentialScope -> lookupHostedInScope ctx f.Scope name receiverIdentity receiverType
-                    | _ -> None)
-
-        match fieldHit |> Option.orElse hostedHit with
-        | Some id -> Identifier(r, Bound(Referenced, id, name))
-        | None ->
-            // A field was sought on a known record but not found: a real error.
-            // Otherwise the receiver structure is unknown, so defer.
-            match recScopeOpt with
-            | Some _ -> ctx.Diags.Add { Kind = UnresolvedMember(formatName name); Span = r }
-            | None -> ()
-
+        if declaresExtension then
             memberExp
+        else
+            // `..` selects from the members of the receiver, whose structure is
+            // not derivable, so only the hosted path applies there.
+            let recScopeOpt =
+                if overMembers then None else recordScopeOf ctx (HashSet<Guid>()) receiver
+
+            let fieldHit = recScopeOpt |> Option.bind (fun rs -> lookupInScope rs name)
+
+            let hostedHit =
+                match fieldHit with
+                | Some _ -> None
+                | None ->
+                    let receiverIdentity, receiverType =
+                        if overMembers then
+                            None, exprIdentity ctx receiver
+                        else
+                            exprIdentity ctx receiver, receiverTypeIdentity ctx receiver
+
+                    ctx.Scopes
+                    |> List.tryPick (fun s ->
+                        lookupHostedInScope ctx s name receiverIdentity receiverType declId)
+
+            match fieldHit |> Option.orElse hostedHit with
+            | Some id ->
+                // The member only looked like a declaration until the receiver
+                // supplied the name, so retract it.
+                projectionScope.Names.Remove declId |> ignore
+                Identifier(r, Bound(Referenced, id, name))
+            | None ->
+                // A field was sought on a known record but not found: a real error.
+                // Otherwise the receiver structure is unknown, so defer.
+                match recScopeOpt with
+                | Some _ -> ctx.Diags.Add { Kind = UnresolvedMember(formatName name); Span = r }
+                | None -> ()
+
+                memberExp
     | _ -> resolveExp ctx memberExp
 
 // Classify the deferred binding walks, then resolve member projections.
@@ -582,8 +616,10 @@ let resolve (rootScope: Scope) (baseScopes: Scope list) (exp: Exp) : Exp * Diagn
     // rebuild the context between sweeps. The registry maps ids to the same
     // mutable scope objects throughout.
     let mkCtx (e: Exp) =
-        let registry = buildRegistry rootScope baseScopes e
+        let scopes = buildScopeList rootScope baseScopes e
+        let registry = buildRegistry scopes
         { Registry = registry
+          Scopes = scopes
           BindingMap = buildBindingMap e
           ThisTypes = buildThisTypes registry e
           Diags = diags }
