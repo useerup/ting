@@ -1,0 +1,12 @@
+/*
+    `::` yields true when the left operand is a collection all of whose elements are
+    members of the right operand set.
+    The left operand may be any collection, and in particular a multiset: duplicates are
+    admitted and each contribution is tested on its own.
+    That is exactly what separates `::` from `<=`. Both lift membership from a value to a
+    collection of values, but `<=` relates two sets, which unify duplicate members, so it
+    has no reading for a multiset on the left.
+    `::` says nothing about order.
+*/
+
+{* 1, 2, 2, 3 *} :: int

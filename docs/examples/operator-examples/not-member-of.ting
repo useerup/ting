@@ -1,0 +1,7 @@
+/*
+    `!:` yields true when the left operand is NOT a member of the right operand set.
+    It is used in set builders to describe complements, as in the definition of `!` on
+    functions: `!F = fn { x -> y \ (x -> y) !: F.AsSet }`.
+*/
+
+"forty two" !: int

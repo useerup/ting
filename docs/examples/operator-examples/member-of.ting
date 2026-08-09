@@ -1,0 +1,8 @@
+/*
+    `:` yields true when the left operand is a member of the right operand set.
+    Since sets are what other languages call types, membership is how a value is said to
+    be "of a type" - there is no separate typing relation.
+    It is right-referential, so the right operand is always read, never declared.
+*/
+
+42 : int

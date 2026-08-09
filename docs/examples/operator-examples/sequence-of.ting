@@ -1,0 +1,10 @@
+/*
+    `:::` yields true when the left operand is an ordered sequence of members of the right
+    operand set.
+    It is the ordered counterpart of `::`: same elementwise membership, plus the
+    requirement that the collection is a sequence.
+    Like `::` it admits a multiset on the left, so duplicates are permitted. A list is
+    the ordinary way to write an ordered collection.
+*/
+
+[1, 2, 2, 3] ::: int
