@@ -1,0 +1,11 @@
+/*
+    `record` evaluates its operand as a record scope: every name the operand declares
+    becomes a field of the resulting record.
+    The operand is a declaration list, so `Name` and `Age` are declared, not compared.
+    A record is a value; the field names are part of it.
+*/
+
+record (
+    Name = "Bob",
+    Age = 42
+)

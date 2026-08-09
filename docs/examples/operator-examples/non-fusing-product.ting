@@ -1,0 +1,10 @@
+/*
+    `**` is the non-fusing product: its members are genuine two-tuples whose components
+    are nested whole.
+    Contrast with `*`, which fuses one level deep: `int * int * string` is a set of
+    three-tuples regardless of grouping, while the members of `(int * int) ** string`
+    are two-tuples whose first component is itself a two-tuple.
+    `**` is what makes nesting expressible at all.
+*/
+
+(int * int) ** string

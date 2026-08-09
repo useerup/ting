@@ -1,0 +1,6 @@
+/*
+    `tuples` denotes the SET of tuples whose components are those of the operand.
+    It is to `tuple` what `records` is to `record`: the set, rather than one member.
+*/
+
+tuples (int, string)

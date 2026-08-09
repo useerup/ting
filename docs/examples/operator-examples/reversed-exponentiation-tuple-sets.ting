@@ -1,0 +1,7 @@
+/*
+    For an int and a set, `n ^^ A` denotes `A ^ n`, the set of n-tuples over `A`.
+    `3 ^^ string` is therefore the set of three-tuples of strings, the same set as
+    `string^3` and as `string * string * string`.
+*/
+
+3 ^^ string

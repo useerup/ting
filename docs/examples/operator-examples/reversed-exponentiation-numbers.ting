@@ -1,0 +1,9 @@
+/*
+    `^^` carries no meaning of its own: it is `^` with its operands reversed, so it is
+    defined for exactly the signatures `^` is defined for.
+    On numeric operands `10 ^^ 2` therefore denotes `2 ^ 10`.
+    The reversal is only about which operand is written first, which is what lets the
+    function-set reading put the domain on the left.
+*/
+
+10 ^^ 2

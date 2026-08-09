@@ -1,0 +1,7 @@
+/*
+    `tuple` marks its operand as an explicit tuple construction.
+    It contributes no meaning of its own: `tuple E` denotes exactly `E`.
+    It exists to say "this parenthesis is a tuple", not "this parenthesis is grouping".
+*/
+
+tuple (1, 2, 3)

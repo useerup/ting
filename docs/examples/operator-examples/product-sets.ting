@@ -1,0 +1,9 @@
+/*
+    On sets, `*` is the FUSING product, one level deep: the members of `A * B` are the
+    products obtained by fusing a member of `A` with a member of `B`.
+    Grouping therefore does not matter: `(int * int) * string` and `int * (int * string)`
+    both denote the same set of flat three-tuples.
+    Use `**` where genuine nesting is wanted, and note that `/` is the inverse of `*`.
+*/
+
+int * int * string

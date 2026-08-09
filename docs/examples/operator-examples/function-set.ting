@@ -1,0 +1,14 @@
+/*
+    `^^` is `^` with its operands reversed, so `A ^^ B` denotes `B ^ A` and it is defined
+    wherever `^` is.
+
+    Its principal use is a convenient way to define the set of functions from the 
+    left operand set to the right operand: `int ^^ string` is the set of functions 
+    from `int` to `string`
+    
+    It is right-associative, so `A ^^ B ^^ C` is the curried `A ^^ (B ^^ C)`.
+    `A ^^ B` includes both total and partial functions; use `total (A ^^ B)` where
+    definedness over the admitted domain is required.
+*/
+
+int ^^ string

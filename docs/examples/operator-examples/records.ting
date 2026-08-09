@@ -1,0 +1,11 @@
+/*
+    `records` denotes the SET of records whose fields are those declared by the operand.
+    Where `record` builds one record value, `records` builds the set that such records
+    are members of. In Ting a set is what other languages would call a type, so this is
+    how a record shape is described.
+*/
+
+records (
+    string Name,
+    int Age
+)
