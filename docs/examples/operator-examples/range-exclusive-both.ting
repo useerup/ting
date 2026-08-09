@@ -1,0 +1,6 @@
+/*
+    `<...<` excludes BOTH endpoints, giving the open interval.
+    On the reals this is the usual way to state a strict two-sided bound.
+*/
+
+0.0 <...< 1.0

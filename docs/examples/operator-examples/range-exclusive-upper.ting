@@ -1,0 +1,6 @@
+/*
+    `...<` excludes the UPPER endpoint, which is the half-open range familiar from
+    zero-based indexing: `0 ...< n` has exactly `n` members.
+*/
+
+0 ...< 10

@@ -1,0 +1,7 @@
+/*
+    `...` denotes an inclusive range: both endpoints are members.
+    A range is an ordinary set, so it can be used anywhere a set is expected, including
+    as the domain of a function.
+*/
+
+1 ... 10

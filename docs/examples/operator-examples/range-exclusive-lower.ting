@@ -1,0 +1,8 @@
+/*
+    `<...` excludes the LOWER endpoint: the members are the values strictly greater than
+    the left operand and less than or equal to the right.
+    The `<` sits on the side of the endpoint it excludes, so the spelling of the operator
+    says which end is open.
+*/
+
+0 <... 10
