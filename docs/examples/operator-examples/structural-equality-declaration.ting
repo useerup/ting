@@ -1,0 +1,10 @@
+/*
+    Nothing about `=` declares anything. It is right-referential: the RIGHT operand is
+    read, while the LEFT operand inherits the surrounding context.
+    So `x = 5` declares `x` only because `let` put a declarative frame around it.
+    The same `x = 5` written where no declarative frame covers it is a comparison.
+*/
+
+let x = 5 in
+
+x = 5

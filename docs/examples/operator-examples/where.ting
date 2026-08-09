@@ -1,0 +1,9 @@
+/*
+    `where` is right-declarative: it introduces a local scope spanning the expression,
+    the RIGHT operand declares into it, and the left operand refers to it.
+    The value is the value of the left operand, on the condition that the right operand
+    evaluates to true.
+    This is how a name used on the left can be constrained after the fact.
+*/
+
+T * T ^^ T where T : (int | float)

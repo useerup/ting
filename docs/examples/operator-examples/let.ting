@@ -1,0 +1,9 @@
+/*
+    `let` is a prefix operator that introduces a local scope spanning its operand.
+    The new scope frame is declarative throughout that operand, so `x` is declared here.
+    `=` and `in` are right-referential: they make covering frames referential over their
+    right operand, which is why `21` and the body refer to names rather than declare them.
+    The names declared by a `let` are local: nothing outside the operand can see `x`.
+*/
+
+let x = 21 in x * 2

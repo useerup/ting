@@ -1,0 +1,9 @@
+/*
+    `\` is such-that. It is left-declarative: it introduces a local scope, the LEFT
+    operand declares into it, and the right operand is a proposition over those names.
+    The value is the value of the left operand for those values satisfying the right.
+    This one construct is simultaneously a set, a partial description and a search,
+    which is why refinement needs no separate language feature.
+*/
+
+{ int x \ x != 0 }

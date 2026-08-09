@@ -1,0 +1,10 @@
+/*
+    `./` is the expression scope operator. It is left-referential: the left operand is
+    analyzed first to produce a scope, and that scope is made available to the right.
+    Within the right operand, `this` is bound to the left operand, so the fields of
+    `person` can be named directly.
+*/
+
+let person = record (Name = "Bob", Age = 42) in
+
+person ./ record (Name, Older = Age + 1)

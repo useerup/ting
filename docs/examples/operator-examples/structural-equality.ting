@@ -1,0 +1,10 @@
+/*
+    `=` relates its two operands and yields true or false.
+    It compares structurally and observes ALL THREE value layers: attributes, class
+    membership and structural core. It is the only attribute-sensitive relation.
+    In a position that requires truth, such as a guard, `a = b` must evaluate to true.
+*/
+
+let x = 42 in
+
+x = 42

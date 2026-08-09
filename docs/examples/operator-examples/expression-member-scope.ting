@@ -1,0 +1,10 @@
+/*
+    `../` is the expression MEMBER scope operator, the elementwise counterpart of `./`.
+    The left operand must denote a set; within the right operand `this` is bound to a
+    MEMBER of that set rather than to the set itself.
+    So the right operand is written once and applies to every member.
+*/
+
+let People = records (string Name, int Age) in
+
+People ../ record (Name, Older = Age + 1)

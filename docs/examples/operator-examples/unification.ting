@@ -1,0 +1,11 @@
+/*
+    `?=` is declaration by unification: the left operand is UNIFIED with the right
+    rather than asserted equal to it.
+    Where `=` would yield false, `?=` is undefined. That difference is the whole point:
+    a failed unification is an absence of a result, not the boolean false.
+    It binds as tightly as `=` and is right-referential in the same way.
+*/
+
+let x ?= 42 in
+
+x

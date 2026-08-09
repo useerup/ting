@@ -1,0 +1,10 @@
+/*
+    `then` expresses implication.
+    If the left operand is true, the value is the value of the right operand.
+    If the left operand is false, the expression makes NO STATEMENT about the right
+    operand and is undefined. There is no implicit else branch producing a value.
+*/
+
+let x = 5 in
+
+x > 0 then x * 2

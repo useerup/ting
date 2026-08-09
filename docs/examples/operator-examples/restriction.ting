@@ -1,0 +1,8 @@
+/*
+    `?` is restriction: `left ? predicate` restricts `left` to the values satisfying it.
+    Applied to a function parameter it narrows the ADMITTED DOMAIN, which is how a
+    function is made total over a smaller domain rather than partial over a large one.
+    Contrast with `partial`, which keeps the broad domain and simply admits undefinedness.
+*/
+
+float x ? != 0.0 => 1.0 / x

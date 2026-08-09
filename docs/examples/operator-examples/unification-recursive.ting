@@ -1,0 +1,10 @@
+/*
+    Declarations contributed by the left operand of `?=` are available when the
+    now-referential frames are searched on the right.
+    That is what makes recursive bindings writable: `f` inside the body refers to the
+    `f` being declared.
+*/
+
+let f ?= fn { 0 -> 1, int n -> n * f (n - 1) } in
+
+f 3

@@ -1,0 +1,11 @@
+/*
+    `in` takes a proposition on the left and any expression on the right.
+    The value of the expression is the value of the RIGHT operand, provided the left
+    operand evaluates to true.
+    If the left operand is false or undefined, the whole expression is undefined: there
+    is no result, not a false result.
+*/
+
+let x = 5 in
+
+x > 0 in x * 2
