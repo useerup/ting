@@ -1,0 +1,10 @@
+/*
+    `partial` marks its operand as potentially undefined without changing which values
+    it admits or which results it produces.
+    The compiler does not look through the marker to infer a narrower definedness
+    condition; it assumes conservatively that the expression may be undefined.
+    `partial` neither catches undefinedness nor turns it into a value.
+    Contrast with domain restriction (`?`), which narrows the admitted domain instead.
+*/
+
+int n => partial (100 / n)

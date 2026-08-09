@@ -1,0 +1,11 @@
+/*
+    `class` constructs a class over the candidate set denoted by its operand.
+    A class is an inclusive set, and values of different classes are never equal even
+    where their candidate values are identical.
+    So a Celsius value and a Fahrenheit value built over the same float are distinct.
+*/
+
+let Celsius = class float in
+let Fahrenheit = class float in
+
+Celsius != Fahrenheit

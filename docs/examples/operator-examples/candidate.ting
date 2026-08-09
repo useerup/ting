@@ -1,0 +1,11 @@
+/*
+    `candidate` erases class membership, yielding the candidate value the class was
+    constructed over. It preserves attributes, so it is the complement of `primary`,
+    which erases attributes and preserves class.
+    Like `primary`, it is a keyword intrinsic and cannot be shadowed.
+*/
+
+let Celsius = class float in
+let temperature = 21.0 : Celsius in
+
+candidate temperature

@@ -1,0 +1,9 @@
+/*
+    `total` accepts a set of functions and denotes the subset guaranteed to return at
+    least one result for every argument in each function's admitted domain.
+    A bare `A ^^ B` contains both total and partial functions, so `total` adds a
+    definedness guarantee rather than changing the functions or narrowing their domains.
+    `total` is a set filter and has no expression-body meaning.
+*/
+
+total (int ^^ int)

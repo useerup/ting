@@ -1,0 +1,11 @@
+/*
+    `primary` erases attributes, the outermost of the three value layers.
+    It is total, deterministic, idempotent and deep, and it preserves class membership.
+    It is a keyword intrinsic rather than a property, so a record field named `primary`
+    cannot shadow it.
+    `==` is defined in terms of it: `a == b` denotes `primary a = primary b`.
+*/
+
+let x = 42 in
+
+primary x
