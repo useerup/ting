@@ -6,23 +6,21 @@ let a = { 1, 2 } in let b = { 2, 3 } in (a &&& b) ||| a
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[a<name>]
-[2] type=LocalScope usage=local id=#1
-    names=[b<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : a
+[4] Local : b
 
 Identifiers:
-[0] (1,5) name='a' role=declarative bound-scopes=[#0]
-[1] (1,7) name='_=_' role=referential(resolved) resolved-declaration=#2
-[2] (1,18) name='_in_' role=referential(resolved) resolved-declaration=#3
-[3] (1,25) name='b' role=declarative bound-scopes=[#1]
-[4] (1,27) name='_=_' role=referential(resolved) resolved-declaration=#2
-[5] (1,38) name='_in_' role=referential(resolved) resolved-declaration=#3
-[6] (1,42) name='a' role=referential(resolved) resolved-declaration=#4
-[7] (1,44) name='_&&&_' role=referential(resolved) resolved-declaration=#5
-[8] (1,48) name='b' role=referential(resolved) resolved-declaration=#6
-[9] (1,51) name='_|||_' role=referential(resolved) resolved-declaration=#7
-[10] (1,55) name='a' role=referential(resolved) resolved-declaration=#4
+a[1,5] decl - scope 3
+_=_[1,7] ref - scope 2
+_in_[1,18] ref - scope 2
+b[1,25] decl - scope 4
+_=_[1,27] ref - scope 2
+_in_[1,38] ref - scope 2
+a[1,42] ref - scope 3
+_&&&_[1,44] ref - scope 2
+b[1,48] ref - scope 4
+_|||_[1,51] ref - scope 2
+a[1,55] ref - scope 3
 ```

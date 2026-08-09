@@ -5,18 +5,18 @@
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
 
 Identifiers:
-[0] (1,1) name='!_' role=referential(resolved) resolved-declaration=#0
-[1] (1,2) name='a' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
-[2] (1,4) name='_in_' role=referential(resolved) resolved-declaration=#1
-[3] (1,7) name='b' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
-[4] (1,9) name='_+_' role=referential(resolved) resolved-declaration=#2
-[5] (1,11) name='c' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
-[6] (1,13) name='_*_' role=referential(resolved) resolved-declaration=#3
-[7] (1,15) name='d' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
+!_[1,1] ref - scope 2
+a[1,2] ref - unresolved
+_in_[1,4] ref - scope 2
+b[1,7] ref - unresolved
+_+_[1,9] ref - scope 2
+c[1,11] ref - unresolved
+_*_[1,13] ref - scope 2
+d[1,15] ref - unresolved
 
 Diagnostics:
 - (1,2-1,3) unresolved name 'a'

@@ -6,18 +6,16 @@ let pair = (1, 2) in (pair @@ Result = 3)
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[pair<name>]
-[2] type=LocalScope usage=product id=#1
-    names=[Result<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : pair
+[4] Product : Result
 
 Identifiers:
-[0] (1,5) name='pair' role=declarative bound-scopes=[#0]
-[1] (1,10) name='_=_' role=referential(resolved) resolved-declaration=#2
-[2] (1,19) name='_in_' role=referential(resolved) resolved-declaration=#3
-[3] (1,23) name='pair' role=referential(resolved) resolved-declaration=#4
-[4] (1,31) name='Result' role=declarative bound-scopes=[#1]
-[5] (1,38) name='_=_' role=referential(resolved) resolved-declaration=#2
+pair[1,5] decl - scope 3
+_=_[1,10] ref - scope 2
+_in_[1,19] ref - scope 2
+pair[1,23] ref - scope 3
+Result[1,31] decl - scope 4
+_=_[1,38] ref - scope 2
 ```

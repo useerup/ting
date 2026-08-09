@@ -5,17 +5,15 @@ let person.Name = "Zaphod"
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[Name<extension property> host=person.]
-[2] type=LocalScope usage=projection id=#1
-    names=[]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : Name
+[4] Projection : Name
 
 Identifiers:
-[0] (1,5) name='person' role=referential candidate-scopes=[#0, 00000000-0000-0000-0000-000000000000]
-[1] (1,12) name='Name' role=declarative bound-scopes=[#0]
-[2] (1,17) name='_=_' role=referential(resolved) resolved-declaration=#2
+person[1,5] ref - unresolved
+Name[1,12] decl - scope 3, 4
+_=_[1,17] ref - scope 2
 
 Diagnostics:
 - (1,5-1,11) unresolved name 'person'

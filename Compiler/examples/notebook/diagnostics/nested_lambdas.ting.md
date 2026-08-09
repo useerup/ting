@@ -5,29 +5,26 @@ x => x + y => x + y + z => x
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[x<name>]
-[2] type=LocalScope usage=local id=#1
-    names=[x<name>, y<name>]
-[3] type=LocalScope usage=local id=#2
-    names=[x<name>, y<name>, z<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : x
+[4] Local : x, y
+[5] Local : x, y, z
 
 Identifiers:
-[0] (1,1) name='x' role=declarative bound-scopes=[#0]
-[1] (1,3) name='_=>_' role=referential(resolved) resolved-declaration=#3
-[2] (1,6) name='x' role=declarative bound-scopes=[#1]
-[3] (1,8) name='_+_' role=referential(resolved) resolved-declaration=#4
-[4] (1,10) name='y' role=declarative bound-scopes=[#1]
-[5] (1,12) name='_=>_' role=referential(resolved) resolved-declaration=#3
-[6] (1,15) name='x' role=declarative bound-scopes=[#2]
-[7] (1,17) name='_+_' role=referential(resolved) resolved-declaration=#4
-[8] (1,19) name='y' role=declarative bound-scopes=[#2]
-[9] (1,21) name='_+_' role=referential(resolved) resolved-declaration=#4
-[10] (1,23) name='z' role=declarative bound-scopes=[#2]
-[11] (1,25) name='_=>_' role=referential(resolved) resolved-declaration=#3
-[12] (1,28) name='x' role=referential(resolved) resolved-declaration=#5
+x[1,1] decl - scope 3
+_=>_[1,3] ref - scope 2
+x[1,6] decl - scope 4
+_+_[1,8] ref - scope 2
+y[1,10] decl - scope 4
+_=>_[1,12] ref - scope 2
+x[1,15] decl - scope 5
+_+_[1,17] ref - scope 2
+y[1,19] decl - scope 5
+_+_[1,21] ref - scope 2
+z[1,23] decl - scope 5
+_=>_[1,25] ref - scope 2
+x[1,28] ref - scope 5
 
 Diagnostics:
 - (1,28-1,29) illegal shadowing of 'x' in nested local scope

@@ -8,15 +8,14 @@ let x = 1 /* a block comment /* nested */ inside an expression */ + 2 in
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[x<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : x
 
 Identifiers:
-[0] (2,5) name='x' role=declarative bound-scopes=[#0]
-[1] (2,7) name='_=_' role=referential(resolved) resolved-declaration=#1
-[2] (2,67) name='_+_' role=referential(resolved) resolved-declaration=#2
-[3] (2,71) name='_in_' role=referential(resolved) resolved-declaration=#3
-[4] (3,5) name='x' role=referential(resolved) resolved-declaration=#4
+x[2,5] decl - scope 3
+_=_[2,7] ref - scope 2
+_+_[2,67] ref - scope 2
+_in_[2,71] ref - scope 2
+x[3,5] ref - scope 3
 ```

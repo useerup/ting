@@ -5,18 +5,16 @@ record(Answer:int) \ (Answer = 42)
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[Answer<name>]
-[2] type=LocalScope usage=record id=#1
-    names=[Answer<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : Answer
+[4] Record : Answer
 
 Identifiers:
-[0] (1,8) name='Answer' role=declarative bound-scopes=[#0, #1]
-[1] (1,14) name='_:_' role=referential(resolved) resolved-declaration=#2
-[2] (1,15) name='int' role=referential(resolved) resolved-declaration=#3
-[3] (1,20) name='_\_' role=referential(resolved) resolved-declaration=#4
-[4] (1,23) name='Answer' role=referential(resolved) resolved-declaration=#5
-[5] (1,30) name='_=_' role=referential(resolved) resolved-declaration=#6
+Answer[1,8] decl - scope 3, 4
+_:_[1,14] ref - scope 2
+int[1,15] ref - scope 1
+_\_[1,20] ref - scope 2
+Answer[1,23] ref - scope 3, 4
+_=_[1,30] ref - scope 2
 ```

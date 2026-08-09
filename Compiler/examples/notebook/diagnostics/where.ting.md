@@ -5,25 +5,24 @@ T * T ^^ T where T:(Integrals|FloatingPoints|Lists)
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[T<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : T
 
 Identifiers:
-[0] (1,1) name='T' role=referential(resolved) resolved-declaration=#1
-[1] (1,3) name='_*_' role=referential(resolved) resolved-declaration=#2
-[2] (1,5) name='T' role=referential(resolved) resolved-declaration=#1
-[3] (1,7) name='_^^_' role=referential(resolved) resolved-declaration=#3
-[4] (1,10) name='T' role=referential(resolved) resolved-declaration=#1
-[5] (1,12) name='_where_' role=referential(resolved) resolved-declaration=#4
-[6] (1,18) name='T' role=declarative bound-scopes=[#0]
-[7] (1,19) name='_:_' role=referential(resolved) resolved-declaration=#5
-[8] (1,21) name='Integrals' role=referential candidate-scopes=[#0, 00000000-0000-0000-0000-000000000000]
-[9] (1,30) name='_|_' role=referential(resolved) resolved-declaration=#6
-[10] (1,31) name='FloatingPoints' role=referential candidate-scopes=[#0, 00000000-0000-0000-0000-000000000000]
-[11] (1,45) name='_|_' role=referential(resolved) resolved-declaration=#6
-[12] (1,46) name='Lists' role=referential candidate-scopes=[#0, 00000000-0000-0000-0000-000000000000]
+T[1,1] ref - scope 3
+_*_[1,3] ref - scope 2
+T[1,5] ref - scope 3
+_^^_[1,7] ref - scope 2
+T[1,10] ref - scope 3
+_where_[1,12] ref - scope 2
+T[1,18] decl - scope 3
+_:_[1,19] ref - scope 2
+Integrals[1,21] ref - unresolved
+_|_[1,30] ref - scope 2
+FloatingPoints[1,31] ref - unresolved
+_|_[1,45] ref - scope 2
+Lists[1,46] ref - unresolved
 
 Diagnostics:
 - (1,21-1,30) unresolved name 'Integrals'

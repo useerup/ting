@@ -6,14 +6,13 @@
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=product id=#0
-    names=[Name<name>, Age<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Product : Name, Age
 
 Identifiers:
-[0] (1,4) name='Name' role=declarative bound-scopes=[#0]
-[1] (1,9) name='_=_' role=referential(resolved) resolved-declaration=#1
-[2] (1,18) name='Age' role=declarative bound-scopes=[#0]
-[3] (1,22) name='_=_' role=referential(resolved) resolved-declaration=#1
+Name[1,4] decl - scope 3
+_=_[1,9] ref - scope 2
+Age[1,18] decl - scope 3
+_=_[1,22] ref - scope 2
 ```

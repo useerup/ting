@@ -5,18 +5,18 @@ a==2 then a==3 then 0 else 1 else 2
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
 
 Identifiers:
-[0] (1,1) name='a' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
-[1] (1,2) name='_==_' role=referential(resolved) resolved-declaration=#0
-[2] (1,6) name='_then_' role=referential(resolved) resolved-declaration=#1
-[3] (1,11) name='a' role=referential candidate-scopes=[00000000-0000-0000-0000-000000000000]
-[4] (1,12) name='_==_' role=referential(resolved) resolved-declaration=#0
-[5] (1,16) name='_then_' role=referential(resolved) resolved-declaration=#1
-[6] (1,23) name='_else_' role=referential(resolved) resolved-declaration=#2
-[7] (1,30) name='_else_' role=referential(resolved) resolved-declaration=#2
+a[1,1] ref - unresolved
+_==_[1,2] ref - scope 2
+_then_[1,6] ref - scope 2
+a[1,11] ref - unresolved
+_==_[1,12] ref - scope 2
+_then_[1,16] ref - scope 2
+_else_[1,23] ref - scope 2
+_else_[1,30] ref - scope 2
 
 Diagnostics:
 - (1,1-1,2) unresolved name 'a'

@@ -6,32 +6,29 @@ DateTime this => $"{Year}-{Month}-{Day}"
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[DateTime<name>]
-[2] type=LocalScope usage=record id=#1
-    names=[Year<name>, Month<name>, Day<name>]
-[3] type=LocalScope usage=local id=#2
-    names=[<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : DateTime
+[4] Record : Year, Month, Day
+[5] Local :
 
 Identifiers:
-[0] (1,5) name='DateTime' role=declarative bound-scopes=[#0]
-[1] (1,14) name='_=_' role=referential(resolved) resolved-declaration=#3
-[2] (1,24) name='Year' role=declarative bound-scopes=[#1]
-[3] (1,28) name='_:_' role=referential(resolved) resolved-declaration=#4
-[4] (1,29) name='int' role=referential(resolved) resolved-declaration=#5
-[5] (1,33) name='Month' role=declarative bound-scopes=[#1]
-[6] (1,38) name='_:_' role=referential(resolved) resolved-declaration=#4
-[7] (1,39) name='int' role=referential(resolved) resolved-declaration=#5
-[8] (1,43) name='Day' role=declarative bound-scopes=[#1]
-[9] (1,46) name='_:_' role=referential(resolved) resolved-declaration=#4
-[10] (1,47) name='int' role=referential(resolved) resolved-declaration=#5
-[11] (1,52) name='_in_' role=referential(resolved) resolved-declaration=#6
-[12] (2,1) name='DateTime' role=referential(resolved) resolved-declaration=#7
-[13] (2,10) name='this' role=declarative bound-scopes=[#2]
-[14] (2,15) name='_=>_' role=referential(resolved) resolved-declaration=#8
-[15] (2,21) name='Year' role=referential(resolved) resolved-declaration=#9
-[16] (2,28) name='Month' role=referential(resolved) resolved-declaration=#10
-[17] (2,36) name='Day' role=referential(resolved) resolved-declaration=#11
+DateTime[1,5] decl - scope 3
+_=_[1,14] ref - scope 2
+Year[1,24] decl - scope 4
+_:_[1,28] ref - scope 2
+int[1,29] ref - scope 1
+Month[1,33] decl - scope 4
+_:_[1,38] ref - scope 2
+int[1,39] ref - scope 1
+Day[1,43] decl - scope 4
+_:_[1,46] ref - scope 2
+int[1,47] ref - scope 1
+_in_[1,52] ref - scope 2
+DateTime[2,1] ref - scope 3
+this[2,10] decl - scope 5
+_=>_[2,15] ref - scope 2
+Year[2,21] ref - scope 4
+Month[2,28] ref - scope 4
+Day[2,36] ref - scope 4
 ```

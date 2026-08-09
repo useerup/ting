@@ -5,19 +5,18 @@ let x=21 in Answer = x*2
 Compilation succeeded.
 
 Scopes:
-[0] type=LocalScope usage=ambient id=00000000-0000-0000-0000-000000000000
-    names=[bool<name>, string<name>, char<name>, float<name>, double<name>, int<name>, uint<name>, byte<name>, sbyte<name>, short<name>, ushort<name>, long<name>, ulong<name>, half<name>, decimal<name>, DateTime<name>, DateTimeOffset<name>, set<name>, any<name>, Func<name>, _all_<name>]
-[1] type=LocalScope usage=local id=#0
-    names=[x<name>]
+[1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
+[2] Local : -_, _where_, _in_, _=_, _?=_, _then_, _else_, _contract_, _->_, _>>_, _<<_, _|>_, _<|_, _=>_, _catch_, _\_, _|_, _||_, _|||_, _&_, _&&_, _&&&_, _?_, _??_, !_, _:_, _::_, _:::_, _<_, _<=_, _>=_, _>_, _==_, _!=_, _!:_, _..._, _...<_, _<..._, _<...<_, _;_, _;;_, _^^_, _**_, _+_, _-_, _*_, _/_, _%_, _/%_, _^_, fn_, class_, total_, partial_
+[3] Local : x
 
 Identifiers:
-[0] (1,5) name='x' role=declarative bound-scopes=[#0]
-[1] (1,6) name='_=_' role=referential(resolved) resolved-declaration=#1
-[2] (1,10) name='_in_' role=referential(resolved) resolved-declaration=#2
-[3] (1,13) name='Answer' role=referential candidate-scopes=[#0, 00000000-0000-0000-0000-000000000000]
-[4] (1,20) name='_=_' role=referential(resolved) resolved-declaration=#1
-[5] (1,22) name='x' role=referential(resolved) resolved-declaration=#3
-[6] (1,23) name='_*_' role=referential(resolved) resolved-declaration=#4
+x[1,5] decl - scope 3
+_=_[1,6] ref - scope 2
+_in_[1,10] ref - scope 2
+Answer[1,13] ref - unresolved
+_=_[1,20] ref - scope 2
+x[1,22] ref - scope 3
+_*_[1,23] ref - scope 2
 
 Diagnostics:
 - (1,13-1,19) unresolved name 'Answer'
