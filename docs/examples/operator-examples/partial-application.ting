@@ -1,0 +1,11 @@
+/*
+    Any binary operator may be written in prefix position with a single operand.
+    The result is partial application: `( : rhs)` is the function that accepts `lhs`
+    and evaluates `lhs : rhs`. So `( + 1)` is the function that adds one.
+    `-` is the one exception: written immediately before its operand it is negation,
+    so partial application of subtraction needs whitespace on both sides.
+*/
+
+let addOne = ( + 1) in
+
+addOne 41

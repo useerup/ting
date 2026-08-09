@@ -1,0 +1,9 @@
+/*
+    Everything the pattern declares is available in the body, and only the new lambda
+    frame is referential over the body: inherited frames keep their modes.
+    A body name absent from the lambda frame may therefore still declare into an
+    inherited declarative frame rather than being an error.
+    A tuple pattern declares each of its components.
+*/
+
+(int a, int b) => a + b

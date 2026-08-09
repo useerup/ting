@@ -1,0 +1,10 @@
+/*
+    `<<` is reverse composition: `g << f` denotes the same function as `f >> g`.
+    Only the reading order differs, so the two spellings can be chosen to match how the
+    pipeline reads at the call site.
+*/
+
+let inc = int n => n + 1 in
+let dbl = int n => n * 2 in
+
+(dbl << inc) 5

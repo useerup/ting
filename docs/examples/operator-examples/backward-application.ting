@@ -1,0 +1,8 @@
+/*
+    `<|` is backward application: `f <| x` denotes `f x`, with the same binding behaviour
+    as `|>`. It is useful for avoiding parentheses around a large final argument.
+*/
+
+let dbl = int n => n * 2 in
+
+dbl <| 10 + 11

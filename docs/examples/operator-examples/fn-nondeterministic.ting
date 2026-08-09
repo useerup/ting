@@ -1,0 +1,11 @@
+/*
+    Where the collection contains several mappings with the same argument part, the
+    function `fn` builds is nondeterministic at that argument.
+    Applying this function to `1` yields `10` and, under backtracking, `11`.
+    Nothing has gone wrong: a function in Ting is a relation that permits a set of
+    results per argument.
+*/
+
+let ambiguous = fn { 1 -> 10, 1 -> 11 } in
+
+ambiguous 1

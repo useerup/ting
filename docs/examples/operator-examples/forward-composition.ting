@@ -1,0 +1,10 @@
+/*
+    `>>` is forward composition: `f >> g` applies `f` first and then `g` to the result.
+    Both operands are ambient, so composition declares exactly where the surrounding
+    context declares.
+*/
+
+let inc = int n => n + 1 in
+let dbl = int n => n * 2 in
+
+(inc >> dbl) 5

@@ -1,0 +1,9 @@
+/*
+    `fn` converts a collection of mappings into a function.
+    `{ 1 -> 2, 2 -> 4 }` is an ordinary set of mappings, not a function; `fn` is what
+    makes it applicable. `fn` and the `.AsSet` property are inverses of each other.
+*/
+
+let double = fn { 1 -> 2, 2 -> 4 } in
+
+double 2

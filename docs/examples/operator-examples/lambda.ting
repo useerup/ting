@@ -1,0 +1,10 @@
+/*
+    `=>` denotes a function. It is left-declarative: it introduces one new scope frame
+    that is declarative in the left operand (the pattern) and referential in the right
+    operand (the body).
+    So `x` is declared by the pattern and merely referred to in the body.
+    `int x` is not a type annotation: `int` is a SET, and the pattern says `x` is a
+    member of it.
+*/
+
+int x => x * 2

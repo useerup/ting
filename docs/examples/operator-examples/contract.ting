@@ -1,0 +1,11 @@
+/*
+    `contract` requires the implementation on the left to be a member of the function set
+    on the right. It is left-declarative: the new frame is declarative over the
+    implementation and referential over the contract expression, so the contract can
+    refer to argument and result declarations collected from the nested function.
+    The value is the implementation paired with its opaque external description: a
+    separately compiled consumer sees only the contract, never the body.
+    Contracts compose with the ordinary set operators, e.g. `float ^^ float & NonZeroArg`.
+*/
+
+(float x => 1.0 / x) contract (float ^^ float)

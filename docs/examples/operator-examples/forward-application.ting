@@ -1,0 +1,9 @@
+/*
+    `|>` is forward application: `x |> f` denotes `f x`.
+    Unlike juxtaposition, which forces its callee to be referential, both operands of
+    `|>` are ambient, so neither is forced into a referential reading.
+*/
+
+let dbl = int n => n * 2 in
+
+21 |> dbl

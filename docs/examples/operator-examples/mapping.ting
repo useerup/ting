@@ -1,0 +1,11 @@
+/*
+    `->` constructs a mapping, which is an ORDINARY PRODUCT: `x -> y` denotes
+    `(x @ Result = y)`, fusing the left operand one level deep with a named field
+    `Result` bound to the right operand.
+    There is no special ordered-pair structure in Ting, and all fields of a mapping
+    take part in its identity.
+    Because fusion is one level deep, `(a, b) -> y` denotes `(a, b @ Result = y)`.
+    A mapping on its own is not a function: `fn` turns a collection of mappings into one.
+*/
+
+1 -> 10
