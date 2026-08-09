@@ -1,0 +1,9 @@
+/*
+    `throw` raises the exception denoted by its operand.
+    It is a semantic form rather than a function application: it produces no value,
+    so there is nothing for an application to yield.
+    Its operand is ambient, as every prefix operator's operand is.
+*/
+
+int n =>
+    n == 0 then throw "division by zero" else 100 / n

@@ -1,0 +1,8 @@
+/*
+    `;` denotes nondeterministic choice between its operands.
+    It does not pick the first defined one and it is not ordered: the expression simply
+    denotes both possibilities, and any of them may be observed.
+    Where one alternative should only apply if the other has no value, use `;;`.
+*/
+
+1 ; 2

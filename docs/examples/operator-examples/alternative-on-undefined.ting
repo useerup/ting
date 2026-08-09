@@ -1,0 +1,11 @@
+/*
+    `;;` yields the left operand if it is defined, and otherwise the right one.
+    Unlike `;` this is deterministic and ordered, so it is the operator for defaults and
+    fallbacks.
+    It is not exception handling: it responds to the ABSENCE of a value, not to a thrown
+    exception. Use `catch` for that.
+*/
+
+let n = 0 in
+
+(100 / n) ;; 0

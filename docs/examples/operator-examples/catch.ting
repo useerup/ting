@@ -1,0 +1,9 @@
+/*
+    `catch` handles an exception raised by `throw` in the left operand, using the handler
+    function on the right.
+    It responds to a thrown exception only. An expression that is merely undefined throws
+    nothing, so `catch` does not apply - use `;;` for that case.
+*/
+
+(int n => n == 0 then throw "division by zero" else 100 / n) 0
+    catch fn { string message -> 0 }

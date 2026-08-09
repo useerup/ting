@@ -1,0 +1,14 @@
+/*
+    `void` is a nullary operator: it takes no operands and denotes the ABSENCE of a value.
+    It is deliberately NOT a value: it is a member of no set, it cannot be bound, stored
+    or passed, and it cannot be compared - `void = void` and `x != void` are themselves
+    undefined, so definedness is never tested by comparing against `void`. The operators
+    that observe definedness are `;;`, `?`, `;`, the guarded logical operators and `catch`.
+    An expression that yields `void` is undefined. Where the body of a function, or a
+    branch of it, is `void`, the function is undefined for that argument: it does not
+    return `void`; in fact it does not return at all - it throws an `UndefinedException`!
+    `void` is not a unit value and not null. `()`, `{}` and `[]` are all values, and each
+    is distinct from `void`.
+*/
+
+int n => n < 0 then void else n * 2
