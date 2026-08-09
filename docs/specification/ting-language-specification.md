@@ -74,11 +74,11 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `<` `<=` `>=` `>` `==` `!=` `!:` | comparison, attribute-blind equality, non-membership |
 | `...` `...<` `<...` `<...<`      | ranges                                               |
 | `;` `;;`                         | choice, alternative-on-undefined                     |
-| `^^`                             | set of functions                                     |
+| `^^`                             | reversed exponentiation, set of functions            |
 | `**`                             | non-fusing product                                   |
 | `+` `-`                          | addition, subtraction                                |
 | `*` `/` `%` `/%`                 | multiplication, division, modulo, divmod             |
-| `^`                              | exponentiation                                       |
+| `^`                              | exponentiation, set of functions, tuple power        |
 | `.` `..`                         | property, member property                            |
 
 The alphabetic entries in the table are keyword binary infix operators. The binding
@@ -1182,13 +1182,25 @@ Neutral. Backward application. `f <| x` denotes `f x`, with the same binding beh
 
 #### `^^`
 
-Neutral. Denotes the set of functions from the left operand set to the right operand set. Both operands must be sets. `int ^^ string` is the set of functions from
-`int` to `string`. The underlying collection of a member `F : A ^^ B` consists of
-mappings that fuse a member of `A` with a `Result` that is a member of `B`:
-`F.AsSet <= A * records(B Result)`. `A` and `B` constrain the declared argument and
-result sets; `A ^^ B` includes both total and partial functions. Use `total (A ^^ B)`
-where totality over the admitted domain is required. Without that guarantee, potential
-undefinedness propagates to uses where it cannot be ruled out from a visible body.
+Neutral. `^` with its operands reversed: `A ^^ B` denotes `B ^ A`. It is therefore
+defined for exactly the signatures `^` is defined for, and carries no meaning of its own.
+
+Its principal use is the set of functions from the left operand set to the right operand
+set, which is the reading that puts the domain first. `int ^^ string` is the set of
+functions from `int` to `string`, the same set as `string ^ int`. The underlying
+collection of a member `F : A ^^ B` consists of mappings that fuse a member of `A` with a
+`Result` that is a member of `B`: `F.AsSet <= A * records(B Result)`. `A` and `B`
+constrain the declared argument and result sets; `A ^^ B` includes both total and partial
+functions. Use `total (A ^^ B)` where totality over the admitted domain is required.
+Without that guarantee, potential undefinedness propagates to uses where it cannot be
+ruled out from a visible body.
+
+For the signature `int*set`, `3 ^^ string` denotes `string ^ 3`, the set of three-tuples
+of strings.
+
+Because the signatures are those of `^` reversed, they are `num*num`, `set*set` and
+`int*set`. There is no `set*int` signature: `string ^^ 2` is ill-formed. In particular it
+is not shorthand for `string ^^ string`, which must be written out.
 
 #### `**`
 
@@ -1509,10 +1521,21 @@ operand set.
 Right-referential. Yields `true` when the left operand is a collection all of whose
 elements are members of the right operand set.
 
+The left operand may be any collection, and in particular it may be a *multiset*:
+duplicate elements are admitted, and each contribution is tested for membership. This is
+what distinguishes `::` from `<=`. Both lift membership from a value to a collection of
+values, but `<=` relates two *sets*, so it unifies duplicate members and cannot say
+anything about multiplicity. `{* 1, 1, 2 *} :: int` holds, where the corresponding `<=`
+reading does not exist. `::` says nothing about the order of the elements.
+
 #### `:::`
 
 Right-referential. Yields `true` when the left operand is an ordered sequence of members
 of the right operand set.
+
+It differs from `::` only in additionally requiring that the collection is ordered. Like
+`::` it admits a multiset on the left, so duplicates are permitted:
+`{* 1, 1, 2 *} ::: int` holds wherever that multiset preserves its generation order.
 
 #### `<`
 
@@ -1638,7 +1661,23 @@ and remainder.
 
 #### `^`
 
-Neutral. Raises the left operand to the power of the right operand.
+Neutral. Exponentiation.
+
+For numeric operands, raises the left operand to the power of the right operand.
+
+For set operands, `B ^ A` denotes the set of functions from `A` to `B`. This is the usual
+reading of exponentiation on sets: the exponent is the domain and the base is the
+codomain. `string ^ int` is the set of functions from `int` to `string`.
+
+For the signature `set*int`, `A ^ n` denotes the set of `n`-tuples over `A`, which is `A`
+fused with itself `n` times. `string^3` is the set of three-tuples of strings, the same
+set as `string*string*string`. This is the same reading: `n` stands for the set of the
+first `n` index positions, and a tuple is a function from index to component.
+
+The defined signatures are therefore `num*num`, `set*set` and `set*int`. There is no
+`int*set` signature: `2 ^ string` is ill-formed.
+
+`^^` is `^` with its operands reversed, so `A ^^ B` denotes `B ^ A` in every signature.
 
 #### `.`
 
@@ -1701,6 +1740,7 @@ somewhere in its domain:
     let F = int n => n < 0 then void else n * 2
 
 `F` declares that it accepts an `int`; for a negative `int` it has no value to offer. It
-does not *return* `void` — it returns nothing. See [Partial
-functions](#partial-functions).
+does not *return* `void`, and it does not return nothing either: for such an argument it
+does not return at all. Control leaves by the undefinedness path, which is equivalent to
+throwing an `UndefinedException`. See [Partial functions](#partial-functions).
 
