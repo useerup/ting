@@ -1,0 +1,7 @@
+/*
+    `%` yields the remainder of dividing the left operand by the right.
+    Like `/` it is undefined when the right operand is zero.
+    It is the operator behind the common parity refinement `{ int n \ n % 2 == 0 }`.
+*/
+
+17 % 5

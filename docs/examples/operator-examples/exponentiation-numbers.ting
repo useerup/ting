@@ -1,0 +1,7 @@
+/*
+    On numeric operands, `^` raises the left operand to the power of the right.
+    Note that prefix `-` binds tighter than any infix operator, so `-2^2` denotes
+    `(-2)^2` and not the negation of `2^2`.
+*/
+
+2 ^ 10

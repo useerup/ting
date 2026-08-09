@@ -1,0 +1,7 @@
+/*
+    On lists, `+` is CONCATENATION, and order is preserved.
+    The same symbol is used because in each signature it is the natural way to combine
+    two values of that shape.
+*/
+
+[1, 2] + [3, 4]

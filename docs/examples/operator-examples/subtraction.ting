@@ -1,0 +1,6 @@
+/*
+    `-` between two operands with whitespace on both sides, or on neither, is subtraction.
+    Only `a -b` - space before, none after - is the negation reading.
+*/
+
+10 - 3

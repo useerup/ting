@@ -1,0 +1,16 @@
+/*
+    Spacing alone decides how `-` is read, and the rule admits no exception:
+        n - 1   subtraction
+        n-1     subtraction
+        n- 1    subtraction
+        n -1    `n` applied to the negation of 1
+    The rule exists so a negative value can be a juxtaposed argument without taking
+    the subtraction away from `n-1`.
+    `f -1 -2` therefore applies `f` to -1 and then to -2.
+    A negated value that opens a bracket or a file must be written with the space:
+    `( -1)` is negation, `(-1)` is a subtraction with no left operand and is ill-formed.
+*/
+
+let f = int a => int b => a - b in
+
+f -1 -2

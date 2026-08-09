@@ -1,0 +1,10 @@
+/*
+    For a set and an int, `A ^ n` denotes the set of n-tuples over `A`, which is `A` fused
+    with itself n times.
+    `string^3` is the set of three-tuples of strings, the same set as
+    `string * string * string`.
+    This is the same reading as the function case: `n` stands for the set of the first n
+    index positions, and a tuple is a function from index to component.
+*/
+
+string^3

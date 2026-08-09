@@ -1,0 +1,9 @@
+/*
+    On set operands, `B ^ A` denotes the set of functions from `A` to `B`. This is the
+    usual reading of exponentiation on sets: the exponent is the domain and the base is
+    the codomain.
+    So `string ^ int` is the same set as `int ^^ string`, since `^^` is just `^` with its
+    operands reversed. The two spellings differ only in which end is written first.
+*/
+
+string ^ int

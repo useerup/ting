@@ -1,0 +1,7 @@
+/*
+    `/%` performs division and remainder in ONE operation, yielding both results as a
+    tuple: `17 /% 5` denotes `(3, 2)`.
+    The two parts are computed together rather than by evaluating `/` and `%` separately.
+*/
+
+17 /% 5

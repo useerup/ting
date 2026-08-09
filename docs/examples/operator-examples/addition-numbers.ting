@@ -1,0 +1,7 @@
+/*
+    On numbers, `+` is arithmetic addition.
+    Attributes play no part: like every attribute-blind operation it works on `primary`
+    operands.
+*/
+
+1 + 2

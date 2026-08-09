@@ -1,0 +1,15 @@
+/*
+    On functions, `+` is the addition overload applied to the operands' underlying
+    collections of mappings: `F + G = fn (F.AsSet + G.AsSet)`.
+    Like `F | G` it is defined at `x` wherever EITHER operand is defined, and it permits
+    every result value that either operand permits.
+    The two differ in solution MULTIPLICITY: `+` retains both contributions wherever both
+    operands are defined, so it is nondeterministic exactly there - two solutions at every
+    such argument, even where the results agree - while `|` unifies agreeing mappings.
+    So `(F + G) 2` yields `20` twice under backtracking, where `(F | G) 2` yields it once.
+*/
+
+let F = fn { 1 -> 10, 2 -> 20 } in
+let G = fn { 2 -> 20, 3 -> 30 } in
+
+(F + G) 2

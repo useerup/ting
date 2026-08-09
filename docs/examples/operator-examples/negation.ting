@@ -1,0 +1,9 @@
+/*
+    Prefix `-` written with whitespace before it and none after it is arithmetic negation.
+    Negation binds more tightly than every infix operator, because `-x` is a term.
+    So `-a.b` denotes `(-a).b`, and `-2^2` denotes `(-2)^2`.
+*/
+
+let n = 10 in
+
+n + -1

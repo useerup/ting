@@ -1,0 +1,10 @@
+/*
+    On sets, `/` is the INVERSE of the fusing product `*`: it divides a tuple set by a set
+    and yields the tuple set of the remaining components.
+    Given `S = int * float * string`, `S / string` is `int * float`, and
+    `S / (float * string)` is `int`.
+    The divisor must correspond to a TRAILING group of components; any other divisor is
+    an error.
+*/
+
+(int * float * string) / string

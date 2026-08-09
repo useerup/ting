@@ -1,0 +1,7 @@
+/*
+    On numbers, `/` is division. It is partial: division by zero has no value, and the
+    expression is simply undefined rather than raising an error.
+    Restricting the divisor with `?` is how a total division is written.
+*/
+
+10.0 / 4.0

@@ -1,0 +1,11 @@
+/*
+    On sets, `+` is ADDITIVE union: the result retains every contribution from both
+    operands, so `#(A + B) = #A + #B` always holds.
+    Where the operands overlap the result is therefore a MULTISET:
+    `{1, 2} + {2, 3}` denotes `{* 1, 2, 2, 3 *}`.
+    This is not `|`. `|` unifies common members and is idempotent; `+` keeps them all and
+    is not. The relation between the two mirrors the one between the set definition
+    `{ ... }` and the multiset definition `{* ... *}`.
+*/
+
+{ 1, 2 } + { 2, 3 }
