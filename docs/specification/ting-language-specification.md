@@ -731,22 +731,23 @@ one level deep, `**` does not (see [Product sets](#product-sets)).
 - `records` denotes sets of records.
 - Field access uses property selection (`.`).
 
-## Classes, Entities, Enums
+## Classes
 
-### Classes
 - Classes are inclusive sets over candidate sets.
 - Equal payloads in same class are value-equal.
 - Created with `class`, instantiated with `new`.
 - Extended with `extend`.
 
-### Entities
+## Entities
 - Entities are identity-based and exclusive (only constructed instances).
 - Equal payloads do not imply equal entities.
 - Escaping entities may require explicit stable identity fields (per docs).
 
-### Enums
+## Enums
+
 - Enumerations are declared with `enums` syntax.
 - Tagged variants with payloads are documented by examples.
+
 
 ## This Binding
 
