@@ -787,6 +787,11 @@ TODO
 
 TODO
 
+
+## Axioms and solver rules
+
+TODO 
+
 ## Exceptions
 
 Exception behavior follows the .NET exception model. No explicit `try` block syntax exists; instead, exception handling is integrated via the binary `catch` operator and the unary prefix `throw` operator.
