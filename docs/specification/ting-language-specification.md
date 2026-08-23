@@ -807,31 +807,23 @@ The `throw` operator is a unary prefix operator that raises (throws) an exceptio
 
 ### Catch operator
 
-The `catch` operator is a binary operator that handles exceptions thrown by its left operand.
+The `catch` operator is a binary infix operator that catches and handles exceptions thrown while evaluating an expression. The left operand is an expression that is evaluated under an implicit exception trap. The right operand is the exception handler. It is a function which accepts exceptions. Applying the handler is outside that trap, so an exception thrown while evaluating the handler propagates to an enclosing `catch`.
 
-The left operand is an expression that is evaluated under an implicit try.
+The `catch` operator is right-referential.
 
-The right operand is a function that handles exceptions.
+Evaluation proceeds as follows:
+1. The left operand is evaluated.
+2. If no exception is thrown, the result of the left operand is the result of the entire `catch` expression.
+3. If an exception `ex` is thrown during evaluation of the left operand, **and** the right operand function is defined for `ex`, then the value of the entire `catch` expression is the value of applying the right operand function to `ex`.
+4. If the catch function is not defined for `ex`, then the exception continues to propagate.
 
-- Evaluation proceeds as follows:
-  - The left operand is evaluated.
-  - If no exception is thrown, the result of the left operand is the result of the entire `catch` expression.
-  - If an exception `E` is thrown during evaluation of the left operand, **and** the catch function is defined for `E` then the catch function is invoked with `E` as its argument. The result of the `catch` expression is the result of the catch function applied to the exception `E`
-  - If the catch function is not defined for the exception type of `E`, the exception `E` continues to propagate.
-
-### Catch function matching
-
-The catch function determines whether it can handle a given exception.
-
-- The catch function must be a function value (a lambda, `fn` expression, or similar).
-- Matching is performed using the function's parameter type constraints and patterns.
-- If the catch function has a parameter of the exact type `E` or a supertype of `E`, it is considered defined for `E`.
-
-Example:
+Examples:
 
 ```ting
 expr catch Exception ex => "Error: " + ex.Message   // Catches any exception, binds to ex
+
 expr catch (ArgumentException e) => "Invalid argument: " + e.ParamName   // Catches ArgumentException only
+
 expr catch fn{
   (ArgumentException _) -> "Bad arg",
   (NullReferenceException _) -> "Null ref",
@@ -839,13 +831,107 @@ expr catch fn{
 }
 ```
 
-### Exception propagation and nesting
+The `catch` operator is left-associative.
 
-Multiple `catch` operators may be nested.
+## Effects
 
-- An exception caught by an inner `catch` does not propagate to an outer `catch` unless the inner catch function re-throws (via `throw`).
-- An exception not caught by a `catch` continues propagating outward.
-- If no `catch` in the entire expression handles an exception, it propagates to the caller.
+Ting has a capability-based contextual effect system
+
+Effects are function relations whose definitions may be supplied by a surrounding
+`answer` expression. Unlike `throw`, an answered effect application contributes an
+ordinary value to the relation of its containing expression.
+
+### Effect sets and functions
+
+`effect S` requires `S` to be a set of functions and denotes a fresh nominal set of
+functions whose candidate set is `S`. Distinct constructions of `effect S` denote
+distinct sets, even where they have the same candidate set. A function belonging to such
+a set is an **effect function**. Its ordinary function constraints come from `S`, while
+its membership of that particular effect set distinguishes it from structurally or
+extensionally equal functions belonging to another set.
+
+  Writer : effect (string ^^ bool)
+
+This declares `Writer` as a nondeterministic effect function ranging over the members of
+the newly created effect set. Further constraints may narrow the function it denotes.
+
+### Asking
+
+`ask F` requires `F` to be an effect function and denotes a function with the same
+argument and result constraints as `F`. Its mappings are supplied by a matching `answer`.
+Within an answer scope supplied by `H`, where `F` unifies with `H`, the result relation of
+`(ask F) x` is the result relation of `H x`. Undefinedness, nondeterminism and solution
+multiplicity are preserved.
+
+If no matching `answer` encloses an ask, the effect function is an escaping effect of the
+containing function and must be admitted by that function's `asks` contract.
+
+### Answering
+
+`answer` is a left-associative binary infix operator. `E answer H` places the left operand
+and the function relations on which it depends under an answer scope supplied by the
+effect function `H`; the right operand is outside that scope. An ask matches `H` only
+where its effect function unifies with `H`, including nominal effect-set membership. An
+ordinary function with the same mappings cannot answer it.
+
+The right operand commonly uses `#` to constrain an effect function to an implementation:
+
+  E answer Writer # (message => true)
+
+`#` unifies the candidate function of `Writer` with the implementation without erasing
+its nominal effect membership. The implementation must satisfy the candidate function
+set from which the effect set was formed.
+
+The nearest matching answer supplies the relation and shadows matching outer answers. If
+its implementation is undefined for an argument, the `ask` application is undefined;
+outer answers contribute no alternative mappings. An implementation may be partial unless
+the candidate set requires total functions, in which case it must be total. Because the
+right operand is outside its own answer scope, its asks can be answered only by enclosing
+answers or can escape under its own `asks` contract. The answer scope continues to cover
+every relation on which the left operand depends.
+
+### Effect contracts
+
+`F asks A` constrains every escaping effect function of `F` to be a member of the set `A`.
+Every member of `A` must be an effect function. The contract is an upper bound: it does
+not require `F` to ask every member of `A`.
+
+An effect set admits any of its members, while a set definition can state a more precise
+dependent contract:
+
+  Process asks Writers
+  Process asks { Writer }
+
+In the second form the set definition collects every value the captured nondeterministic
+`Writer` can assume. Constraints on `Writer` therefore also narrow the contract.
+
+An effect resolved by an answer is not an escaping effect of the left operand. A partial
+answer makes that operand correspondingly partial; it does not restore the resolved effect
+to its escaping set. Escaping effects of the answering implementation remain escaping
+effects of the whole `answer` expression.
+
+Within a compilation unit the compiler may infer an `asks` set. A function exposed across
+a separate-compilation boundary must declare its `asks` contract explicitly; `asks {}`
+states that no effect may escape. At a boundary whose contract does not admit an escaping
+effect, an unanswered application is undefined. If this leaves no result for any admitted
+argument, the program is rejected; if it removes results for only some admitted arguments,
+the enclosing expression or function is partial.
+
+For example, where `unit` is the singleton set containing `()`:
+
+```ting
+let Writer : effect (string ^^ bool) in
+let Reader : effect (unit ^^ string) in
+  program
+    answer Writer # (message => true)
+    answer Reader # Console.ReadLine
+where
+  program = ask Reader >> ask Writer
+```
+
+The answer for `Reader` relates `()` to strings, and composition uses those strings as
+arguments to the relation supplied for `Writer`. The resulting `program` relation maps
+`unit` to `bool`.
 
 
 
