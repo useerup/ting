@@ -263,11 +263,11 @@ and LocalScope(id: Guid) =
 
 and ExpressionScope(id: Guid, expression: Exp) =
     inherit ChildScope(id)
-    member _.Expression = expression
+    member val Expression = expression with get, set
 
 and ExpressionMemberScope(id: Guid, expression: Exp) =
     inherit ChildScope(id)
-    member _.Expression = expression
+    member val Expression = expression with get, set
 
 // Ordered scope stack, nearest first. Each frame keeps its own mode so nested
 // operators can mix declarative and referential behavior without losing frame
