@@ -4,9 +4,7 @@ open System
 open Exp
 open Core
 
-// Render a core tree for the snapshot output. Deliberately close to the
-// notation used in docs/specification/core-expression.md, so a snapshot can be
-// read against the specification.
+// Render the compiler's internal core tree for snapshot output.
 
 let private renderScope (s: Scope) = ExpDiagnostics.formatScope s
 

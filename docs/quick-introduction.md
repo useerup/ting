@@ -289,7 +289,6 @@ Ting is not trying to be faster, safer or more productive than any of these. It 
 - [Surprising features](surprising%20features.md) - the parts that catch people out
 - [Programmers Reference](programmers-reference/index.md) - feature by feature
 - [Language Specification](specification/ting-language-specification.md) - normative, and the most complete document here
-- [The Core Expression](specification/core-expression.md) - the reduced form everything lowers to
 - [Documentation overview](index.md) - a longer tutorial-style walkthrough with the constraint examples
 - [Worked problems](introduction/index.md) - ten programs the language is meant to be judged by, mostly unwritten
 

@@ -25,7 +25,7 @@ That is simultaneously a set (the reals satisfying the equation), a partial desc
 | Path | Contents |
 | --- | --- |
 | [`docs/quick-introduction.md`](docs/quick-introduction.md) | Introduction to the language, start here |
-| [`docs/specification/`](docs/specification) | The language specification and the core expression form. Normative, and the most complete document in the repository. |
+| [`docs/specification/`](docs/specification) | The language specification. Normative, and the most complete document in the repository. |
 | [`docs/programmers-reference/`](docs/programmers-reference) | Feature-by-feature reference |
 | [`docs/ting-primer.md`](docs/ting-primer.md) | Shorter tutorial-style primer |
 | [`Compiler/`](Compiler) | The compiler, in F# on .NET 10. Parser built on FParsec. |

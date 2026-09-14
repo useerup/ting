@@ -3,8 +3,7 @@ module Core
 open Range
 open Exp
 
-// The core expression language, as specified in
-// docs/specification/core-expression.md.
+// The compiler's internal core expression representation.
 //
 // Exp is the *surface* tree: it mirrors what was written, including the
 // binding-intent markers the parser emits and the Binder eliminates. Core is

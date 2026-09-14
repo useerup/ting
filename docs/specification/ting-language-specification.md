@@ -940,10 +940,7 @@ arguments to the relation supplied for `Writer`. The resulting `program` relatio
 
 ## Operators
 
-Ting's ordinary operators are surface syntax for applying functions: `a + b` applies
-`_+_` to the tuple `(a, b)`, and `!p` applies `!_` to `p`. Scope operators and semantic
-markers such as `contract`, `partial` and `throw` retain dedicated core forms because
-their compile-time meaning cannot be recovered from an ordinary function application.
+Ting's ordinary operators are surface syntax for applying functions: `a + b` applies `_+_` to the tuple `(a, b)`, and `!p` applies `!_` to `p`. Scope operators and semantic markers such as `contract`, `partial` and `throw` have additional scope, analysis, or control-flow rules specified in their respective sections. This specification does not prescribe the compiler's internal expression representation.
 
 The functions an operator can name are taken from a scope available to the parser, so they are never looked up lexically and cannot be shadowed by a declaration.
 
