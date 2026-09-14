@@ -341,23 +341,36 @@ let private lookupHostedInScope
 
 // Find the record scope denoted by an expression, following identifier bindings
 // (e.g. `person` -> `record(Name:string)`) with cycle protection.
-let rec private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Exp) : Scope option =
+let rec private recordScopesOf (ctx: Context) (visited: HashSet<Guid>) (exp: Exp) : Scope list =
     match exp with
-    | Record (_, recScope, _) -> Some recScope
+    | Record (_, recScope, _) -> [ recScope ]
     // A product literal's named section carries its field names, so a product
     // with named fields answers member lookups exactly as a record does.
-    | Product (_, _, _, productScope, _) -> Some productScope
-    | Set (_, [ single ]) -> recordScopeOf ctx visited single
+    | Product (_, _, _, productScope, _) -> [ productScope ]
+    | Tuple (_, [ single ])
+    | Set (_, [ single ]) -> recordScopesOf ctx visited single
     | Local (_, _, e)
     | Publish (_, _, _, e)
-    | ScopeExp (_, _, e) -> recordScopeOf ctx visited e
+    | ScopeExp (_, _, e) -> recordScopesOf ctx visited e
+    | Apply (_, Identifier (_, role), Tuple (_, [ left; right ])) ->
+        match nameOfRole role with
+        | [ TextPart "_in_" ] -> recordScopesOf ctx visited right
+        | [ TextPart "_where_" ] -> recordScopesOf ctx visited left
+        | _ -> []
+    | Projection (_, _, _, (Identifier (_, Bound (Referenced, _, _)) as property)) ->
+        recordScopesOf ctx visited property
     | Identifier (_, role) ->
         match tryResolveRoleToDecl ctx role with
         | Some id when visited.Add id ->
             match ctx.BindingMap.TryGetValue id with
-            | true, def -> recordScopeOf ctx visited def
-            | _ -> None
-        | _ -> None
+            | true, constraints -> constraints |> List.collect (recordScopesOf ctx visited)
+            | _ -> []
+        | _ -> []
+    | _ -> []
+
+let private recordScopeOf (ctx: Context) (visited: HashSet<Guid>) (exp: Exp) : Scope option =
+    match recordScopesOf ctx visited exp |> List.distinctBy (fun scope -> scope.Id) with
+    | [ scope ] -> Some scope
     | _ -> None
 
 // How a referential frame answers "does this scope provide the name?".
