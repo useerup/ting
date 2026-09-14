@@ -191,12 +191,12 @@ module private Marking =
             Apply(r, recur f scopes, recur a scopes)
         | Publish (r, s, access, e) ->
             Publish(r, s, access, recur e (addDeclarative s scopes))
-        | PushScope (_, se, e) ->
+        | PushScope (r, se, e) ->
             let s = createExpressionScope(recur se (makeReferential scopes))
-            recur e (addReferential s scopes)
-        | PushMemberScope (_, se, e) ->
+            ScopeExp(r, s, recur e (addReferential s scopes))
+        | PushMemberScope (r, se, e) ->
             let s = createExpressionMemberScope(recur se (makeReferential scopes))
-            recur e (addReferential s scopes)
+            ScopeExp(r, s, recur e (addReferential s scopes))
         | Tuple (r, items) ->
             Tuple(r, List.map (fun e -> recur e scopes) items)
         // A product literal's positional section is ambient, exactly as a
