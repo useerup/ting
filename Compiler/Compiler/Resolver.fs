@@ -38,6 +38,12 @@ type Diagnostic = {
     Span: Range.Range
 }
 
+[<RequireQualifiedAccess>]
+type ResolutionStatus =
+    | Complete
+    | Blocked
+    | Failed
+
 // Compare two name patterns. Only fully textual names participate in static
 // resolution; any interpolation hole makes the name dynamic and unresolved here.
 let private namePartsEqual (a: InterpolatedParts) (b: InterpolatedParts) =
@@ -221,25 +227,21 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dict
     map
 
 // Shared state threaded through the resolution pass.
-type private Context =
-    { Registry: Dictionary<Guid, Scope>
-      Scopes: Scope list
-      BindingMap: Dictionary<Guid, Exp>
-      ThisTypes: Dictionary<Guid, Exp>
-      Diags: ResizeArray<Diagnostic> }
+type private Context = {
+    Registry: Dictionary<Guid, Scope>
+    Scopes: Scope list
+    BindingMap: Dictionary<Guid, Exp list>
+    ThisTypes: Dictionary<Guid, Exp>
+    Diags: ResizeArray<Diagnostic>
+    ReportMissing: bool
+    Progress: int ref
+    Blocked: bool ref
+}
 
 // Resolve a binding role to a single declaration id, where possible. Used when
 // following a receiver (e.g. `person`) to the value it denotes.
-let private tryResolveRoleToDecl (ctx: Context) (role: BindingRole) : Guid option =
-    match role with
-    | Bound (_, id, _) -> Some id
-    | Pending (frames, name) when not (nameHasHole name) ->
-        frames
-        |> List.tryPick (fun f ->
-            match f.Mode, f.Scope with
-            | ReferentialScope, (:? LocalScope as scope) -> lookupInScope scope name
-            | _ -> None)
-    | _ -> None
+let private tryResolveRoleToDecl (_ctx: Context) (role: BindingRole) : Guid option =
+    tryLexicalDeclaration role
 
 // The declaration id an expression denotes, for host matching. Follows the
 // identifier of the host/receiver (e.g. `int` -> int's declaration id).
