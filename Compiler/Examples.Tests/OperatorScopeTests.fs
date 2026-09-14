@@ -32,13 +32,17 @@ let rec private allRoles (node: Exp) : BindingRole list =
         match node with
         | Reference (_, e)
         | Local (_, _, e)
-        | ScopeExp (_, _, e)
         | Record (_, _, e)
         | Publish (_, _, _, e)
         | Throw (_, e)
         | Primary (_, e)
         | Candidate (_, e)
         | IsDefined (_, e) -> [ e ]
+        | ScopeExp (_, scope, body) ->
+            match scope with
+            | :? ExpressionScope as expressionScope -> [ expressionScope.Expression; body ]
+            | :? ExpressionMemberScope as expressionScope -> [ expressionScope.Expression; body ]
+            | _ -> [ body ]
         | DeclareLeft (_, a, b, c)
         | DeclareRight (_, a, b, c)
         | ReferenceLeft (_, a, b, c)

@@ -119,13 +119,13 @@ let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp> =
 
     let rec walk (n: Exp) =
         match n with
+        | ScopeExp (_, scope, body) ->
+            scopeExpression scope |> Option.iter walk
+            walk body
         | Apply (_, op, Tuple (_, [ left; right ])) ->
             if isEqOp op then
-                match left with
-                | Identifier (_, Bound (Declared, id, _)) ->
-                    if not (map.ContainsKey id) then
-                        map.Add(id, right)
-                | _ -> ()
+                constrain left right
+                constrain right left
             walk op
             walk left
             walk right
@@ -135,7 +135,6 @@ let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp> =
         | Local (_, _, e)
         | Record (_, _, e)
         | Publish (_, _, _, e)
-        | ScopeExp (_, _, e)
         | Throw (_, e)
         | Primary (_, e)
         | Candidate (_, e)
@@ -181,6 +180,9 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dict
 
     let rec walk (n: Exp) =
         match n with
+        | ScopeExp (_, scope, body) ->
+            scopeExpression scope |> Option.iter walk
+            walk body
         | Apply (_, typeExpr, This (_, Bound (Declared, thisId, _))) ->
             match declToScope.TryGetValue thisId with
             | true, sid when not (map.ContainsKey sid) -> map[sid] <- typeExpr
@@ -192,7 +194,6 @@ let private buildThisTypes (registry: Dictionary<Guid, Scope>) (exp: Exp) : Dict
         | Local (_, _, e)
         | Record (_, _, e)
         | Publish (_, _, _, e)
-        | ScopeExp (_, _, e)
         | Throw (_, e)
         | Primary (_, e)
         | Candidate (_, e)
@@ -458,7 +459,9 @@ let private classifyPass (ctx: Context) (final: bool) (exp: Exp) : Exp * int =
         | Record (r, s, e) -> Record(r, s, go e)
         | Publish (r, s, access, e) -> Publish(r, s, access, go e)
         | Identifier (r, role) -> Identifier(r, classifyRole r role)
-        | ScopeExp (r, s, e) -> ScopeExp(r, s, go e)
+        | ScopeExp (r, s, e) ->
+            rewriteScopeExpression go s
+            ScopeExp(r, s, go e)
         | Literal _ -> node
         | Set (r, xs) -> Set(r, List.map go xs)
         | List (r, xs) -> List(r, List.map go xs)
@@ -518,7 +521,9 @@ let rec private resolveExp (ctx: Context) (node: Exp) : Exp =
     | Record (r, s, e) -> Record(r, s, go e)
     | Publish (r, s, access, e) -> Publish(r, s, access, go e)
     | Identifier _ -> node
-    | ScopeExp (r, s, e) -> ScopeExp(r, s, go e)
+    | ScopeExp (r, s, e) ->
+        rewriteScopeExpression go s
+        ScopeExp(r, s, go e)
     | Literal _ -> node
     | Set (r, xs) -> Set(r, List.map go xs)
     | List (r, xs) -> List(r, List.map go xs)

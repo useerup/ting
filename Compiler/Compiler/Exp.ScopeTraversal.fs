@@ -60,7 +60,8 @@ and private collectDefinitionScopes (acc: ResizeArray<Scope>) (node: Exp) : unit
     | Publish (_, s, _, e) ->
         addDefinitionScope acc s
         collectDefinitionScopes acc e
-    | ScopeExp (_, _, e) ->
+    | ScopeExp (_, s, e) ->
+        addDefinitionScope acc s
         collectDefinitionScopes acc e
     | Identifier (_, role)
     | This (_, role) ->
