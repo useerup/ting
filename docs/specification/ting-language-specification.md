@@ -312,9 +312,7 @@ the occurrence is an outcome of the whole walk, not a property of the top frame 
 Name binding walks the stack from the innermost frame outward, using the scopes that
 have already been introduced by surrounding operators and declarations:
 
-1. In a referential frame, an existing declaration with the same name resolves the
-  occurrence and ends the walk. If the frame has no such declaration, the walk
-  continues outward.
+1. In a referential frame, a name that is proved to be always declared in that scope resolves the occurrence and ends the walk. The walk continues outward only if the name is proved to be never declared in that scope.
 2. If the walk reaches a declarative frame without being resolved by an earlier
   referential frame, the occurrence becomes a declaration. The same declaration
   identity is contributed to that frame and to following declarative frames only for
@@ -323,8 +321,7 @@ have already been introduced by surrounding operators and declarations:
   declaration propagation stops there and does not resume in farther declarative frames.
 4. Contributing a name already present in a declarative frame adds a constraint to the
   existing binding; the declarations are unified rather than shadowing one another.
-5. If every frame is referential and none contains the name, the occurrence is
-  unresolved.
+5. If every frame is referential and none contains the name, the occurrence is unresolved and compilation fails.
 
 This makes declaration composition sensitive to the order and mode of individual scope
 frames. An inner referential frame can resolve a name before an outer declarative frame
@@ -335,14 +332,11 @@ therefore performed after the relevant scope has been populated. When declaratio
 only the contiguous declarative segment participates in the same declaration identity;
 interleaved referential frames are hard boundaries.
 
-Classification of an occurrence may be deferred. An occurrence whose stack begins with
-a declarative frame declares immediately; every other occurrence stays undecided until
-the scopes its walk crosses are populated. Declarations are settled first, to a
-fixpoint, and references are resolved only afterwards, so no reference resolves before
-every reachable declaration has been recorded. The names provided by an expression
-scope (`./`, `../`) are the members of the set its defining operand denotes; while that
-structure is not derivable, occurrences whose walk reaches such a frame remain
-undecided rather than in error.
+Classification of an occurrence may be deferred during compile-time analysis. An occurrence whose stack begins with a declarative frame declares immediately; every other occurrence stays undecided until the scopes its walk crosses are sufficiently determined. Declarations are settled first, to a fixpoint, and references are resolved only afterwards, so no reference resolves before every reachable declaration has been recorded. The names provided by an expression scope (`./`, `../`) are the members of the set its defining operand denotes; determining whether it provides a particular name may require logical resolution of its defining expression.
+
+Every identifier reference must be resolved at compile time. At each referential frame reached by the binding walk, the compiler must establish that the scope always declares the referenced name or that it never declares that name, under the constraints applicable at the occurrence. If it always declares the name, resolution uses that scope. If it never declares the name, the walk continues outward. A scope that may declare the name in some cases but not others is a compilation error for that occurrence. Inability to prove either always or never is also a compilation error; an unknown intermediate scope must not be skipped to select an outer declaration or to declare the name in an outer frame.
+
+Pending classification is an intermediate compiler state only. If analysis can make no further progress and a reference remains unresolved, compilation fails. No reference is deferred to runtime. This requirement concerns the declaration to which a name refers, not whether its bound value is known at compile time.
 
 ### Scope-introducing forms
 
@@ -363,6 +357,7 @@ scope as described under [Declarative and referential operators](#declarative-an
 - Recursive and unification-style examples use `?=`.
 
 ### Lambda
+
 - Form: `pattern => expression`
 - The operator introduces one local scope spanning both operands.
 - That new scope is declarative in the parameter pattern and referential in the body.
@@ -392,6 +387,7 @@ function. The predicate constrains the relationship between each accepted argume
 its result.
 
 ### Functions via fn mapping collections
+
 - `fn` is a unary operator over a collection of mappings.
 - `fn { p1 -> r1, p2 -> r2, ... }` is unary `fn` applied to a set literal of mappings.
 - If several mappings in that collection share the same argument part, the resulting function is nondeterministic at that argument.
@@ -405,7 +401,25 @@ Ting models types as sets.
 - `float`, `double`, `decimal`
 - `char`, `string`, `bool`
 
+### Unit
+
+`unit` is the singleton set whose only member is the empty tuple:
+
+  unit = { () }
+
+The empty tuple `()` is an ordinary defined value with no fields. It is distinct from
+`void`, which is the absence of a value, and from `{}`, which is the empty set.
+
+A function in `unit ^^ A` accepts no information; its sole possible argument is `()`.
+A function in `A ^^ unit` produces `()` where it is defined and therefore communicates
+definedness without carrying result information.
+
+For the fusing product, `unit` is the identity: `unit * A = A` and `A * unit = A`.
+The non-fusing product retains the empty tuple as a component, so the members of
+`unit ** A` are `((), a)` for `a : A`, and the members of `A ** unit` are `(a, ())`.
+
 ### Built-in meta sets
+
 - `Sets`: set of all sets
 - `Funcs`: set of all functions
 
@@ -657,6 +671,7 @@ available. Whether published names attach to the function value itself or to the
 through which the function is reached is not yet specified.
 
 ### Sets as identity functions
+
 TODO: describe an implicit promotion from set values to identity functions when a function is expected.
 
 ### Function composition and application
@@ -677,6 +692,7 @@ TODO: describe an implicit promotion from set values to identity functions when 
 A collection literal is not a token: its elements are arbitrary expressions, so it is a syntactic form rather than a lexical one.
 
 ### Lists
+
 - Ordered sequence values.
 - List definitions can expand nondeterministic elements by backtracking.
 
@@ -837,27 +853,13 @@ The `catch` operator is left-associative.
 
 Ting has a capability-based contextual effect system
 
-Effects are function relations whose definitions may be supplied by a surrounding
-`answer` expression. Unlike `throw`, an answered effect application contributes an
+Effects are objects whose values may be supplied by a surrounding
+`answer` expression. Unlike `throw`, an answered effect (`ask`) contributes an
 ordinary value to the relation of its containing expression.
-
-### Effect sets and functions
-
-`effect S` requires `S` to be a set of functions and denotes a fresh nominal set of
-functions whose candidate set is `S`. Distinct constructions of `effect S` denote
-distinct sets, even where they have the same candidate set. A function belonging to such
-a set is an **effect function**. Its ordinary function constraints come from `S`, while
-its membership of that particular effect set distinguishes it from structurally or
-extensionally equal functions belonging to another set.
-
-  Writer : effect (string ^^ bool)
-
-This declares `Writer` as a nondeterministic effect function ranging over the members of
-the newly created effect set. Further constraints may narrow the function it denotes.
 
 ### Asking
 
-`ask F` requires `F` to be an effect function and denotes a function with the same
+`ask F` requires `F` to be an effect value and denotes a function with the same
 argument and result constraints as `F`. Its mappings are supplied by a matching `answer`.
 Within an answer scope supplied by `H`, where `F` unifies with `H`, the result relation of
 `(ask F) x` is the result relation of `H x`. Undefinedness, nondeterminism and solution
@@ -892,15 +894,14 @@ every relation on which the left operand depends.
 
 ### Effect contracts
 
-`F asks A` constrains every escaping effect function of `F` to be a member of the set `A`.
+`F asks A` constrains every escaping effect function of `F` to be a member of the effect set `A`.
 Every member of `A` must be an effect function. The contract is an upper bound: it does
 not require `F` to ask every member of `A`.
 
 An effect set admits any of its members, while a set definition can state a more precise
 dependent contract:
 
-  Process asks Writers
-  Process asks { Writer }
+    Process asks Writers=
 
 In the second form the set definition collects every value the captured nondeterministic
 `Writer` can assume. Constraints on `Writer` therefore also narrow the contract.
@@ -920,13 +921,15 @@ the enclosing expression or function is partial.
 For example, where `unit` is the singleton set containing `()`:
 
 ```ting
-let Writer : effect (string ^^ bool) in
-let Reader : effect (unit ^^ string) in
-  program
-    answer Writer # (message => true)
-    answer Reader # Console.ReadLine
-where
-  program = ask Reader >> ask Writer
+
+Writers = answers string s => Console.WriteLine s
+
+ask Read >> ask Write 
+answer
+    Write = Console.Writeline
+    Read = Console.ReadLine
+
+    
 ```
 
 The answer for `Reader` relates `()` to strings, and composition uses those strings as

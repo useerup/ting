@@ -130,28 +130,24 @@ complete, plus an intermediate state used while classification is still possible
 
 - **Bound declared** - the binding walk reached a declarative frame before resolving the name. The occurrence carries a declaration identity, and that identity is recorded in the contiguous declarative segment starting at that frame. A referential frame ends the segment. An existing declaration with the same name in one of those frames receives another unifying constraint rather than being shadowed.
 - **Bound referenced** - the walk resolved the occurrence to an existing declaration identity in a referential frame.
-- **Pending** - the walk is not yet decidable. The occurrence carries the ordered stack of scope frames covering it, each with its mode, so the walk can be completed once the scopes it depends on are populated. An occurrence whose stack begins with a declarative frame is decidable immediately; every other occurrence is pending until classification.
+- **Pending** - the walk is not yet decidable during compile-time analysis. The occurrence carries the ordered stack of scope frames covering it, each with its mode, so the walk can be completed once the scopes it depends on are sufficiently determined. An occurrence whose stack begins with a declarative frame is decidable immediately; every other occurrence is pending until classification. A reference may not remain pending in a successfully compiled program.
 
 Each frame in the ordered scope stack is independently declarative or referential at an
 occurrence. Binding walks the stack from the innermost frame outward:
 
-1. A referential frame containing the name resolves the occurrence and stops the walk.
-2. A referential frame not containing the name is skipped.
+1. A referential frame proved to always declare the name resolves the occurrence and stops the walk.
+2. A referential frame proved to never declare the name is skipped.
 3. The first declarative frame makes the occurrence a declaration. Its declaration identity
     is contributed to that frame and to following declarative frames only while they are
     adjacent in the walk.
 4. The first referential frame encountered after declaration has started is a barrier:
     declaration propagation stops there and does not resume in farther declarative
     frames.
-5. If the walk exhausts only referential frames without finding the name, the occurrence
-    is unresolved.
+5. If the walk exhausts only referential frames without finding the name, the occurrence is unresolved and compilation fails.
 
-The walk is completed in two phases. Declarations are settled first, to a fixpoint:
-a deferred declaration can enable another, so declaration sweeps repeat until none
-lands. Only then are references resolved, so no reference resolves before every
-reachable declaration has been recorded. A referential frame that is an expression
-scope answers membership from the structure of its defining expression; while that
-structure is not derivable the occurrence stays pending rather than erroring.
+The walk is completed in two phases. Declarations are settled first, to a fixpoint: a deferred declaration can enable another, so declaration sweeps repeat until none lands. Only then are references resolved, so no reference resolves before every reachable declaration has been recorded. A referential frame that is an expression scope answers whether it provides a name from its defining expression; this may require logical resolution rather than inspection of an already known structure.
+
+For every referential frame reached, compile-time analysis must prove that the name is always declared or never declared under the constraints applicable at the occurrence. Conditional presence, or inability to establish either outcome, is a compilation error. Such a frame cannot be bypassed to resolve or declare the name farther outward. An occurrence may remain pending while analysis proceeds, but if analysis makes no further progress without resolving it, compilation fails. Resolution is never deferred to runtime; the value of a resolved declaration need not itself be known at compile time.
 
 Nothing in the identifier itself decides the outcome. It follows from the ordered frame
 stack and the declarations available in referential frames once the walk completes.
@@ -188,7 +184,7 @@ A pending occurrence is resolved in this order:
 
 If none succeeds, an unresolved-name diagnostic is reported.
 
-Member resolution is **structural, not lexical**. Members are never found by lexical search, and a member whose receiver structure is not yet determined is deferred rather than falling back to a lexical match.
+Member resolution is **structural, not lexical**. Members are never found by lexical search. A member whose receiver structure is not yet sufficiently determined is deferred only during compile-time analysis, never resolved by a lexical fallback. It must be resolved before compilation can succeed, under the same always/never requirement as other references.
 
 ## Surface forms and their lowering
 

@@ -2,7 +2,7 @@
 x => x + y => x + y + z => x
 ```
 ```ting-output
-Compilation succeeded.
+Compilation failed.
 
 Scopes:
 [1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_

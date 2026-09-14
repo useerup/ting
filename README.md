@@ -39,7 +39,7 @@ cd Compiler
 dotnet test
 ```
 
-The test suite compiles the 67 examples under `Compiler/examples/notebook/diagnostics/` and compares the result against the snapshot recorded in each file. To regenerate the snapshots after an intentional change:
+The test suite includes focused binding and resolution assertions. Notebook tests regenerate the output in `Compiler/examples/notebook/diagnostics/` and verify that regeneration is idempotent; review the resulting diff for unintended changes. To regenerate notebook output separately:
 
 ```
 dotnet run --project Examples.Tools
@@ -51,7 +51,14 @@ To compile an expression directly:
 echo "let x = 21 in x * 2" | dotnet run --project TingCompilerCli
 ```
 
-This prints the resolved core expression, the scope tree, any diagnostics, and, for the expressions the partial evaluator handles, a value.
+This runs the current compiler front end and prints its resolution status, scopes, identifier bindings, and diagnostics. It does not generate executable code.
+
+## Compilation phases
+
+1. Scope annotation records declarations and gives each undecided identifier the ordered stack of active scopes, including each frame's declarative or referential mode. Scope-defining expressions remain in the tree for subsequent analysis.
+2. Resolution settles declarations, derives record structure from equality constraints in either direction, and rewrites references and property accesses. It repeats these steps with rebuilt constraints until no further progress is possible. Unknown inner scopes block lookup; they are not skipped in favor of outer scopes.
+
+The front end reports success only when name resolution completes. A missing name produces a failure; a scope whose structure is unknown or not uniquely determined produces an incomplete result. Cycles without enough structural information remain unresolved rather than causing an endless loop. This is structural inference for name resolution, not a general expression unifier: arbitrary function reduction, set constraints, and unification of distinct record scopes still need implementation.
 
 ## Contributing
 

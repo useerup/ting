@@ -2,7 +2,7 @@
 let answer=42 in $`Flollop{answer}`
 ```
 ```ting-output
-Compilation succeeded.
+Compilation incomplete: name resolution is blocked.
 
 Scopes:
 [1] Local : bool, string, char, float, double, int, uint, byte, sbyte, short, ushort, long, ulong, half, decimal, DateTime, DateTimeOffset, set, any, Func, _all_
