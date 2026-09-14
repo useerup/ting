@@ -483,16 +483,24 @@ let private classifyPass (ctx: Context) (final: bool) (exp: Exp) : Exp * int =
                 applied <- applied + 1
                 Bound(Declared, applyDeclare targets name, name)
             | WouldReference id when final ->
+                applied <- applied + 1
                 if (shadowingIds frames name).Count >= 2 then
                     ctx.Diags.Add { Kind = IllegalShadowing(formatName name); Span = span }
                 Bound(Referenced, id, name)
             | Missing when final ->
                 match tryThisMember ctx frames name with
-                | Some id -> Bound(Referenced, id, name)
+                | Some id ->
+                    applied <- applied + 1
+                    Bound(Referenced, id, name)
                 | None ->
-                    if not (nameHasHole name) then
+                    if ctx.ReportMissing && not (nameHasHole name) then
                         ctx.Diags.Add { Kind = UnresolvedName(formatName name); Span = span }
+                    elif ctx.ReportMissing then
+                        ctx.Blocked.Value <- true
                     role
+            | Undecidable when ctx.ReportMissing ->
+                ctx.Blocked.Value <- true
+                role
             | _ -> role
 
     let rec go (node: Exp) : Exp =
@@ -650,46 +658,73 @@ and private resolveMember (ctx: Context) (projectionScope: Scope) (overMembers: 
                 // The member only looked like a declaration until the receiver
                 // supplied the name, so retract it.
                 projectionScope.Names.Remove declId |> ignore
+                ctx.Progress.Value <- ctx.Progress.Value + 1
                 Identifier(r, Bound(Referenced, id, name))
             | None ->
                 // A field was sought on a known record but not found: a real error.
                 // Otherwise the receiver structure is unknown, so defer.
                 match recScopeOpt with
-                | Some _ -> ctx.Diags.Add { Kind = UnresolvedMember(formatName name); Span = r }
-                | None -> ()
+                | Some _ when ctx.ReportMissing -> ctx.Diags.Add { Kind = UnresolvedMember(formatName name); Span = r }
+                | None when ctx.ReportMissing -> ctx.Blocked.Value <- true
+                | _ -> ()
 
                 memberExp
+    | Identifier (_, Bound (Declared, _, name)) when nameHasHole name ->
+        if ctx.ReportMissing then ctx.Blocked.Value <- true
+        memberExp
     | _ -> resolveExp ctx memberExp
 
 // Classify the deferred binding walks, then resolve member projections.
 // `baseScopes` are scopes that Pending frames may name but that are not
 // reachable from the tree — currently the parser's operator scope.
 // Returns the rewritten tree and any diagnostics collected along the way.
-let resolve (rootScope: Scope) (baseScopes: Scope list) (exp: Exp) : Exp * Diagnostic list =
+let resolveWithStatus (rootScope: Scope) (baseScopes: Scope list) (exp: Exp) : Exp * Diagnostic list * ResolutionStatus =
     let diags = ResizeArray<Diagnostic>()
+    let progress = ref 0
+    let blocked = ref false
 
     // The binding map and this-types change as deferred declarations land, so
     // rebuild the context between sweeps. The registry maps ids to the same
     // mutable scope objects throughout.
-    let mkCtx (e: Exp) =
+    let mkCtx reportMissing (e: Exp) =
         let scopes = buildScopeList rootScope baseScopes e
         let registry = buildRegistry scopes
-        { Registry = registry
-          Scopes = scopes
-          BindingMap = buildBindingMap e
-          ThisTypes = buildThisTypes registry e
-          Diags = diags }
+        {
+            Registry = registry
+            Scopes = scopes
+            BindingMap = buildBindingMap e
+            ThisTypes = buildThisTypes registry e
+            Diags = diags
+            ReportMissing = reportMissing
+            Progress = progress
+            Blocked = blocked
+        }
 
     // Declaration sweeps to a fixpoint: a deferred declaration can enable
     // another (or change a later reference), so repeat until none lands.
     let rec settle (e: Exp) =
-        let e', applied = classifyPass (mkCtx e) false e
+        let e', applied = classifyPass (mkCtx false e) false e
         if applied > 0 then settle e' else e'
 
-    let settled = settle exp
-    let classified, _ = classifyPass (mkCtx settled) true settled
-    let resolved = resolveExp (mkCtx classified) classified
-    resolved, List.ofSeq diags
+    let rec solve (e: Exp) =
+        let settled = settle e
+        let classified, applied = classifyPass (mkCtx false settled) true settled
+        progress.Value <- 0
+        let rewritten = resolveExp (mkCtx false classified) classified
+        if applied > 0 || progress.Value > 0 then solve rewritten else rewritten
+
+    let solved = solve exp
+    let classified, _ = classifyPass (mkCtx true solved) true solved
+    let resolved = resolveExp (mkCtx true classified) classified
+    let status =
+        if diags.Count > 0 then ResolutionStatus.Failed
+        elif blocked.Value then ResolutionStatus.Blocked
+        else ResolutionStatus.Complete
+    resolved, List.ofSeq diags, status
+
+let resolve (rootScope: Scope) (baseScopes: Scope list) (exp: Exp) : Exp * Diagnostic list =
+    let resolved, diagnostics, _ = resolveWithStatus rootScope baseScopes exp
+    resolved, diagnostics
 
 let formatDiagnostic (d: Diagnostic) =
     let message =

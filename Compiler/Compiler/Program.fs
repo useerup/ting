@@ -82,7 +82,7 @@ let private compileTingProgramRaw (input: string) : string =
     | ParseSucceeded analyzed ->
         // Resolve first: classification of deferred bindings populates scopes,
         // so the reports below reflect the finished walk.
-        let resolved, diagnostics = Resolver.resolve rootScope [ Parser.operatorScope ] analyzed
+        let resolved, diagnostics, status = Resolver.resolveWithStatus rootScope [ Parser.operatorScope ] analyzed
 
         // Both are ambient: nothing in the tree points at them. They are still
         // reported so that every resolved identifier names a listed scope.
@@ -112,7 +112,13 @@ let private compileTingProgramRaw (input: string) : string =
                     |> String.concat "\n"
                 $"\n\nDiagnostics:\n{lines}"
 
-        $"Compilation succeeded.\n\nScopes:\n{scopesSection}\n\nIdentifiers:\n{identifiersSection}{diagnosticsSection}"
+        let outcome =
+            match status with
+            | Resolver.ResolutionStatus.Complete -> "Compilation succeeded."
+            | Resolver.ResolutionStatus.Blocked -> "Compilation incomplete: name resolution is blocked."
+            | Resolver.ResolutionStatus.Failed -> "Compilation failed."
+
+        $"{outcome}\n\nScopes:\n{scopesSection}\n\nIdentifiers:\n{identifiersSection}{diagnosticsSection}"
     | ParseFailed error ->
         $"Compilation failed.\n({error.Span.Start.Line},{error.Span.Start.Column}) {error.Message}"
 
