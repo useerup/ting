@@ -799,10 +799,33 @@ one level deep, `**` does not (see [Product sets](#product-sets)).
 - Optional components are documented by example.
 - `tuple` and `tuples` operators provide explicit construction/type-set forms.
 
+Parentheses around a single expression group that expression: `(e)` denotes `e` and does not introduce an additional product layer.
+
 ### Records
 - `record` defines a product with only named fields (see [Products](#products)).
 - `records` denotes sets of records.
 - Field access uses property selection (`.`).
+
+A record declares its own fields independently of surrounding local bindings. A field may have the same name as a surrounding binding without redeclaring or constraining that binding.
+
+```ting
+value = 1 in record(value = 2)
+```
+
+This expression is valid and produces a record whose `value` field is `2`. The surrounding local `value` remains `1`.
+
+A single name used as a record field declaration both declares the field and references the name for its value. This shorthand has the meaning of an explicit same-name field equation:
+
+```ting
+value = 1 in record(value)
+value = 1 in record(value = value)
+```
+
+These expressions are equivalent and produce a record whose `value` field is `1`. In the explicit form, the left occurrence declares the record field and the right occurrence references the surrounding local `value`, not the newly declared field. The shorthand therefore combines two binding roles; it is not solely a declaration or solely a reference.
+
+Within a record field expression, the record's `this` binding denotes the record being defined. `this.field` references a field of that record, including the field whose expression contains the reference or another field of the same record. Thus `this.value` can reference the record's own `value` field, distinct from a surrounding local binding named `value`. Such references are subject to the same compile-time resolution requirement as other property references.
+
+The `this.` qualification is required for these references. An unqualified reference does not fall back to a field of the record when no surrounding binding supplies the name. Consequently, `record(value)` is a compilation error if its reference to `value` cannot otherwise resolve; declaring the record field does not satisfy that reference or turn the shorthand into an unconstrained field declaration.
 
 ## Classes
 
@@ -826,19 +849,25 @@ one level deep, `**` does not (see [Product sets](#product-sets)).
 
 `this` can be explicitly bound and can also be introduced by context operators.
 
+The open-scope operators `./` and `../` do not introduce a `this` binding. Opening an expression scope or an expression member scope does not itself bind or rebind `this`.
+
 Documented contexts that bind `this` include:
 - `record`, `records`
 - `tuple`, `tuples`
 - explicit lambda parameters named `this`
-- local binding such as `let this = ... in ...`
+- local binding such as `this = ... in ...`
 
-When `this` is in declarative position, members of its value/type are available in scope by unqualified names.
+In a record field expression, the record supplies itself as `this`. References to its own fields require `this.field`; this record context does not make the fields available through unqualified references (see [Records](#records)).
 
-Name resolution rule for `this`:
-- `this` follows normal lexical scoping and shadowing.
-- The closest binding always wins.
-- A nested `let this = ... in ...` introduces a new `this` that shadows outer or implicit `this` bindings for that nested scope.
-- A function/lambda parameter named `this` shadows outer or implicit `this` bindings inside that function body.
+When `this` is in declarative position, members of its value/type are available in scope by unqualified names, except for the record-field context described above.
+
+`this` may be redefined in a nested scope within the same local expression. A new declaration of `this` introduces a distinct binding that shadows the outer `this` within the nested scope; it does not add constraints to the outer binding. This is an exception to the prohibition on redeclaring ordinary local identifiers. References to `this` resolve to the nearest covering binding according to the scope walk and must resolve at compile time. Outside the nested scope, the outer binding remains in effect.
+
+```ting
+this = 1 in (this = 2 in this)
+```
+
+This expression yields `2`: the inner `in` introduces a new `this` binding, and the final reference resolves to it. The corresponding expression using an ordinary name such as `value` instead of `this` remains a redeclaration error.
 
 ## Nondeterminism
 
@@ -1111,9 +1140,13 @@ and internal.
 Evaluates its operand as a record scope: every name the operand declares becomes a field
 of the resulting record.
 
+A single-name field declaration also references that name for its value, as specified under [Records](#records).
+
 #### `records`
 
 Denotes the set of records whose fields are those declared by the operand.
+
+`records E` has the meaning of `{ record E }`, collecting the record values described by the operand.
 
 #### `tuple`
 
@@ -1123,6 +1156,8 @@ Marks its operand as an explicit tuple construction. It contributes no meaning o
 #### `tuples`
 
 Denotes the set of tuples whose components are those of the operand.
+
+`tuples E` has the meaning of `{ E }`, collecting the tuple values described by the operand.
 
 #### `fn`
 
@@ -1267,15 +1302,47 @@ the value of the left operand on the condition that the right operand evaluates 
 
 #### `./`
 
-Left-referential expression scope. The left operand is analyzed first to produce a scope,
-and that scope is then made available to the right operand. `this` is bound to the left
-operand within the right operand.
+Left-referential expression scope. The left operand is analyzed first to produce a scope, and that scope is then made available to the right operand. The operator does not introduce a `this` binding.
+
+When the left operand denotes a record, its fields are available as unqualified names in the right operand.
+
+```ting
+record(value = 1) ./ value
+```
+
+This expression yields `1`: the right-hand `value` resolves directly to the record's field. This is explicit scope opening by `./`, distinct from implicit field lookup within a record field expression, where `this.field` is required.
 
 #### `../`
 
-Left-referential expression member scope. The left operand is analyzed first to produce a
-member scope, and that scope is then made available to the right operand. `this` is bound
-to a member of the left operand within the right operand.
+Left-referential expression member scope. The left operand is analyzed first to produce a member scope, and that scope is then made available to the right operand. For a set operand, fields of its members are exposed as functions from members of the set to field values. The operator does not introduce a `this` binding.
+
+For a set `S` exposing a field accessor `field`, `S ../ field` denotes the function `S member => member.field`. The accessor may be partial: the field need not be present on every member of `S`, and applying the accessor to a member without that field is undefined. The operator does not evaluate the right operand separately for each member and yield the field values nondeterministically. References to the exposed functions must still resolve at compile time. This requirement concerns the availability of the accessor in the member scope, not whether the accessor is defined for every member of the set.
+
+```ting
+{record(value = 1), record(value = 2)} ../ value
+```
+
+This expression is equivalent to:
+
+```ting
+{record(value = 1), record(value = 2)} r => r.value
+```
+
+The result is a function that maps each record in the set to its `value` field, not the nondeterministic values `1` and `2`.
+
+```ting
+{record(value = 1), record(other = 2)} ../ value
+```
+
+This expression is valid and denotes a partial function. Applying it to `record(value = 1)` yields `1`; applying it to `record(other = 2)` is undefined. The absence of `value` on some members does not prevent compile-time resolution of the accessor named `value`.
+
+If no member of the set provides the requested field, the accessor is always undefined and the expression is a compilation error. This case does not produce an everywhere-undefined accessor or cause lookup of the requested name to continue in an outer scope.
+
+```ting
+{record(other = 2)} ../ value
+```
+
+This expression is a compilation error because the `value` accessor is undefined for every member of the set.
 
 #### `=>`
 
