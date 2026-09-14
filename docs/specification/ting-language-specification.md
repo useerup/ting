@@ -57,7 +57,7 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | Tokens                           | Role                                                 |
 | -------------------------------- | ---------------------------------------------------- |
 | `where`                          | right-declarative condition                          |
-| `in`                             | conditional value                                    |
+| `in`                             | left-declarative conditional value                   |
 | `=` `?=`                         | identity, unify                                      |
 | `then` `else`                    | implication, alternative                             |
 | `contract`                       | function abstraction contract                        |
@@ -279,6 +279,8 @@ Each replacement expression is evaluated.
 Its value must be a string or be convertible to a string.
 The interpolated identifier value is the concatenation of literal segments and converted replacement values.
 
+Name resolution compares the resulting names after the replacement expressions have been evaluated. Interpolated identifier references are subject to the same compile-time resolution requirement as other references.
+
 Examples:
 - ``` $`Name{n}` ```
 - ``` $$`Name{{n}}` ```
@@ -332,11 +334,41 @@ therefore performed after the relevant scope has been populated. When declaratio
 only the contiguous declarative segment participates in the same declaration identity;
 interleaved referential frames are hard boundaries.
 
-Classification of an occurrence may be deferred during compile-time analysis. An occurrence whose stack begins with a declarative frame declares immediately; every other occurrence stays undecided until the scopes its walk crosses are sufficiently determined. Declarations are settled first, to a fixpoint, and references are resolved only afterwards, so no reference resolves before every reachable declaration has been recorded. The names provided by an expression scope (`./`, `../`) are the members of the set its defining operand denotes; determining whether it provides a particular name may require logical resolution of its defining expression.
+Classification of an occurrence may be deferred during compile-time analysis. An occurrence whose stack begins with a declarative frame declares immediately; every other occurrence stays undecided until the scopes its walk crosses are sufficiently determined. Declarations are settled first, to a fixpoint, and references are resolved only afterwards, so no reference resolves before every reachable declaration has been recorded. An expression scope (`./`) exposes names from its defining operand itself; for a record, these are its fields. An expression member scope (`../`) instead exposes fields of the set's members as functions from those members to field values. Determining whether either scope provides a particular name may require logical resolution of its defining expression.
 
 Every identifier reference must be resolved at compile time. At each referential frame reached by the binding walk, the compiler must establish that the scope always declares the referenced name or that it never declares that name, under the constraints applicable at the occurrence. If it always declares the name, resolution uses that scope. If it never declares the name, the walk continues outward. A scope that may declare the name in some cases but not others is a compilation error for that occurrence. Inability to prove either always or never is also a compilation error; an unknown intermediate scope must not be skipped to select an outer declaration or to declare the name in an outer frame.
 
 Pending classification is an intermediate compiler state only. If analysis can make no further progress and a reference remains unresolved, compilation fails. No reference is deferred to runtime. This requirement concerns the declaration to which a name refers, not whether its bound value is known at compile time.
+
+### Shadowing
+
+Repeated declarative occurrences of a local name in the same declarative scope contribute constraints to the same binding. They do not introduce separate declaration identities and are not redeclaration errors. All contributed constraints apply to that binding; a later occurrence does not replace an earlier constraint.
+
+```ting
+((value = 1) & (value = 1)) in value
+```
+
+Both occurrences on the left of `in` constrain one `value` binding in the scope introduced by that `in`. The body refers to that binding.
+
+A declarative expression may shadow an ordinary identifier only if that identifier was declared outside the current local expression. Such identifiers include names made available through `public` and names introduced through the open-scope operators `./` and `../`. Introducing a nested declarative scope does not by itself permit shadowing an ordinary identifier declared within the current local expression. Contributing constraints to the same declaration identity is not shadowing. The keyword `this` is an exception: a nested declaration may introduce a new binding that shadows the outer `this`, as specified under [This Binding](#this-binding).
+
+A nested local scope that redeclares an ordinary identifier already declared within the current local expression causes a compilation error. The new declaration is not interpreted as a reference or as an additional constraint on the outer declaration. This error concerns redeclaration, not whether the values assigned to the two declarations agree. Record field declarations are distinct from local binding declarations and are not prohibited by this restriction: a record may declare a field with the same name as a surrounding local binding (see [Records](#records)).
+
+```ting
+value = 1 in (value = 2 in value)
+```
+
+This expression is a compilation error: the inner `in` declares `value` again, while the outer `in` has already declared it in the local expression. It is not an expression that becomes undefined because `1` and `2` fail to unify.
+
+### Property resolution
+
+A declaration made through property access has a host. For example, `int.Zero = 0` declares `Zero` directly on `int`, whereas `int..Double = expression` declares `Double` on members of `int`. Hosted names are not ordinary lexical declarations: bare lexical lookup skips them, and property access finds them through a receiver matching their host.
+
+In `receiver.property` and `receiver..property`, the receiver is referential. The property expression is interpreted against the receiver, not looked up as an ordinary lexical name. Resolution first seeks a field of the receiver's record structure, then a hosted property whose host matches the receiver. A direct host matches the receiver itself; a member host matches a set to which the receiver belongs.
+
+For an unqualified name, lexical lookup precedes implicit property lookup through a covering `this` binding. Implicit lookup interprets the name as a property of `this`. An undetermined receiver or intervening scope does not authorize a lexical fallback: property references may be deferred only during compile-time analysis and must resolve before compilation can succeed.
+
+The `this` binding supplied by a record does not provide implicit lookup of that record's fields within field expressions. References to those fields require `this.field`, even when no surrounding binding supplies the unqualified name (see [Records](#records)).
 
 ### Scope-introducing forms
 
@@ -345,7 +377,7 @@ The following forms introduce declarative scopes:
 - Visibility scopes: `public`, `private`, `protected`, `internal`
 - Aggregate scopes: `record`, `records`, and the named section of a product
 - Local binder: `let`
-- Left-declarative operators: lambda `=>`, such-that `\`, contract `contract`
+- Left-declarative operators: conditional value `in`, lambda `=>`, such-that `\`, contract `contract`
 - Right-declarative operator: `where`
 
 `let` introduces a local scope that is declarative throughout its operand. A
@@ -353,7 +385,9 @@ left-declarative or right-declarative operator instead introduces a mixed-mode l
 scope as described under [Declarative and referential operators](#declarative-and-referential-operators).
 
 ### Local binding
-- Canonical form: `let pattern = expr in body`
+- Canonical form: `pattern = expr in body`.
+- `in` introduces a local scope spanning both operands. Its new frame is declarative over the left operand and referential over the right operand, just as for `=>`. Inherited frames retain their modes.
+- `let` is not required to declare the pattern in this form. An explicit `let` introduces an additional scope that is declarative throughout its operand.
 - Recursive and unification-style examples use `?=`.
 
 ### Lambda
@@ -699,6 +733,8 @@ TODO: describe an implicit promotion from set values to identity functions when 
 - Composition operators include `>>` and `<<`.
 - Application operators include `|>` and `<|`.
 - Juxtaposition application (`f x`) is supported.
+
+In juxtaposition `f x`, the callee `f` is referential in every covering scope frame, while the argument `x` retains the ambient frame modes. Thus `float a` reads `float` and declares `a` when a declarative frame covers the argument. A callee cannot become a declaration by passing through an inner scope into an outer declarative frame.
 
 
 ## Collections
@@ -1047,10 +1083,7 @@ operators](#binary-operators-used-as-unary-prefix-operators).
 
 #### `let`
 
-Introduces a local scope spanning its operand. The new frame is declarative throughout
-the operand. Names declared by the operand are local to that scope. The canonical form
-is `let pattern = expr in body`; the right-referential `=` and `in` operators make all
-covering frames referential over their right operands.
+Introduces a local scope spanning its operand. The new frame is declarative throughout the operand. Names declared by the operand are local to that scope. `let` is not required in `pattern = expr in body`, because `in` introduces its own left-declarative scope. An explicit `let` adds a separate frame; `in` preserves inherited frame modes, whereas the right-referential `=` makes all covering frames referential over its right operand.
 
 #### `public`
 
@@ -1348,10 +1381,9 @@ boolean value `false`.
 
 #### `in`
 
-Right-referential. The left operand is a proposition and the right operand is any
-expression. The value of the expression is the value of the right operand, provided the
-left operand evaluates to `true`. If the left operand evaluates to `false` or is
-undefined, the expression is undefined.
+Left-declarative. Introduces a local scope spanning both operands, with a new frame that is declarative over the left operand and referential over the right operand. Inherited scope frames retain their modes, just as for `=>`. Thus `pattern = expr in body` declares the pattern without requiring `let`.
+
+The left operand is a proposition and the right operand is any expression. The value of the expression is the value of the right operand, provided the left operand evaluates to `true`. If the left operand evaluates to `false` or is undefined, the expression is undefined.
 
 #### `then`
 
