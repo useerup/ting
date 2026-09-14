@@ -392,6 +392,27 @@ its result.
 - `fn { p1 -> r1, p2 -> r2, ... }` is unary `fn` applied to a set literal of mappings.
 - If several mappings in that collection share the same argument part, the resulting function is nondeterministic at that argument.
 
+## Values and Equality
+
+A value has three layers, from the outside inward:
+
+1. Attributes: values attached to a value, observed by structural equality but ignored by attribute-blind relations.
+2. Class membership: the nominal identity conferred by `class`.
+3. Structural content: the literal, product, set, list, or function structure of the value.
+
+The two equalities observe these layers as follows:
+
+| Relation | Attributes | Class membership | Structural content |
+| --- | --- | --- | --- |
+| `=` | observed | observed | observed |
+| `==` | ignored | observed | observed |
+
+`primary e` erases attributes throughout the structure, not only at the outermost level. It is total, deterministic, and idempotent, and preserves class membership. `candidate e` erases class membership to yield the candidate value while preserving attributes. Both are keyword intrinsics, not properties that can be shadowed by user-declared fields.
+
+`a == b` has the meaning of `(primary a) = (primary b)`. Attribute-blind relations operate on attribute-erased operands; for example, numeric or set comparison ignores attributes on either operand. Attribute erasure does not erase class membership: values of different classes do not become equal merely because their candidates are equal. Class erasure is explicit through `candidate`.
+
+`primary` and `candidate` preserve the ambient binding context of their operands. In a declarative context, `primary a = primary b` can declare `a` and constrain it up to attribute erasure without constraining its attributes.
+
 ## Sets
 
 Ting models types as sets.
@@ -1648,12 +1669,7 @@ Right-referential. For numeric operands, greater than. For set operands, proper 
 
 #### `==`
 
-Right-referential. Equality that ignores attributes but observes class membership
-and structural core. It is not primitive: it denotes `=` applied to the attribute-erased
-operands. For set operands it yields `true` when both sets have the same members. The
-layers each relation observes, the `primary` and `candidate` intrinsics, and the lowering
-that relates `=` and `==` are specified normatively in
-[The Core Expression](core-expression.md).
+Right-referential. Equality that ignores attributes but observes class membership and structural content. It denotes `=` applied to the attribute-erased operands: `(primary a) = (primary b)`. For set operands it yields `true` when both sets have the same members. See [Values and Equality](#values-and-equality) for the value layers and erasure rules.
 
 #### `!=`
 
