@@ -261,6 +261,65 @@ let private rolesOf (name: string) (node: Exp) : BindingRole list =
         | Pending (_, p)
         | Bound (_, _, p) -> formatName p = name)
 
+[<Theory>]
+[<InlineData("let (source, records(Field = 1) = source) in source ./ Field")>]
+[<InlineData("let (source, source = records(Field = 1)) in source ./ Field")>]
+[<InlineData("let (source = alias, alias = source, records(Field = 1) = alias) in source ./ Field")>]
+[<InlineData("(let source = records(Field = 1) in source) ./ Field")>]
+[<InlineData("let container = record(Source = records(Field = 1)) in container.Source ./ Field")>]
+[<InlineData("let (container = record(Source = records(Field = 1)), alias = container.Source) in alias ./ Field")>]
+let ``expression scopes derive structure from equality constraints`` (source: string) =
+    let resolved, diags = resolveNode source
+
+    Assert.Empty(diags)
+    let fields = rolesOf "Field" resolved
+    let declarations = fields |> List.choose (function Bound (Declared, id, _) -> Some id | _ -> None)
+    let references = fields |> List.choose (function Bound (Referenced, id, _) -> Some id | _ -> None)
+    Assert.Single(declarations) |> ignore
+    Assert.Single(references) |> ignore
+    Assert.Equal(declarations.Head, references.Head)
+
+[<Theory>]
+[<InlineData("let (source = alias, alias = source) in source ./ Field")>]
+[<InlineData("let (source, target = records(Field = 1)) in (source ./ target) ./ Field")>]
+[<InlineData("let (source = records(Left = 1), source = records(Right = 2)) in source ./ Field")>]
+let ``undetermined expression scopes retain pending references`` (source: string) =
+    let resolved, diags = resolveNode source
+
+    Assert.Empty(diags)
+    let pendingFields =
+        rolesOf "Field" resolved
+        |> List.choose (function Pending (frames, _) -> Some frames | _ -> None)
+    Assert.Single(pendingFields) |> ignore
+    Assert.NotEmpty(pendingFields.Head)
+
+[<Fact>]
+let ``iterative scope resolution reports missing names only once`` () =
+    let source = "let (container = record(Source = records(Field = 1)), alias = container.Source) in alias ./ (Field + missing)"
+    let _, diags = resolveNode source
+
+    let diagnostic = Assert.Single(diags)
+    Assert.Equal(Resolver.UnresolvedName "missing", diagnostic.Kind)
+
+[<Fact>]
+let ``references in scope-defining operands are classified`` () =
+    let resolved, diags = resolveNode "(let source = records(Field = 1) in source) ./ Field"
+
+    Assert.Empty(diags)
+    for role in allRoles resolved do
+        match role with
+        | Bound _ -> ()
+        | _ -> Assert.Fail($"expected a fully classified occurrence, got {role}")
+
+[<Theory>]
+[<InlineData("let source = records(Field = 1) in source ./ Field", "Compilation succeeded.")>]
+[<InlineData("let source in source ./ Field", "Compilation incomplete:")>]
+[<InlineData("let source in source.Field", "Compilation incomplete:")>]
+[<InlineData("missing ./ Field", "Compilation failed.")>]
+[<InlineData("let source = records(Field = 1) in source ./ missing", "Compilation failed.")>]
+let ``compilation reports whether resolution completed`` (source: string, expected: string) =
+    Assert.StartsWith(expected, CompilerEngine.compileTingProgram source)
+
 [<Fact>]
 let ``a where-bound name is referential in the left operand`` () =
     // `y` left of `where` must resolve to the where-scope declaration, not
