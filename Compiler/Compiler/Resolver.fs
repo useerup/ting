@@ -110,13 +110,45 @@ let private nameOfRole (role: BindingRole) : InterpolatedParts =
     | Pending (_, p)
     | Bound (_, _, p) -> p
 
-// Map a declaration id to the expression it is bound to by `=` (e.g. the record
-// value in `let person = record(Name:string)`). Only `_=_` applications whose
-// left operand is a declarative identifier introduce a binding; comparison uses
-// of `=` (where the left operand is, say, a projection) are ignored. This is the
-// minimal structural knowledge needed to resolve member projections.
-let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp> =
-    let map = Dictionary<Guid, Exp>()
+let private scopeExpression (scope: Scope) =
+    match scope with
+    | :? ExpressionScope as expressionScope -> Some expressionScope.Expression
+    | :? ExpressionMemberScope as expressionScope -> Some expressionScope.Expression
+    | _ -> None
+
+let private rewriteScopeExpression rewrite (scope: Scope) =
+    match scope with
+    | :? ExpressionScope as expressionScope -> expressionScope.Expression <- rewrite expressionScope.Expression
+    | :? ExpressionMemberScope as expressionScope -> expressionScope.Expression <- rewrite expressionScope.Expression
+    | _ -> ()
+
+let private tryLexicalDeclaration (role: BindingRole) : Guid option =
+    let rec lookup frames name =
+        match frames with
+        | { Mode = ReferentialScope; Scope = (:? LocalScope as scope) } :: rest ->
+            match lookupUnhostedInScope scope name with
+            | Some id -> Some id
+            | None -> lookup rest name
+        | _ -> None
+
+    match role with
+    | Bound (_, id, _) -> Some id
+    | Pending (frames, name) when not (nameHasHole name) -> lookup frames name
+    | _ -> None
+
+let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp list> =
+    let map = Dictionary<Guid, Exp list>()
+
+    let constrain target value =
+        match target with
+        | Identifier (_, role) ->
+            match tryLexicalDeclaration role with
+            | Some id ->
+                match map.TryGetValue id with
+                | true, constraints -> map[id] <- value :: constraints
+                | _ -> map[id] <- [ value ]
+            | None -> ()
+        | _ -> ()
 
     let isEqOp (e: Exp) =
         match e with
@@ -153,8 +185,12 @@ let private buildBindingMap (exp: Exp) : Dictionary<Guid, Exp> =
             List.iter walk named
         | Projection (_, _, a, b)
         | MemberProjection (_, _, a, b)
-        | Catch (_, a, b)
+        | Catch (_, a, b) ->
+            walk a
+            walk b
         | Equals (_, a, b) ->
+            constrain a b
+            constrain b a
             walk a
             walk b
         | StringLiteral (_, parts) ->
