@@ -935,98 +935,128 @@ expr catch fn{
 
 The `catch` operator is left-associative.
 
+### Exception contracts
+
+A function may be augmented with a `throws` contract. `F throws E` requires `E` to be a
+set of exception values and declares the exceptions that may escape applications of `F`.
+The declaration is an upper bound: every exception that may escape must be a member of
+`E`, but `F` need not throw every member of `E`. An exception handled within `F` does not
+escape `F`. Exceptions thrown while evaluating a catch handler are outside that handler's
+trap and may escape the whole `catch` expression.
+
+Without a `throws` augmentation, the throws contract of a function is indeterminate. Its
+absence does not state that the function throws no exceptions. `F throws {}` gives `F`
+an empty throws set and guarantees that no exception escapes an application of `F`. An
+implementation with this augmentation may throw exceptions only where they are caught
+before leaving the function.
+
+Within a compilation unit the compiler may infer escaping exceptions from a visible
+function body for analysis, but inference does not augment the function with a throws
+contract. At a module export boundary, an omitted `throws` contract is collapsed to the
+empty set, as if the function had been augmented with `throws {}`. The exported function
+therefore guarantees that no exception escapes unless its `throws` contract explicitly
+admits that exception. An exported function whose declared or defaulted set omits a
+possibly escaping exception is a compilation error.
+
 ## Effects
 
-Ting has a capability-based contextual effect system
-
-Effects are objects whose values may be supplied by a surrounding
-`answer` expression. Unlike `throw`, an answered effect (`ask`) contributes an
-ordinary value to the relation of its containing expression.
+Ting effects allow an expression to request a result from its surrounding evaluation
+context. `ask` creates a request, and `answer` installs a function that handles requests
+made while evaluating its left operand. Nested `answer` expressions form an ordered
+handler stack from the innermost handler to the outermost. A handled `ask` receives the
+results of applying its handler, and its containing expression continues from those
+results.
 
 ### Asking
 
-`ask F` requires `F` to be an effect value and denotes a function with the same
-argument and result constraints as `F`. Its mappings are supplied by a matching `answer`.
-Within an answer scope supplied by `H`, where `F` unifies with `H`, the result relation of
-`(ask F) x` is the result relation of `H x`. Undefinedness, nondeterminism and solution
-multiplicity are preserved.
+`ask R` evaluates `R` to a request value and searches the enclosing answer-handler stack
+for the nearest handler whose function is defined for that value. The result relation of
+`ask R` is the result relation obtained by applying that handler to the request. The
+handler may be nondeterministic and return multiple results. Their values, undefinedness,
+and solution multiplicity are those of the `ask` expression.
 
-If no matching `answer` encloses an ask, the effect function is an escaping effect of the
-containing function and must be admitted by that function's `asks` contract.
+An ask does not terminate its containing expression. It resumes once for every result
+returned by the handler. Each resumption continues evaluation of the containing
+expression separately, with that handler result in place of `ask R`. Equal results with
+distinct solution multiplicity produce distinct resumptions. If the handler returns no
+result, the ask has no resumption and is undefined.
 
 ### Answering
 
-`answer` is a left-associative binary infix operator. `E answer H` places the left operand
-and the function relations on which it depends under an answer scope supplied by the
-effect function `H`; the right operand is outside that scope. An ask matches `H` only
-where its effect function unifies with `H`, including nominal effect-set membership. An
-ordinary function with the same mappings cannot answer it.
+`answer` is a binary infix operator. In `E answer H`, the left operand `E` is evaluated
+with the function `H` pushed onto its answer-handler stack. When `E` asks a request value
+that `H` can accept, `H` is applied to that value and each result of the application is
+returned to the corresponding `ask` expression as a separate resumption. If `H` cannot
+accept the request, lookup continues with the next handler on the enclosing stack.
 
-The right operand commonly uses `#` to constrain an effect function to an implementation:
+The right operand is outside the scope of the handler it supplies. Consequently, an ask
+made while evaluating `H`, including while applying `H` to a request, is offered only to
+enclosing handlers.
 
-  E answer Writer # (message => true)
+`answer` is left-associative, so handlers may be stacked:
 
-`#` unifies the candidate function of `Writer` with the implementation without erasing
-its nominal effect membership. The implementation must satisfy the candidate function
-set from which the effect set was formed.
+  E answer H1 answer H2
 
-The nearest matching answer supplies the relation and shadows matching outer answers. If
-its implementation is undefined for an argument, the `ask` application is undefined;
-outer answers contribute no alternative mappings. An implementation may be partial unless
-the candidate set requires total functions, in which case it must be total. Because the
-right operand is outside its own answer scope, its asks can be answered only by enclosing
-answers or can escape under its own `asks` contract. The answer scope continues to cover
-every relation on which the left operand depends.
+This groups as `(E answer H1) answer H2`. `H1` is tried before `H2` for asks made by `E`.
+An ask made while evaluating `H1` is outside the scope of `H1` but inside the scope of
+`H2`.
 
 ### Effect contracts
 
-`F asks A` constrains every escaping effect function of `F` to be a member of the effect set `A`.
-Every member of `A` must be an effect function. The contract is an upper bound: it does
-not require `F` to ask every member of `A`.
+The compiler must determine statically that every reachable `ask` has a handler on its
+answer-handler stack that can accept every request value the ask may produce. An ask not
+handled within its containing function escapes that function. At each call site, the
+escaping ask is analyzed as if it occurred at that point on the caller's handler stack.
 
-An effect set admits any of its members, while a set definition can state a more precise
-dependent contract:
+`F asks A` requires `A` to be a set of functions. Its members describe the answer
+handlers that may be required by applications of `F`: an ask admitted by one of those
+functions may escape `F`, and the result set of that function describes the results the
+ask may receive. The declaration is an upper bound and does not require `F` to make every
+ask described by every member of `A`. An ask handled within `F` does not escape `F`.
+Asks made by an answer handler are not handled by that same handler and may escape the
+whole `answer` expression.
 
-    Process asks Writers=
+A function need not be augmented with `asks`. Without that augmentation its asks
+contract is indeterminate: no conclusion can be drawn from the function value about
+which answer handlers an application may require. In particular, absence of an `asks`
+augmentation does not state that the function makes no asks.
 
-In the second form the set definition collects every value the captured nondeterministic
-`Writer` can assume. Constraints on `Writer` therefore also narrow the contract.
+`F asks {}` gives `F` an empty asks set and guarantees that no ask escapes an application
+of `F`. An implementation with this augmentation may contain asks only where they are
+handled before leaving the function.
 
-An effect resolved by an answer is not an escaping effect of the left operand. A partial
-answer makes that operand correspondingly partial; it does not restore the resolved effect
-to its escaping set. Escaping effects of the answering implementation remain escaping
-effects of the whole `answer` expression.
-
-Within a compilation unit the compiler may infer an `asks` set. A function exposed across
-a separate-compilation boundary must declare its `asks` contract explicitly; `asks {}`
-states that no effect may escape. At a boundary whose contract does not admit an escaping
-effect, an unanswered application is undefined. If this leaves no result for any admitted
-argument, the program is rejected; if it removes results for only some admitted arguments,
-the enclosing expression or function is partial.
+Within a compilation unit the compiler may infer escaping asks from a visible function
+body for analysis, but inference does not augment the function with an asks contract. At
+a module export boundary, an omitted `asks` contract is collapsed to the empty set, as
+if the function had been augmented with `asks {}`. The exported function therefore
+guarantees that no ask escapes unless its `asks` contract explicitly admits a required
+handler function. An exported function whose declared or defaulted set does not admit a
+handler for a possibly escaping ask is a compilation error. A complete program in which
+an ask can reach the end of its handler stack is also a compilation error.
 
 For example, where `unit` is the singleton set containing `()`:
 
 ```ting
+Writers = class string
+Readers = class unit
 
-Writers = answers string s => Console.WriteLine s
-
-ask Read >> ask Write 
-answer
-    Write = Console.Writeline
-    Read = Console.ReadLine
-
-    
+ask Readers () >> ask Writers
+answer || >>>
+    Writers s => Console.WriteLine s
+    Readers () => Console.ReadLine
 ```
 
-The answer for `Reader` relates `()` to strings, and composition uses those strings as
-arguments to the relation supplied for `Writer`. The resulting `program` relation maps
-`unit` to `bool`.
+The first ask produces the request `Readers ()`. The `Readers` case answers it with the
+line returned by `Console.ReadLine`. Composition passes that result to `ask Writers`,
+which produces a `Writers` request containing the line. The `Writers` case answers that
+request by applying `Console.WriteLine`. Both asks are covered by the single handler
+function formed with guarded choice.
 
 
 
 ## Operators
 
-Ting's ordinary operators are surface syntax for applying functions: `a + b` applies `_+_` to the tuple `(a, b)`, and `!p` applies `!_` to `p`. Scope operators and semantic markers such as `contract`, `partial` and `throw` have additional scope, analysis, or control-flow rules specified in their respective sections. This specification does not prescribe the compiler's internal expression representation.
+Ting's ordinary operators are surface syntax for applying functions: `a + b` applies `_+_` to the tuple `(a, b)`, and `!p` applies `!_` to `p`. Scope operators and semantic markers such as `contract`, `asks`, `throws`, `partial`, `throw`, `ask` and `answer` have additional scope, analysis, or control-flow rules specified in their respective sections. This specification does not prescribe the compiler's internal expression representation.
 
 The functions an operator can name are taken from a scope available to the parser, so they are never looked up lexically and cannot be shadowed by a declaration.
 
