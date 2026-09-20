@@ -1269,219 +1269,80 @@ marker to infer a narrower definedness condition; it conservatively assumes that
 expression may transfer to the undefined continuation for any admitted bindings.
 `partial` neither catches undefinedness nor turns it into a value.
 
+#### `primary`
+
+Erases attributes. It is total, deterministic, idempotent and deep, and it preserves class
+membership.
+
+#### `private`
+
+As `public`, with private access.
+
+#### `protected`
+
+As `public`, with protected access.
+
+#### `public`
+
+Introduces a scope in which the operand is declarative and publishes every name the
+operand declares with public access.
+
+#### `record`
+
+Evaluates its operand as a record scope: every name the operand declares becomes a field
+of the resulting record.
+
+A single-name field declaration also references that name for its value, as specified under [Records](#records).
+
+#### `records`
+
+Denotes the set of records whose fields are those declared by the operand.
+
+`records E` has the meaning of `{ record E }`, collecting the record values described by the operand.
+
 #### `throw`
 
 Unary prefix semantic form. The operand is ambient. `throw exception` raises the
 exception denoted by its operand rather than returning a value. Its semantics are
 specified under [Throw operator](#throw-operator).
 
-#### `ask`
+#### `total`
 
-Unary prefix semantic form. The operand is ambient. `ask request` makes the request
-denoted by its operand. Its semantics are specified under [Asking](#asking).
+Accepts a set of functions and denotes the subset guaranteed to return at least one
+result for every argument in each function's admitted domain. It does not change those
+functions or narrow their domains. A bare function set such as `A ^^ B` includes both
+total and partial functions; `total (A ^^ B)` adds the definedness guarantee.
+
+`total` is a set filter and has no expression-body meaning. Membership may be established
+by analysis of a visible implementation or supplied by an opaque contract.
+
+#### `tuple`
+
+Marks its operand as an explicit tuple construction. It contributes no meaning of its own:
+`tuple E` denotes `E`.
+
+#### `tuples`
+
+Denotes the set of tuples whose components are those of the operand.
+
+`tuples E` has the meaning of `{ E }`, collecting the tuple values described by the operand.
 
 ### Binary infix operators
 
 A binary infix operator is written between its two operands.
 
-#### `where`
+#### `!:`
 
-Right-declarative. Introduces a local scope spanning the expression; the right operand
-declares into that scope and the left operand refers to it. The value of the expression is
-the value of the left operand on the condition that the right operand evaluates to true.
+Right-referential. Yields `true` when the left operand is not a member of the right
+operand set.
 
-#### `./`
+#### `!=`
 
-Left-referential expression scope. The left operand is analyzed first to produce a scope, and that scope is then made available to the right operand. The operator does not introduce a `this` binding.
+Right-referential. The negation of `==`.
 
-When the left operand denotes a record, its fields are available as unqualified names in the right operand.
+#### `%`
 
-```ting
-record(value = 1) ./ value
-```
-
-This expression yields `1`: the right-hand `value` resolves directly to the record's field. This is explicit scope opening by `./`, distinct from implicit field lookup within a record field expression, where `this.field` is required.
-
-#### `../`
-
-Left-referential expression member scope. The left operand is analyzed first to produce a member scope, and that scope is then made available to the right operand. For a set operand, fields of its members are exposed as functions from members of the set to field values. The operator does not introduce a `this` binding.
-
-For a set `S` exposing a field accessor `field`, `S ../ field` denotes the function `S member => member.field`. The accessor may be partial: the field need not be present on every member of `S`, and applying the accessor to a member without that field is undefined. The operator does not evaluate the right operand separately for each member and yield the field values nondeterministically. References to the exposed functions must still resolve at compile time. This requirement concerns the availability of the accessor in the member scope, not whether the accessor is defined for every member of the set.
-
-```ting
-{ record(value = 1), record(value = 2) } ../ value
-```
-
-This expression is equivalent to:
-
-```ting
-{ record(value = 1), record(value = 2) } r => r.value
-```
-
-The result is a function that maps each record in the set to its `value` field, not the nondeterministic values `1` and `2`.
-
-```ting
-{ record(value = 1), record(other = 2) } ../ value
-```
-
-This expression is valid and denotes a partial function. Applying it to `record(value = 1)` yields `1`; applying it to `record(other = 2)` is undefined. The absence of `value` on some members does not prevent compile-time resolution of the accessor named `value`.
-
-If no member of the set provides the requested field, the accessor is always undefined and the expression is a compilation error. This case does not produce an everywhere-undefined accessor or cause lookup of the requested name to continue in an outer scope.
-
-```ting
-{ record(other = 2) } ../ value
-```
-
-This expression is a compilation error because the `value` accessor is undefined for every member of the set.
-
-#### `=>`
-
-Left-declarative. `pattern => expression` denotes a function. The left operand is a
-declarative pattern in the new lambda frame; that frame is referential in the right
-operand. Inherited frames retain their modes. Names declared by the pattern are therefore
-available in the body, while a body name absent from the lambda frame may still declare
-in an inherited declarative frame.
-
-#### `contract`
-
-Left-declarative. `implementation contract ContractSet` requires the implementation to
-be a member of the function set denoted by the right operand. The new contract frame is
-declarative over the implementation and referential over the contract expression, so the
-contract can refer to argument and result declarations collected from a nested function.
-The value is the implementation paired with its opaque external description; see
-[Function contracts and separate compilation](#function-contracts-and-separate-compilation).
-
-#### `asks`
-
-Right-referential. `F asks A` augments the function `F` with the asks contract `A`, whose
-value must be a set of functions. Its semantics, including indeterminate local contracts
-and the empty default at export boundaries, are specified under
-[Effect contracts](#effect-contracts).
-
-#### `throws`
-
-Right-referential. `F throws E` augments the function `F` with the throws contract `E`,
-whose value must be a set of exception values. Its semantics, including indeterminate
-local contracts and the empty default at export boundaries, are specified under
-[Exception contracts](#exception-contracts).
-
-#### `->`
-
-Right-referential. Constructs a mapping: the product obtained by fusing the value of the
-left operand, one level deep, with a named field `Result` bound to the value of the
-right operand:
-
-    x -> y   =   (x @ Result = y)
-
-A mapping is an ordinary product; all of its fields participate in its identity. For a
-tuple-valued left operand the fusion splices its top-level fields, so `(a, b) -> y`
-denotes `(a, b @ Result = y)`; a left operand built with `**` keeps its nesting, since
-fusion is one level deep.
-
-#### `>>`
-
-Neutral. Forward composition. `f >> g` denotes the function that applies `f` to its
-argument and then applies `g` to the result.
-
-#### `<<`
-
-Neutral. Reverse composition. `g << f` denotes the same function as `f >> g`.
-
-#### `|>`
-
-Neutral. Forward application. `x |> f` denotes `f x`. Unlike juxtaposition, both
-operands are ambient, so neither is forced to be referential.
-
-#### `<|`
-
-Neutral. Backward application. `f <| x` denotes `f x`, with the same binding behaviour as
-`|>`.
-
-#### `^^`
-
-Neutral. `^` with its operands reversed: `A ^^ B` denotes `B ^ A`. It is therefore
-defined for exactly the signatures `^` is defined for, and carries no meaning of its own.
-
-Its principal use is the set of functions from the left operand set to the right operand
-set, which is the reading that puts the domain first. `int ^^ string` is the set of
-functions from `int` to `string`, the same set as `string ^ int`. The underlying
-collection of a member `F : A ^^ B` consists of mappings that fuse a member of `A` with a
-`Result` that is a member of `B`: `F.AsSet <= A * records(B Result)`. `A` and `B`
-constrain the declared argument and result sets; `A ^^ B` includes both total and partial
-functions. Use `total (A ^^ B)` where totality over the admitted domain is required.
-Without that guarantee, potential undefinedness propagates to uses where it cannot be
-ruled out from a visible body.
-
-For the signature `int*set`, `3 ^^ string` denotes `string ^ 3`, the set of three-tuples
-of strings.
-
-Because the signatures are those of `^` reversed, they are `num*num`, `set*set` and
-`int*set`. There is no `set*int` signature: `string ^^ 2` is ill-formed. In particular it
-is not shorthand for `string ^^ string`, which must be written out.
-
-#### `**`
-
-Neutral. The non-fusing product. For set operands, `A ** B` denotes the set of two-tuples
-whose first component is a member of `A` and whose second component is a member of `B`,
-each nested whole: no fusion takes place. Where `*` fuses one level deep —
-`int*int*string` is a set of three-tuples — `**` makes nesting expressible: members of
-`(int*int) ** string` are two-tuples whose first component is itself a two-tuple.
-
-#### `=`
-
-Right-referential. Relates its two operands and yields `true` or `false`. It
-compares values structurally, observing all three value layers — attributes, class
-membership and structural core — and is the only attribute-sensitive relation in the
-language. In a position that requires truth, such as a guard or a restriction, `a = b`
-must evaluate to `true`. Because the operator is right-referential, the left operand
-inherits the surrounding context, which is why `x = 5` declares `x` under a declarative
-scope; nothing about `=` itself declares anything.
-
-#### `?=`
-
-Right-referential, and binds as tightly as `=`. Declaration by unification: the left
-operand is unified with the right rather than asserted equal to it, and where the two
-cannot be unified the expression is *undefined* rather than `false`.
-
-Declarations contributed by the left operand are available when the now-referential
-scope frames are searched on the right, so recursive bindings can be written with `?=`.
-Its distinction from `=` is semantic: failed unification is undefined rather than the
-boolean value `false`.
-
-    let f ?= fn{ 0 -> 1, int n -> n * f (n - 1) } in f 3
-
-#### `in`
-
-Left-declarative. Introduces a local scope spanning both operands, with a new frame that is declarative over the left operand and referential over the right operand. Inherited scope frames retain their modes, just as for `=>`. Thus `pattern = expr in body` declares the pattern without requiring `let`.
-
-The left operand is a proposition and the right operand is any expression. The value of the expression is the value of the right operand, provided the left operand evaluates to `true`. If the left operand evaluates to `false` or is undefined, the expression is undefined.
-
-#### `then`
-
-Right-referential. Expresses implication. If the left operand is `true`, the value
-of the expression is the value of the right operand. If the left operand is `false`, the
-expression makes no statement about the right operand and is undefined.
-
-#### `else`
-
-Neutral. Constructs an alternative from its two operands, for use as the right operand of
-`then`. `a then b else c` groups as `a then (b else c)`.
-
-#### `\`
-
-Left-declarative. Such-that. Introduces a local scope spanning the expression; the
-left operand declares into it and the right operand is a proposition over the names
-declared. The value is the value of the left operand for those values that satisfy the
-right operand. `int x \ x != 0` denotes an `int` that is not zero.
-
-#### `?`
-
-Right-referential. Restriction. `left ? predicate` restricts `left` to the values for
-which `predicate` is satisfied.
-
-#### `??`
-
-Right-referential. TODO: its semantics are not yet specified.
+Neutral. The remainder of dividing the left operand by the right operand.
 
 #### `&`
 
@@ -1604,6 +1465,335 @@ makes the result undefined at `x` even where the other operand's definedness the
 undecidable.
 Where both operands are defined at `x` the result is `F x ?= G x`, as for `&`.
 
+#### `*`
+
+Neutral. For numeric operands, the product. For set operands, the fusing product, one
+level deep: the members of `A * B` are the products obtained by fusing a member of `A`
+with a member of `B`. `int*float` is the set of tuples whose first component is an `int`
+and whose second is a `float`, and `int*int*string` is the set of three-tuples
+regardless of grouping. On sets, `/` is the inverse of `*`, and `**` is the non-fusing
+product. See [Product sets](#product-sets).
+
+#### `**`
+
+Neutral. The non-fusing product. For set operands, `A ** B` denotes the set of two-tuples
+whose first component is a member of `A` and whose second component is a member of `B`,
+each nested whole: no fusion takes place. Where `*` fuses one level deep —
+`int*int*string` is a set of three-tuples — `**` makes nesting expressible: members of
+`(int*int) ** string` are two-tuples whose first component is itself a two-tuple.
+
+#### `+`
+
+Neutral. Numeric addition. For list operands, including `string`, it concatenates.
+
+For set and multiset operands, addition: the collection that retains every contribution
+from both operands.
+
+    {1, 2} + {2, 3}   =   {* 1, 2, 2, 3 *}
+
+The result is a multiset wherever the operands overlap: `#(A + B) = #A + #B` always
+holds. Unlike `|`, which unifies common members and is idempotent, `+` is not
+idempotent. The relation between `|` and `+` on sets mirrors the relation between the
+set definition `{ … }` and the multiset definition `{* … *}`: `|` keeps one
+contribution of each member, `+` keeps them all.
+
+For the signature `Funcs*Funcs^^Funcs`:
+
+    F + G = fn (F.AsSet + G.AsSet)
+
+The addition overload applied to the operands' underlying collections of mappings. Like
+`F | G` it is defined at `x` where either operand is defined at `x` and permits every
+result value that either operand permits. The two differ in solution multiplicity:
+`F + G` retains both contributions wherever both operands are defined, so it is
+nondeterministic on exactly `def F & def G` — two solutions at every such argument, even
+where the results agree — while `F | G` unifies agreeing mappings. With `F` and `G` from
+the example under `|`, `(F + G) 4` yields `40` twice under backtracking, where
+`(F | G) 4` yields it once; at `2` both yield `20` or `21`.
+
+#### `-`
+
+Neutral. Subtracts the right operand from the left operand.
+
+#### `->`
+
+Right-referential. Constructs a mapping: the product obtained by fusing the value of the
+left operand, one level deep, with a named field `Result` bound to the value of the
+right operand:
+
+    x -> y   =   (x @ Result = y)
+
+A mapping is an ordinary product; all of its fields participate in its identity. For a
+tuple-valued left operand the fusion splices its top-level fields, so `(a, b) -> y`
+denotes `(a, b @ Result = y)`; a left operand built with `**` keeps its nesting, since
+fusion is one level deep.
+
+#### `.`
+
+The left operand is an expression that has properties. The right operand is a declarative.
+
+- In referential context, `whole.part` selects the property `part` of `whole`.
+- In declarative context, `whole.part` declares a property `part` directly on `whole`.
+- In prefix position, `.part` denotes the function `whole => whole.part`. `.Name` accepts
+  a value with a `Name` property and returns it; `.(string Name)` is defined only where
+  that property is a member of `string`.
+
+~~~ting
+Persons person => person./record(Name,Age=CalculateAge(DateOfBirth,DateOnly.ToDay))
+~~~
+
+#### `..`
+
+The left operand must be a set. The right operand is always declarative.
+
+- In referential context, `some..prop` denotes the function from a member of `some` to the
+  property `prop` of that member. Every member of `some` must have a property compatible
+  with the right operand.
+- In declarative context, `some..prop` declares the property `prop` on every member of
+  `some`.
+- In prefix position, `..prop` denotes the function from a set whose members have a `prop`
+  property to the projection of that property over the members.
+
+#### `...`
+
+Neutral. Denotes a range: an expression that can assume any value between the left operand
+and the right operand. A range is ordered and nondeterministic; where a range provably
+contains a single value it is deterministic. Both bounds are included, so `a ... b` is
+equivalent to `x \ x >= a & x <= b`.
+
+#### `...<`
+
+Neutral. As `...`, except that the upper bound is excluded: `a ...< b` is equivalent to
+`x \ x >= a & x < b`.
+
+#### `../`
+
+Left-referential expression member scope. The left operand is analyzed first to produce a member scope, and that scope is then made available to the right operand. For a set operand, fields of its members are exposed as functions from members of the set to field values. The operator does not introduce a `this` binding.
+
+For a set `S` exposing a field accessor `field`, `S ../ field` denotes the function `S member => member.field`. The accessor may be partial: the field need not be present on every member of `S`, and applying the accessor to a member without that field is undefined. The operator does not evaluate the right operand separately for each member and yield the field values nondeterministically. References to the exposed functions must still resolve at compile time. This requirement concerns the availability of the accessor in the member scope, not whether the accessor is defined for every member of the set.
+
+```ting
+{ record(value = 1), record(value = 2) } ../ value
+```
+
+This expression is equivalent to:
+
+```ting
+{ record(value = 1), record(value = 2) } r => r.value
+```
+
+The result is a function that maps each record in the set to its `value` field, not the nondeterministic values `1` and `2`.
+
+```ting
+{ record(value = 1), record(other = 2) } ../ value
+```
+
+This expression is valid and denotes a partial function. Applying it to `record(value = 1)` yields `1`; applying it to `record(other = 2)` is undefined. The absence of `value` on some members does not prevent compile-time resolution of the accessor named `value`.
+
+If no member of the set provides the requested field, the accessor is always undefined and the expression is a compilation error. This case does not produce an everywhere-undefined accessor or cause lookup of the requested name to continue in an outer scope.
+
+```ting
+{ record(other = 2) } ../ value
+```
+
+This expression is a compilation error because the `value` accessor is undefined for every member of the set.
+
+#### `./`
+
+Left-referential expression scope. The left operand is analyzed first to produce a scope, and that scope is then made available to the right operand. The operator does not introduce a `this` binding.
+
+When the left operand denotes a record, its fields are available as unqualified names in the right operand.
+
+```ting
+record(value = 1) ./ value
+```
+
+This expression yields `1`: the right-hand `value` resolves directly to the record's field. This is explicit scope opening by `./`, distinct from implicit field lookup within a record field expression, where `this.field` is required.
+
+#### `/`
+
+Neutral. For numeric operands, divides the left operand by the right operand. For set
+operands, divides a tuple set by a set, yielding the tuple set of the remaining
+components. Given `S = int*float*string`, `S/string` is `int*float` and
+`S/(float*string)` is `int`; a divisor that does not correspond to a trailing group of
+components is an error.
+
+#### `/%`
+
+Neutral. Divides the left operand by the right operand and yields the tuple of quotient
+and remainder.
+
+#### `:`
+
+Right-referential. Yields `true` when the left operand is a member of the right operand
+set.
+
+#### `::`
+
+Right-referential. Yields `true` when the left operand is a collection all of whose
+elements are members of the right operand set.
+
+The left operand may be any collection, and in particular it may be a *multiset*:
+duplicate elements are admitted, and each contribution is tested for membership. This is
+what distinguishes `::` from `<=`. Both lift membership from a value to a collection of
+values, but `<=` relates two *sets*, so it unifies duplicate members and cannot say
+anything about multiplicity. `{* 1, 1, 2 *} :: int` holds, where the corresponding `<=`
+reading does not exist. `::` says nothing about the order of the elements.
+
+#### `:::`
+
+Right-referential. Yields `true` when the left operand is an ordered sequence of members
+of the right operand set.
+
+It differs from `::` only in additionally requiring that the collection is ordered. Like
+`::` it admits a multiset on the left, so duplicates are permitted:
+`{* 1, 1, 2 *} ::: int` holds wherever that multiset preserves its generation order.
+
+#### `;`
+
+Neutral. Introduces an ordered nondeterministic choice. `a ; b` assumes the value
+of `a` until backtracking forces it to assume the value of `b`. An undefined operand is
+disregarded; the expression is undefined only when both operands are undefined.
+
+#### `;;`
+
+Neutral. Alternative on undefined. `a ;; b` is `a` unless `a` is undefined, in
+which case it is `b`. The operator introduces no nondeterminism of its own, although
+either operand may itself be nondeterministic.
+
+#### `<`
+
+Right-referential. For numeric operands, less than. For set operands, proper subset.
+
+#### `<...`
+
+Neutral. As `...`, except that the lower bound is excluded: `a <... b` is equivalent to
+`x \ x > a & x <= b`.
+
+#### `<...<`
+
+Neutral. As `...`, except that both bounds are excluded: `a <...< b` is equivalent to
+`x \ x > a & x < b`.
+
+#### `<<`
+
+Neutral. Reverse composition. `g << f` denotes the same function as `f >> g`.
+
+#### `<=`
+
+Right-referential. For numeric operands, less than or equal to. For set operands, subset.
+
+#### `<|`
+
+Neutral. Backward application. `f <| x` denotes `f x`, with the same binding behaviour as
+`|>`.
+
+#### `=`
+
+Right-referential. Relates its two operands and yields `true` or `false`. It
+compares values structurally, observing all three value layers — attributes, class
+membership and structural core — and is the only attribute-sensitive relation in the
+language. In a position that requires truth, such as a guard or a restriction, `a = b`
+must evaluate to `true`. Because the operator is right-referential, the left operand
+inherits the surrounding context, which is why `x = 5` declares `x` under a declarative
+scope; nothing about `=` itself declares anything.
+
+#### `==`
+
+Right-referential. Equality that ignores attributes but observes class membership and structural content. It denotes `=` applied to the attribute-erased operands: `(primary a) = (primary b)`. For set operands it yields `true` when both sets have the same members. See [Values and Equality](#values-and-equality) for the value layers and erasure rules.
+
+#### `=>`
+
+Left-declarative. `pattern => expression` denotes a function. The left operand is a
+declarative pattern in the new lambda frame; that frame is referential in the right
+operand. Inherited frames retain their modes. Names declared by the pattern are therefore
+available in the body, while a body name absent from the lambda frame may still declare
+in an inherited declarative frame.
+
+#### `>`
+
+Right-referential. For numeric operands, greater than. For set operands, proper superset.
+
+#### `>=`
+
+Right-referential. For numeric operands, greater than or equal to. For set operands,
+superset.
+
+#### `>>`
+
+Neutral. Forward composition. `f >> g` denotes the function that applies `f` to its
+argument and then applies `g` to the result.
+
+#### `?`
+
+Right-referential. Restriction. `left ? predicate` restricts `left` to the values for
+which `predicate` is satisfied.
+
+#### `?=`
+
+Right-referential, and binds as tightly as `=`. Declaration by unification: the left
+operand is unified with the right rather than asserted equal to it, and where the two
+cannot be unified the expression is *undefined* rather than `false`.
+
+Declarations contributed by the left operand are available when the now-referential
+scope frames are searched on the right, so recursive bindings can be written with `?=`.
+Its distinction from `=` is semantic: failed unification is undefined rather than the
+boolean value `false`.
+
+    let f ?= fn{ 0 -> 1, int n -> n * f (n - 1) } in f 3
+
+#### `??`
+
+Right-referential. TODO: its semantics are not yet specified.
+
+#### `\`
+
+Left-declarative. Such-that. Introduces a local scope spanning the expression; the
+left operand declares into it and the right operand is a proposition over the names
+declared. The value is the value of the left operand for those values that satisfy the
+right operand. `int x \ x != 0` denotes an `int` that is not zero.
+
+#### `^`
+
+Neutral. Exponentiation.
+
+For numeric operands, raises the left operand to the power of the right operand.
+
+For set operands, `B ^ A` denotes the set of functions from `A` to `B`. This is the usual
+reading of exponentiation on sets: the exponent is the domain and the base is the
+codomain. `string ^ int` is the set of functions from `int` to `string`.
+
+For the signature `set*int`, `A ^ n` denotes the set of `n`-tuples over `A`, which is `A`
+fused with itself `n` times. `string^3` is the set of three-tuples of strings, the same
+set as `string*string*string`. This is the same reading: `n` stands for the set of the
+first `n` index positions, and a tuple is a function from index to component.
+
+The defined signatures are therefore `num*num`, `set*set` and `set*int`. There is no
+`int*set` signature: `2 ^ string` is ill-formed.
+
+`^^` is `^` with its operands reversed, so `A ^^ B` denotes `B ^ A` in every signature.
+
+#### `^^`
+
+Neutral. `^` with its operands reversed: `A ^^ B` denotes `B ^ A`. It is therefore
+defined for exactly the signatures `^` is defined for, and carries no meaning of its own.
+
+Its principal use is the set of functions from the left operand set to the right operand
+set, which is the reading that puts the domain first. `int ^^ string` is the set of
+functions from `int` to `string`, the same set as `string ^ int`. The underlying
+collection of a member `F : A ^^ B` consists of mappings that fuse a member of `A` with a
+`Result` that is a member of `B`: `F.AsSet <= A * records(B Result)`. `A` and `B`
+constrain the declared argument and result sets; `A ^^ B` includes both total and partial
+functions. Use `total (A ^^ B)` where totality over the admitted domain is required.
+Without that guarantee, potential undefinedness propagates to uses where it cannot be
+ruled out from a visible body.
+
+For the signature `int*set`, `3 ^^ string` denotes `string ^ 3`, the set of three-tuples
+of strings.
+
+Because the signatures are those of `^` reversed, they are `num*num`, `set*set` and
+`int*set`. There is no `set*int` signature: `string ^^ 2` is ill-formed. In particular it
+is not shorthand for `string ^^ string`, which must be written out.
+
 #### `|`
 
 Neutral. Strict disjunction.
@@ -1647,6 +1837,11 @@ results differ the result is nondeterministically either. For
 `F = fn { 1 -> 10, 2 -> 20, 4 -> 40 }` and `G = fn { 2 -> 21, 3 -> 30, 4 -> 40 }`,
 `F | G` applied to `1` yields `10`, applied to `3` yields `30`, applied to `4` yields
 `40` deterministically, and applied to `2` yields nondeterministically `20` or `21`.
+
+#### `|>`
+
+Neutral. Forward application. `x |> f` denotes `f x`. Unlike juxtaposition, both
+operands are ambient, so neither is forced to be referential.
 
 #### `||`
 
@@ -1722,199 +1917,18 @@ definedness tests: where one operand's definedness at `x` is undecidable but the
 defined at `x`, the result is the defined operand's result.
 
 
-#### `:`
+#### `answer`
 
-Right-referential. Yields `true` when the left operand is a member of the right operand
-set.
+Right-referential binary infix operator. In `expression answer handler`, the right
+operand is an answer-handler function for asks made by the left operand. Its semantics
+are specified under [Answering](#answering).
 
-#### `!:`
+#### `asks`
 
-Right-referential. Yields `true` when the left operand is not a member of the right
-operand set.
-
-#### `::`
-
-Right-referential. Yields `true` when the left operand is a collection all of whose
-elements are members of the right operand set.
-
-The left operand may be any collection, and in particular it may be a *multiset*:
-duplicate elements are admitted, and each contribution is tested for membership. This is
-what distinguishes `::` from `<=`. Both lift membership from a value to a collection of
-values, but `<=` relates two *sets*, so it unifies duplicate members and cannot say
-anything about multiplicity. `{* 1, 1, 2 *} :: int` holds, where the corresponding `<=`
-reading does not exist. `::` says nothing about the order of the elements.
-
-#### `:::`
-
-Right-referential. Yields `true` when the left operand is an ordered sequence of members
-of the right operand set.
-
-It differs from `::` only in additionally requiring that the collection is ordered. Like
-`::` it admits a multiset on the left, so duplicates are permitted:
-`{* 1, 1, 2 *} ::: int` holds wherever that multiset preserves its generation order.
-
-#### `<`
-
-Right-referential. For numeric operands, less than. For set operands, proper subset.
-
-#### `<=`
-
-Right-referential. For numeric operands, less than or equal to. For set operands, subset.
-
-#### `>=`
-
-Right-referential. For numeric operands, greater than or equal to. For set operands,
-superset.
-
-#### `>`
-
-Right-referential. For numeric operands, greater than. For set operands, proper superset.
-
-#### `==`
-
-Right-referential. Equality that ignores attributes but observes class membership and structural content. It denotes `=` applied to the attribute-erased operands: `(primary a) = (primary b)`. For set operands it yields `true` when both sets have the same members. See [Values and Equality](#values-and-equality) for the value layers and erasure rules.
-
-#### `!=`
-
-Right-referential. The negation of `==`.
-
-#### `...`
-
-Neutral. Denotes a range: an expression that can assume any value between the left operand
-and the right operand. A range is ordered and nondeterministic; where a range provably
-contains a single value it is deterministic. Both bounds are included, so `a ... b` is
-equivalent to `x \ x >= a & x <= b`.
-
-#### `<...`
-
-Neutral. As `...`, except that the lower bound is excluded: `a <... b` is equivalent to
-`x \ x > a & x <= b`.
-
-#### `...<`
-
-Neutral. As `...`, except that the upper bound is excluded: `a ...< b` is equivalent to
-`x \ x >= a & x < b`.
-
-#### `<...<`
-
-Neutral. As `...`, except that both bounds are excluded: `a <...< b` is equivalent to
-`x \ x > a & x < b`.
-
-#### `;`
-
-Neutral. Introduces an ordered nondeterministic choice. `a ; b` assumes the value
-of `a` until backtracking forces it to assume the value of `b`. An undefined operand is
-disregarded; the expression is undefined only when both operands are undefined.
-
-#### `;;`
-
-Neutral. Alternative on undefined. `a ;; b` is `a` unless `a` is undefined, in
-which case it is `b`. The operator introduces no nondeterminism of its own, although
-either operand may itself be nondeterministic.
-
-#### `+`
-
-Neutral. Numeric addition. For list operands, including `string`, it concatenates.
-
-For set and multiset operands, addition: the collection that retains every contribution
-from both operands.
-
-    {1, 2} + {2, 3}   =   {* 1, 2, 2, 3 *}
-
-The result is a multiset wherever the operands overlap: `#(A + B) = #A + #B` always
-holds. Unlike `|`, which unifies common members and is idempotent, `+` is not
-idempotent. The relation between `|` and `+` on sets mirrors the relation between the
-set definition `{ … }` and the multiset definition `{* … *}`: `|` keeps one
-contribution of each member, `+` keeps them all.
-
-For the signature `Funcs*Funcs^^Funcs`:
-
-    F + G = fn (F.AsSet + G.AsSet)
-
-The addition overload applied to the operands' underlying collections of mappings. Like
-`F | G` it is defined at `x` where either operand is defined at `x` and permits every
-result value that either operand permits. The two differ in solution multiplicity:
-`F + G` retains both contributions wherever both operands are defined, so it is
-nondeterministic on exactly `def F & def G` — two solutions at every such argument, even
-where the results agree — while `F | G` unifies agreeing mappings. With `F` and `G` from
-the example under `|`, `(F + G) 4` yields `40` twice under backtracking, where
-`(F | G) 4` yields it once; at `2` both yield `20` or `21`.
-
-#### `-`
-
-Neutral. Subtracts the right operand from the left operand.
-
-#### `*`
-
-Neutral. For numeric operands, the product. For set operands, the fusing product, one
-level deep: the members of `A * B` are the products obtained by fusing a member of `A`
-with a member of `B`. `int*float` is the set of tuples whose first component is an `int`
-and whose second is a `float`, and `int*int*string` is the set of three-tuples
-regardless of grouping. On sets, `/` is the inverse of `*`, and `**` is the non-fusing
-product. See [Product sets](#product-sets).
-
-#### `/`
-
-Neutral. For numeric operands, divides the left operand by the right operand. For set
-operands, divides a tuple set by a set, yielding the tuple set of the remaining
-components. Given `S = int*float*string`, `S/string` is `int*float` and
-`S/(float*string)` is `int`; a divisor that does not correspond to a trailing group of
-components is an error.
-
-#### `%`
-
-Neutral. The remainder of dividing the left operand by the right operand.
-
-#### `/%`
-
-Neutral. Divides the left operand by the right operand and yields the tuple of quotient
-and remainder.
-
-#### `^`
-
-Neutral. Exponentiation.
-
-For numeric operands, raises the left operand to the power of the right operand.
-
-For set operands, `B ^ A` denotes the set of functions from `A` to `B`. This is the usual
-reading of exponentiation on sets: the exponent is the domain and the base is the
-codomain. `string ^ int` is the set of functions from `int` to `string`.
-
-For the signature `set*int`, `A ^ n` denotes the set of `n`-tuples over `A`, which is `A`
-fused with itself `n` times. `string^3` is the set of three-tuples of strings, the same
-set as `string*string*string`. This is the same reading: `n` stands for the set of the
-first `n` index positions, and a tuple is a function from index to component.
-
-The defined signatures are therefore `num*num`, `set*set` and `set*int`. There is no
-`int*set` signature: `2 ^ string` is ill-formed.
-
-`^^` is `^` with its operands reversed, so `A ^^ B` denotes `B ^ A` in every signature.
-
-#### `.`
-
-The left operand is an expression that has properties. The right operand is a declarative. 
-
-- In referential context, `whole.part` selects the property `part` of `whole`.
-- In declarative context, `whole.part` declares a property `part` directly on `whole`.
-- In prefix position, `.part` denotes the function `whole => whole.part`. `.Name` accepts
-  a value with a `Name` property and returns it; `.(string Name)` is defined only where
-  that property is a member of `string`.
-
-~~~ting
-Persons person => person./record(Name,Age=CalculateAge(DateOfBirth,DateOnly.ToDay))
-~~~
-
-#### `..`
-
-The left operand must be a set. The right operand is always declarative.
-
-- In referential context, `some..prop` denotes the function from a member of `some` to the
-  property `prop` of that member. Every member of `some` must have a property compatible
-  with the right operand.
-- In declarative context, `some..prop` declares the property `prop` on every member of
-  `some`.
-- In prefix position, `..prop` denotes the function from a set whose members have a `prop`
-  property to the projection of that property over the members.
+Right-referential binary infix operator. `F asks A` augments the function `F` with the
+asks contract `A`, whose value must be a set of functions. Its semantics, including
+indeterminate local contracts and the empty default at export boundaries, are specified under
+[Effect contracts](#effect-contracts).
 
 #### `catch`
 
@@ -1922,11 +1936,44 @@ Right-referential binary infix operator. In `expression catch handler`, the righ
 is an exception-handler function for the left operand. Its semantics are specified under
 [Catch operator](#catch-operator).
 
-#### `answer`
+#### `contract`
 
-Right-referential binary infix operator. In `expression answer handler`, the right
-operand is an answer-handler function for asks made by the left operand. Its semantics
-are specified under [Answering](#answering).
+Left-declarative. `implementation contract ContractSet` requires the implementation to
+be a member of the function set denoted by the right operand. The new contract frame is
+declarative over the implementation and referential over the contract expression, so the
+contract can refer to argument and result declarations collected from a nested function.
+The value is the implementation paired with its opaque external description; see
+[Function contracts and separate compilation](#function-contracts-and-separate-compilation).
+
+#### `else`
+
+Neutral. Constructs an alternative from its two operands, for use as the right operand of
+`then`. `a then b else c` groups as `a then (b else c)`.
+
+#### `in`
+
+Left-declarative. Introduces a local scope spanning both operands, with a new frame that is declarative over the left operand and referential over the right operand. Inherited scope frames retain their modes, just as for `=>`. Thus `pattern = expr in body` declares the pattern without requiring `let`.
+
+The left operand is a proposition and the right operand is any expression. The value of the expression is the value of the right operand, provided the left operand evaluates to `true`. If the left operand evaluates to `false` or is undefined, the expression is undefined.
+
+#### `then`
+
+Right-referential. Expresses implication. If the left operand is `true`, the value
+of the expression is the value of the right operand. If the left operand is `false`, the
+expression makes no statement about the right operand and is undefined.
+
+#### `throws`
+
+Right-referential binary infix operator. `F throws E` augments the function `F` with the
+throws contract `E`, whose value must be a set of exception values. Its semantics,
+including indeterminate local contracts and the empty default at export boundaries, are specified under
+[Exception contracts](#exception-contracts).
+
+#### `where`
+
+Right-declarative. Introduces a local scope spanning the expression; the right operand
+declares into that scope and the left operand refers to it. The value of the expression is
+the value of the left operand on the condition that the right operand evaluates to true.
 
 ### Nullary operators
 
