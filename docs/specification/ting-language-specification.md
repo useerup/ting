@@ -48,7 +48,7 @@ The following tokens exists:
 
 The remaining prefix operators are keyword tokens: `let`, `public`, `private`,
 `protected`, `internal`, `record`, `records`, `tuple`, `tuples`, `fn`, `class`,
-`primary`, `candidate`, `total`, `partial` and `throw`.
+`primary`, `candidate`, `total`, `partial`, `throw` and `ask`.
 
 #### Binary infix
 
@@ -60,12 +60,12 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `in`                             | left-declarative conditional value                   |
 | `=` `?=`                         | identity, unify                                      |
 | `then` `else`                    | implication, alternative                             |
-| `contract`                       | function abstraction contract                        |
+| `contract` `asks` `throws`       | function abstraction, effect and exception contracts |
 | `->`                             | mapping                                              |
 | `>>` `<<` `\|>` `<\|`            | composition and application                          |
 | `=>`                             | lambda                                               |
 | `./` `../`                       | left-referential expression scope, left-referential expression-member scope            |
-| `catch`                          | exception handling                                   |
+| `catch` `answer`                 | exception and effect handling                        |
 | `\`                              | such-that / restriction                              |
 | `\|` `\|\|` `\|\|\|`             | disjunction, guarded disjunction, mutually guarded disjunction |
 | `&` `&&` `&&&`                   | conjunction, guarded conjunction, mutually guarded conjunction |
@@ -1316,9 +1316,14 @@ expression may transfer to the undefined continuation for any admitted bindings.
 
 #### `throw`
 
-Raises the exception denoted by its operand. The operand is ambient, as every prefix
-operator's is. `throw` is a semantic form rather than a function application: it produces
-no value, so there is nothing for an application to yield. See [Exceptions](#exceptions).
+Unary prefix semantic form. The operand is ambient. `throw exception` raises the
+exception denoted by its operand rather than returning a value. Its semantics are
+specified under [Throw operator](#throw-operator).
+
+#### `ask`
+
+Unary prefix semantic form. The operand is ambient. `ask request` makes the request
+denoted by its operand. Its semantics are specified under [Asking](#asking).
 
 ### Binary infix operators
 
@@ -1390,6 +1395,20 @@ declarative over the implementation and referential over the contract expression
 contract can refer to argument and result declarations collected from a nested function.
 The value is the implementation paired with its opaque external description; see
 [Function contracts and separate compilation](#function-contracts-and-separate-compilation).
+
+#### `asks`
+
+Right-referential. `F asks A` augments the function `F` with the asks contract `A`, whose
+value must be a set of functions. Its semantics, including indeterminate local contracts
+and the empty default at export boundaries, are specified under
+[Effect contracts](#effect-contracts).
+
+#### `throws`
+
+Right-referential. `F throws E` augments the function `F` with the throws contract `E`,
+whose value must be a set of exception values. Its semantics, including indeterminate
+local contracts and the empty default at export boundaries, are specified under
+[Exception contracts](#exception-contracts).
 
 #### `->`
 
@@ -1944,8 +1963,15 @@ The left operand must be a set. The right operand is always declarative.
 
 #### `catch`
 
-Right-referential. The left operand is evaluated under an implicit try; the right operand
-is a function that handles exceptions. See [Exceptions](#exceptions) for the full rules.
+Right-referential binary infix operator. In `expression catch handler`, the right operand
+is an exception-handler function for the left operand. Its semantics are specified under
+[Catch operator](#catch-operator).
+
+#### `answer`
+
+Right-referential binary infix operator. In `expression answer handler`, the right
+operand is an answer-handler function for asks made by the left operand. Its semantics
+are specified under [Answering](#answering).
 
 ### Nullary operators
 
