@@ -1142,69 +1142,6 @@ also be written in prefix position, but that denotes partial application rather 
 distinct operator; see [Binary operators used as unary prefix
 operators](#binary-operators-used-as-unary-prefix-operators).
 
-#### `let`
-
-Introduces a local scope spanning its operand. The new frame is declarative throughout the operand. Names declared by the operand are local to that scope. `let` is not required in `pattern = expr in body`, because `in` introduces its own left-declarative scope. An explicit `let` adds a separate frame; `in` preserves inherited frame modes, whereas the right-referential `=` makes all covering frames referential over its right operand.
-
-#### `public`
-
-Introduces a scope in which the operand is declarative and publishes every name the
-operand declares with public access.
-
-#### `private`
-
-As `public`, with private access.
-
-#### `protected`
-
-As `public`, with protected access.
-
-#### `internal`
-
-As `public`, with internal access.
-
-Publishing operators nest. A name declared under two overlapping publishing contexts is
-unified, so `protected internal int Answer` declares one `Answer` that is both protected
-and internal.
-
-#### `record`
-
-Evaluates its operand as a record scope: every name the operand declares becomes a field
-of the resulting record.
-
-A single-name field declaration also references that name for its value, as specified under [Records](#records).
-
-#### `records`
-
-Denotes the set of records whose fields are those declared by the operand.
-
-`records E` has the meaning of `{ record E }`, collecting the record values described by the operand.
-
-#### `tuple`
-
-Marks its operand as an explicit tuple construction. It contributes no meaning of its own:
-`tuple E` denotes `E`.
-
-#### `tuples`
-
-Denotes the set of tuples whose components are those of the operand.
-
-`tuples E` has the meaning of `{ E }`, collecting the tuple values described by the operand.
-
-#### `fn`
-
-Neutral. Converts a collection of mappings into a function: `fn S`, where the members of
-`S` are mappings (see [Mappings and the underlying
-collection](#mappings-and-the-underlying-collection)), denotes the function whose
-underlying collection is `S`. Where `S` contains several mappings with the same argument
-part the function is nondeterministic at that argument; where `S` is a multiset,
-multiplicities are retained as solution multiplicities.
-
-`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of
-mappings. It introduces no additional ordered-dispatch semantics beyond the mapping
-collection itself. Where several mappings in that collection share the same argument part,
-the resulting function is nondeterministic at that argument.
-
 #### `!`
 
 Neutral. Logical negation.
@@ -1279,16 +1216,10 @@ Negation binds more tightly than every infix operator, because `-x` is a term. I
 particular `-a.b` denotes `(-a).b` and `-a^b` denotes `(-a)^b`, in the same way that the
 juxtaposition in `f a.b` denotes `(f a).b`.
 
-#### `class`
+#### `ask`
 
-Neutral. Constructs a class over the candidate set denoted by its operand. A class is an
-inclusive set; values of different classes are never equal even where their candidates
-are.
-
-#### `primary`
-
-Erases attributes. It is total, deterministic, idempotent and deep, and it preserves class
-membership.
+Unary prefix semantic form. The operand is ambient. `ask request` makes the request
+denoted by its operand. Its semantics are specified under [Asking](#asking).
 
 #### `candidate`
 
@@ -1298,15 +1229,37 @@ preserves attributes.
 `primary` and `candidate` are keyword intrinsics rather than properties, so that they
 cannot be shadowed by a field of the same name.
 
-#### `total`
+#### `class`
 
-Accepts a set of functions and denotes the subset guaranteed to return at least one
-result for every argument in each function's admitted domain. It does not change those
-functions or narrow their domains. A bare function set such as `A ^^ B` includes both
-total and partial functions; `total (A ^^ B)` adds the definedness guarantee.
+Neutral. Constructs a class over the candidate set denoted by its operand. A class is an
+inclusive set; values of different classes are never equal even where their candidates
+are.
 
-`total` is a set filter and has no expression-body meaning. Membership may be established
-by analysis of a visible implementation or supplied by an opaque contract.
+#### `fn`
+
+Neutral. Converts a collection of mappings into a function: `fn S`, where the members of
+`S` are mappings (see [Mappings and the underlying
+collection](#mappings-and-the-underlying-collection)), denotes the function whose
+underlying collection is `S`. Where `S` contains several mappings with the same argument
+part the function is nondeterministic at that argument; where `S` is a multiset,
+multiplicities are retained as solution multiplicities.
+
+`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of
+mappings. It introduces no additional ordered-dispatch semantics beyond the mapping
+collection itself. Where several mappings in that collection share the same argument part,
+the resulting function is nondeterministic at that argument.
+
+#### `internal`
+
+As `public`, with internal access.
+
+Publishing operators nest. A name declared under two overlapping publishing contexts is
+unified, so `protected internal int Answer` declares one `Answer` that is both protected
+and internal.
+
+#### `let`
+
+Introduces a local scope spanning its operand. The new frame is declarative throughout the operand. Names declared by the operand are local to that scope. `let` is not required in `pattern = expr in body`, because `in` introduces its own left-declarative scope. An explicit `let` adds a separate frame; `in` preserves inherited frame modes, whereas the right-referential `=` makes all covering frames referential over its right operand.
 
 #### `partial`
 
