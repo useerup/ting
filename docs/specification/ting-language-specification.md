@@ -1354,19 +1354,19 @@ Left-referential expression member scope. The left operand is analyzed first to 
 For a set `S` exposing a field accessor `field`, `S ../ field` denotes the function `S member => member.field`. The accessor may be partial: the field need not be present on every member of `S`, and applying the accessor to a member without that field is undefined. The operator does not evaluate the right operand separately for each member and yield the field values nondeterministically. References to the exposed functions must still resolve at compile time. This requirement concerns the availability of the accessor in the member scope, not whether the accessor is defined for every member of the set.
 
 ```ting
-{record(value = 1), record(value = 2)} ../ value
+{ record(value = 1), record(value = 2) } ../ value
 ```
 
 This expression is equivalent to:
 
 ```ting
-{record(value = 1), record(value = 2)} r => r.value
+{ record(value = 1), record(value = 2) } r => r.value
 ```
 
 The result is a function that maps each record in the set to its `value` field, not the nondeterministic values `1` and `2`.
 
 ```ting
-{record(value = 1), record(other = 2)} ../ value
+{ record(value = 1), record(other = 2) } ../ value
 ```
 
 This expression is valid and denotes a partial function. Applying it to `record(value = 1)` yields `1`; applying it to `record(other = 2)` is undefined. The absence of `value` on some members does not prevent compile-time resolution of the accessor named `value`.
@@ -1374,7 +1374,7 @@ This expression is valid and denotes a partial function. Applying it to `record(
 If no member of the set provides the requested field, the accessor is always undefined and the expression is a compilation error. This case does not produce an everywhere-undefined accessor or cause lookup of the requested name to continue in an outer scope.
 
 ```ting
-{record(other = 2)} ../ value
+{ record(other = 2) } ../ value
 ```
 
 This expression is a compilation error because the `value` accessor is undefined for every member of the set.
