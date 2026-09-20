@@ -937,10 +937,11 @@ The `catch` operator is left-associative.
 
 ### Exception contracts
 
-A function may be augmented with a `throws` contract. `F throws E` requires `E` to be a
-set of exception values and declares the exceptions that may escape applications of `F`.
-The declaration is an upper bound: every exception that may escape must be a member of
-`E`, but `F` need not throw every member of `E`. An exception handled within `F` does not
+`throws` is a binary infix operator. `F throws E` augments the function denoted by its
+left operand with a throws contract denoted by its right operand. `E` must be a set of
+exception values and declares the exceptions that may escape applications of `F`. The
+declaration is an upper bound: every exception that may escape must be a member of `E`,
+but `F` need not throw every member of `E`. An exception handled within `F` does not
 escape `F`. Exceptions thrown while evaluating a catch handler are outside that handler's
 trap and may escape the whole `catch` expression.
 
@@ -1008,13 +1009,14 @@ answer-handler stack that can accept every request value the ask may produce. An
 handled within its containing function escapes that function. At each call site, the
 escaping ask is analyzed as if it occurred at that point on the caller's handler stack.
 
-`F asks A` requires `A` to be a set of functions. Its members describe the answer
-handlers that may be required by applications of `F`: an ask admitted by one of those
-functions may escape `F`, and the result set of that function describes the results the
-ask may receive. The declaration is an upper bound and does not require `F` to make every
-ask described by every member of `A`. An ask handled within `F` does not escape `F`.
-Asks made by an answer handler are not handled by that same handler and may escape the
-whole `answer` expression.
+`asks` is a binary infix operator. `F asks A` augments the function denoted by its left
+operand with an asks contract denoted by its right operand. `A` must be a set of
+functions. Its members describe the answer handlers that may be required by applications
+of `F`: an ask admitted by one of those functions may escape `F`, and the result set of
+that function describes the results the ask may receive. The declaration is an upper
+bound and does not require `F` to make every ask described by every member of `A`. An ask
+handled within `F` does not escape `F`. Asks made by an answer handler are not handled by
+that same handler and may escape the whole `answer` expression.
 
 A function need not be augmented with `asks`. Without that augmentation its asks
 contract is indeterminate: no conclusion can be drawn from the function value about
