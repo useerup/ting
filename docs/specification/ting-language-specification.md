@@ -799,25 +799,119 @@ this = 1 in (this = 2 in this)
 
 This expression yields `2`: the inner `in` introduces a new `this` binding, and the final reference resolves to it. The corresponding expression using an ordinary name such as `value` instead of `this` remains a redeclaration error.
 
-## Nondeterminism
+## Partiality and Nondeterminism
+
+Partiality and nondeterminism are independent properties of expressions, not exclusively of functions. Partiality concerns whether an expression may yield no value; nondeterminism concerns whether it may yield several alternative values.
+
+| | Deterministic | Nondeterministic |
+| --- | --- | --- |
+| Total | Exactly one value | One or more alternative values |
+| Partial | Zero or one value | Zero or more alternative values |
+
+These properties apply to function bodies and function applications. They must be distinguished from the properties of the expression that produces the function value itself. Function-specific domains and totality contracts are specified under [Partial functions](#partial-functions).
+
+### Partiality
+
+An expression is **partial** when it may be undefined, yielding no value. An expression is **total** when it yields at least one value for every admitted evaluation.
+
+Undefinedness is not a value and is never added to the result set. Evaluation either continues with a result or transfers to an undefined continuation, essentially by throwing `UndefinedException`. Undefinedness cannot be bound, stored, passed, or compared. It is observable only through constructs that handle or observe definedness, including `;;`, `?`, `;`, guarded logical operators and `catch`. See [`void`](#void).
+
+Potential undefinedness propagates to a consuming expression unless it is handled or the compiler can prove that the expression being consumed is defined under the applicable constraints. Set definitions handle undefined element expressions by collecting no contribution from them; see [Set definitions](#set-definitions).
+
+The unary prefix operator `partial` marks its operand as potentially undefined without changing its admitted values or successful results. It tells the compiler not to derive a more precise definedness condition by inspecting the marked expression. A consumer must conservatively allow the marked expression to be undefined.
+
+`partial` has no second meaning as a filter over function sets. It is comparable to an unspecified throws clause: it records that undefinedness may escape from the marked expression without describing the condition that causes it. It neither catches undefinedness nor turns it into a value. The `total` operator, by contrast, applies to sets of functions, not to expression bodies; see [Partial functions](#partial-functions).
+
+### Nondeterminism
+
+An expression is **nondeterministic** when it may return a choice of several alternative values.
+
+Unless a nondeterministic expression is also *partial*, it returns at least one value.
+
+The following operators can give rise to nondeterminism. Whether they do so depends on their overload, the bindings available at the use site, and the applicable constraints.
+
+- **Choice `;`:** `a ; b` offers the values of both operands as ordered alternatives, proceeding from `a` to `b` on backtracking. An undefined operand contributes no alternative.
+- **Ranges `...`, `...<`, `<...`, `<...<`:** a range offers the values between its bounds as ordered alternatives, excluding either endpoint where indicated by `<`. A range provably containing only one value is deterministic.
+- **Membership `:`:** when a member is not otherwise fixed, membership in a set can admit several alternative bindings for it. Testing membership of an already fixed value does not itself choose a member. Membership alone does not supply an enumeration procedure; unconstrained membership in `int` is unenumerable.
+- **Disjunction `|`:** a proposition can be satisfied through either operand or both, potentially admitting different bindings. This is distinct from applying boolean disjunction to two fixed booleans, which produces one boolean result. The function overload combines alternative results as described below; the set overload produces a union set, not a choice of its members.
+
+Other relations can also leave several bindings possible. Non-membership `!:`, collection membership `::` and `:::`, comparisons, equality `=` and `==`, inequality `!=`, and unification `?=` constrain their operands without necessarily determining a unique binding. A relation tested on fixed operands is not nondeterministic merely because it could admit other bindings in a declarative context. The such-that operator `\` exposes the values satisfying its predicate; for example, `int x \ x != 0` still admits many alternatives. Restriction `?`, conjunction, and the conditions of `in` and `where` can narrow alternatives without necessarily reducing them to one. None of these constraints alone implies that the compiler can enumerate all solutions.
+
+Several operators construct functions whose applications may be nondeterministic. A single function value must not be confused with its alternative results:
+
+- **Ordered-pair conversion `fn`:** converts a set or multiset of ordered pairs into a function, interpreting each pair's origin as an argument and its public `Result` property as its permitted results. A set-backed function yields the merged result alternatives at an origin. A multiset-backed function retains every contribution as a solution, including repeated equal origin/result associations.
+- **Lambda `=>`:** the resulting function may yield alternatives when its body or the bindings satisfying its parameter pattern admit them. Constructing the function does not itself execute its body and yield those alternatives.
+- **Function union `|` and mutually guarded function union `|||`:** shared origins are identified and their result alternatives are merged. Different results at the same origin produce nondeterminism; agreeing results contribute one alternative. The mutually guarded form additionally handles undefinedness of the operands' definedness tests.
+- **Function addition `+`:** applying the combined function retains contributions from both operands. Even two deterministic functions produce two solutions at an argument where both are defined, including when their results agree.
+- **Function complement `!`:** applying the complemented function permits results excluded by the original function. There may be many such results even when the original function is deterministic. Boolean negation and constructing a complement set do not themselves offer such a choice.
+
+Application by juxtaposition, `|>`, or `<|` yields the alternatives permitted by the applied function, even when both the function value and its argument are deterministic. Composition `>>` and `<<` can carry these alternatives through successive applications.
+
+Handler application can likewise supply alternatives. An `ask` receives every result of the selected `answer` handler and resumes its containing expression separately for each solution, retaining solution multiplicity. A `catch` expression can yield several results when its selected exception handler does. Neither mechanism requires the request or exception value itself to be nondeterministic.
+
+Fallback is distinct from choice: `;;` introduces no nondeterminism of its own, and the function overload of `||` includes right-hand contributions only at origins absent from the left function's underlying collection. At a shared origin it retains only the left function's results, even if those results are nondeterministic. Either fallback can still yield alternatives from the selected operand or function. Likewise, `../` exposes member accessors as functions; it does not enumerate the members and offer their field values as alternatives.
+
+An expression that consumes a nondeterministic value becomes nondeterministic itself unless it handles that nondeterminism, for example by collecting the alternatives or explicitly choosing one alternative.
+
+Set definitions handle the nondeterminism arising from their member list by collecting the alternative values as members of the resulting set. This nondeterminism does not propagate to the set definition itself. See [Set definitions](#set-definitions).
+
+The unary prefix operators `determ` and `nondeterm` explicitly mark an expression as deterministic or nondeterministic, respectively. If the compiler can prove that the specified determinism is incorrect, the expression is a compilation error.
+
+```ting
+a = determ 0;1
+```
+
+This is a compilation error because `0;1` is provably nondeterministic.
+
+```ting
+a = determ {0;1}
+```
+
+This is valid because the set definition collects the nondeterministic alternatives. The value of `a` is the single deterministic set `{0, 1}`.
+
+An expression exported from a module is required to be *deterministic* unless explicitly marked as *nondeterministic* using the unary prefix operator `nondeterm`. This requirement includes the bodies of exported functions. If the compiler cannot prove that the expression is deterministic, it assumes the expression is nondeterministic and requires this explicit marker.
+
+```ting
+f = float x => x*1;x*2
+```
+
+This local function definition is valid without an explicit determinism marker. The compiler can infer that applying `f` is nondeterministic for any actual argument other than `0`. At `0`, both alternatives yield `0`, so the application is deterministic.
+
+Exporting the function requires its body's nondeterminism to be explicitly marked:
+
+```ting
+public f = float x => x*1;x*2
+```
+
+This is a compilation error because the exported function's body is not deterministic for every admitted argument.
+
+```ting
+public f = float x => nondeterm x*1;x*2
+```
+
+This is valid: `nondeterm` explicitly marks the body's nondeterminism.
 
 TODO: Choice, ranges, and set/list expansion interact via backtracking semantics.
-TODO: Undefinedness participates in operator-specific ways (notably choice and guarded
-logical operators). Note that undefinedness is the *absence* of a value, not a value: an
-undefined operand contributes no solution, and cannot be compared against. See
-[`void`](#void).
 
-### Unenumerable nondeterminism
+TODO: Undefinedness participates in operator-specific ways (notably choice and guarded logical operators). Note that undefinedness is the *absence* of a value, not a value: an undefined operand contributes no solution, and cannot be compared against. See [`void`](#void).
 
-TODO
+#### Unenumerable nondeterminism
 
-### Enumerable bounded nondeterminism
+Nondeterminism is **unenumerable** when no enumeration procedure is available to the compiler for the alternatives. The compiler does not generate code to run through all of those alternatives. This is an operational classification, not a statement that the alternatives are mathematically uncountable.
 
-TODO
+For example, an otherwise unconstrained member of `int` is unenumerable in this sense. Although `int` has a known finite range and is therefore mathematically countable, membership in `int` does not provide an enumeration procedure that causes the compiler to search through all integers. A finite number of possible values is not, by itself, sufficient to make an expression enumerable.
 
-### Enumerable unbounded nondeterminism
+#### Enumerable finite nondeterminism
 
-TODO
+Nondeterminism is **enumerable finite** when an enumeration procedure is available to the compiler and exhausts the alternatives in finitely many steps. The finiteness concerns the enumeration, not numeric bounds on the values.
+
+For example, `0;1` supplies a finite enumeration through the choice operator: `0`, followed by `1`. The set definition `{0;1}` collects these alternatives into the deterministic set `{0, 1}`. This differs from unconstrained membership in `int`: both have finitely many possible values, but only the former supplies an enumeration procedure.
+
+#### Enumerable potentially infinite nondeterminism
+
+Nondeterminism is **enumerable potentially infinite** when an enumeration procedure is available to the compiler, but exhaustion in finitely many steps is not guaranteed. The procedure can produce successive alternatives, and enumeration may continue indefinitely. This differs from unenumerable nondeterminism, for which no enumeration procedure is available.
+
+For example, a generator that successively produces the natural numbers without a stopping condition has potentially infinite enumeration. A computation that requires exhaustive enumeration cannot complete when that enumeration is infinite; consuming only a finite prefix does not require exhausting the alternatives. This classification does not by itself prescribe how collections represent such alternatives.
 
 
 ## Axioms and solver rules
