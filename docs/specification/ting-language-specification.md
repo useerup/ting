@@ -58,10 +58,10 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | -------------------------------- | ---------------------------------------------------- |
 | `where`                          | right-declarative condition                          |
 | `in`                             | left-declarative conditional value                   |
-| `=` `?=`                         | identity, unify                                      |
+| `=` `?=`                         | structural equality, unification                     |
 | `then` `else`                    | implication, alternative                             |
 | `contract` `asks` `throws`       | function abstraction, effect and exception contracts |
-| `->`                             | mapping                                              |
+| `->`                             | ordered pair construction                            |
 | `>>` `<<` `\|>` `<\|`            | composition and application                          |
 | `=>`                             | lambda                                               |
 | `./` `../`                       | left-referential expression scope, left-referential expression-member scope            |
@@ -396,35 +396,27 @@ scope as described under [Declarative and referential operators](#declarative-an
 - The operator introduces one local scope spanning both operands.
 - That new scope is declarative in the parameter pattern and referential in the body.
 - Scope frames inherited from the surrounding expression keep their existing modes.
-- The body can therefore resolve a parameter in the lambda scope while declaring a
-  different name in an outer declarative scope.
+- The body can therefore resolve a parameter in the lambda scope while declaring a different name in an outer declarative scope.
 
 For example:
 
     (int x => x * 2 + k) \ k = 42
 
-In the parameter pattern, `x` is contributed to both the lambda scope and the enclosing
-such-that scope, since both are declarative there. The application callee `int` is
-referential and therefore cannot become a declaration. In the body, the lambda frame is
-referential. The body occurrence of `x` resolves there, but `k` is absent, so the walk
-continues to the still-declarative such-that frame and declares `k`. On the right of `\`,
-that frame is referential and both names can be used as constraints.
+In the parameter pattern, `x` is contributed to both the lambda scope and the enclosing such-that scope, since both are declarative there. The application callee `int` is referential and therefore cannot become a declaration. In the body, the lambda frame is referential. The body occurrence of `x` resolves there, but `k` is absent, so the walk continues to the still-declarative such-that frame and declares `k`. On the right of `\`, that frame is referential and both names can be used as constraints.
 
-The ability of an enclosing declarative scope to collect declarations from a nested
-function is intentional:
+The ability of an enclosing declarative scope to collect declarations from a nested function is intentional:
 
     (int x => c) \ c = x * 2
 
-This denotes the same relation as `int x => x * 2`. In the such-that scope, `x` and `c`
-are nondeterministic logical variables ranging together over the mappings of the
-function. The predicate constrains the relationship between each accepted argument and
-its result.
+This denotes the same relation as `int x => x * 2`. In the such-that scope, `x` and `c` are nondeterministic logical variables ranging together over the ordered pairs of the function. The predicate constrains the relationship between each accepted argument and its result.
 
-### Functions via fn mapping collections
+### Functions via fn ordered pairs
 
-- `fn` is a unary operator over a collection of mappings.
-- `fn { p1 -> r1, p2 -> r2, ... }` is unary `fn` applied to a set literal of mappings.
-- If several mappings in that collection share the same argument part, the resulting function is nondeterministic at that argument.
+- `fn` is a unary operator that converts a set or multiset of ordered pairs into a function.
+- Each pair `origin -> result` consists of the origin value or tuple extended with a public property named `Result`. The origin is an argument and `Result` supplies a result for that argument.
+- `fn { p1 -> r1, p2 -> r2, ... }` is unary `fn` applied to a set literal of ordered pairs.
+- A set merges ordered pairs with the same origin, retaining their different results as alternatives at that origin. Applying the resulting function yields those alternatives.
+- A multiset retains each ordered-pair contribution and its result. Several contributions with the same origin give multiple solutions at that argument, including repeated equal results.
 
 ## Values and Equality
 
@@ -446,6 +438,8 @@ The two equalities observe these layers as follows:
 `a == b` has the meaning of `(primary a) = (primary b)`. Attribute-blind relations operate on attribute-erased operands; for example, numeric or set comparison ignores attributes on either operand. Attribute erasure does not erase class membership: values of different classes do not become equal merely because their candidates are equal. Class erasure is explicit through `candidate`.
 
 `primary` and `candidate` preserve the ambient binding context of their operands. In a declarative context, `primary a = primary b` can declare `a` and constrain it up to attribute erasure without constraining its attributes.
+
+An ordered pair's identity is determined only by its origin. This identity is used to identify a member in a set, not to compare all of its associated information. Structural equality also observes the associated `Result` information. Equality of functions and their underlying collections compares the results associated with each origin, including solution multiplicity, rather than merely comparing origins. See [Ordered Pairs](#ordered-pairs).
 
 ## Sets
 
@@ -480,18 +474,16 @@ The non-fusing product retains the empty tuple as a component, so the members of
 
 ### Set definitions
 
-A **set definition** is a comma-separated list of expressions enclosed in `{` and `}`.
-The expressions in the list are the definition's **element expressions**; the list may
-be empty. 
+A **set definition** is a comma-separated list of expressions enclosed in `{` and `}`. The expressions in the list are the definition's **element expressions**; the list may be empty. 
 
 Each element expression contributes every value it can assume, not the expression itself: 
 - one value if it is deterministic
-- no value at all if it is undefined — an element expression that evaluates to `void`
-  contributes nothing, rather than contributing a member
+- no value at all if it is undefined - an element expression that evaluates to `void` contributes nothing, rather than contributing a member
 - several values if it is nondeterministic.
 
-Members values in a set definition are ordered (see [Sets and multisets](#sets-and-multisets)): the element expressions in the order they are written, and within an element expression the values in the order it produces them. A value
-contributed more than once is a member once, at the position of its first contribution.
+Member values in a set definition are ordered (see [Sets and multisets](#sets-and-multisets)): the element expressions in the order they are written, and within an element expression the values in the order it produces them. A member identity contributed more than once occurs once, at the position of its first contribution.
+
+For ordered pairs, member identity is determined by the origin alone. Contributions with the same origin merge their associated `Result` alternatives; later results are not discarded merely because the origin already occurs. Repeated equal results at that origin contribute one alternative. Thus `{ 1 -> 2, 1 -> 3 }` has one origin, `1`, whose `Result` is nondeterministically `2` or `3`. The set is a single value; accessing the merged result or applying `fn` to that origin exposes the alternatives.
 
 If an element expression is *countably nondeterministic*, the values it contributes are *ordered*. If an element expression is *uncountably nondeterministic*, the values it contributes are *unordered*. The members of the set as a whole may therefore be only *partially ordered*: every value contributed by an earlier element expression still precedes every value contributed by a later one.
 
@@ -501,8 +493,7 @@ A definition with no element expressions denotes the empty set.
 
 ### Multiset definition 
 
-A *multiset definition*, written with `{*` and `*}`, has the same meaning except that
-every contribution is retained rather than only the first.
+A *multiset definition*, written with `{*` and `*}`, has the same meaning except that every contribution is retained rather than coalesced by member identity. For ordered pairs, each occurrence retains its associated result, including repeated equal origin/result associations. These occurrences become distinct solutions when the multiset is converted into a function.
 
 
 ### Set countability
@@ -511,141 +502,70 @@ every contribution is retained rather than only the first.
 
 ### Product sets
 
-`A * B`, where `A` and `B` are sets, denotes the product set. `*` on sets is *fusing*,
-one level deep: the members of `A * B` are the products obtained by fusing a member of
-`A` with a member of `B`, so the top-level fields of both become top-level fields of the
-member. For scalar operand sets this is the familiar Cartesian product — `int * float`
-is the set of two-tuples `(i, f)` for every `i : int` and `f : float`. Because fusion is
-one level deep, the product is independent of grouping: `int * int * string` denotes the
-set of three-tuples however it associates. On sets, `/` is the inverse of `*`.
+`A * B`, where `A` and `B` are sets, denotes the product set. `*` on sets is *fusing*, one level deep: the members of `A * B` are the products obtained by fusing a member of `A` with a member of `B`, so the top-level fields of both become top-level fields of the member. For scalar operand sets this is the familiar Cartesian product - `int * float` is the set of two-tuples `(i, f)` for every `i : int` and `f : float`. Because fusion is one level deep, the product is independent of grouping: `int * int * string` denotes the set of three-tuples however it associates. On sets, `/` is the inverse of `*`.
 
-`A ** B` denotes the *non-fusing* product: the set of genuine two-tuples whose first
-component is a member of `A`, nested whole, and whose second component is a member of
-`B`, nested whole. No fusion takes place: members of `(int*int) ** string` are two-tuples
-whose first component is itself a two-tuple.
+`A ** B` denotes the *non-fusing* product: the set of genuine two-tuples whose first component is a member of `A`, nested whole, and whose second component is a member of `B`, nested whole. No fusion takes place: members of `(int*int) ** string` are two-tuples whose first component is itself a two-tuple.
 
 ## Functions
 
 ### Functions as relations
-Functions map argument values to result values. A function permits, at each argument
-value, a set of result values: applied to an argument it may be deterministic (one
-result), nondeterministic (several results), or undefined (no result). Function values
-can be defined by lambdas or by applying `fn` to a collection of mappings.
+Functions map argument values to result values. A function permits, at each argument value, a set of result values: applied to an argument it may be deterministic (one result), nondeterministic (several results), or undefined (no result). Function values can be defined by lambdas or by applying `fn` to a set or multiset of ordered pairs.
 
 ### Partial functions
+
+Partiality is a property of expressions, including function bodies and applications; see [Partiality and Nondeterminism](#partiality-and-nondeterminism). For a function, totality is measured over its admitted domain.
 
 Three sets must be distinguished for a function:
 
 1. Its **declared argument set**, such as `float` in `float ^^ float`.
-2. Its **admitted domain**, which refines the declared argument set with restrictions in
-   the parameter pattern.
-3. Its **defined subset**, the admitted arguments for which evaluation actually returns
-   at least one result.
+2. Its **admitted domain**, which refines the declared argument set with restrictions in the parameter pattern.
+3. Its **defined subset**, the admitted arguments for which evaluation actually returns at least one result.
 
-A function is **total** where its defined subset equals its admitted domain. It is
-**partial** where an admitted argument may produce no result. Membership in `A ^^ B`
-states the declared argument and result sets but says nothing about totality: `A ^^ B`
-contains both total and partial functions. `total (A ^^ B)` is the subset guaranteed to
-return at least one result for every admitted argument.
+A function is **total** where its defined subset equals its admitted domain. It is **partial** where an admitted argument may produce no result. Membership in `A ^^ B` states the declared argument and result sets but says nothing about totality: `A ^^ B` contains both total and partial functions. `total (A ^^ B)` is the subset guaranteed to return at least one result for every admitted argument.
 
-`total` applies to sets of functions, not to function bodies. It is primarily useful in
-contracts, where it makes a definedness guarantee available across an opaque compilation
-boundary. A visible implementation need not be annotated with `total`; the compiler may
-prove from its body that it belongs to a total function set.
+`total` applies to sets of functions, not to function bodies. It is primarily useful in contracts, where it makes a definedness guarantee available across an opaque compilation boundary. A visible implementation need not be annotated with `total`; the compiler may prove from its body that it belongs to a total function set.
 
-There are two ways to make a potentially undefined operation explicit. The preferred
-way, when its definedness condition is known, is to narrow the admitted domain:
+There are two ways to make a potentially undefined operation explicit. The preferred way, when its definedness condition is known, is to narrow the admitted domain:
 
     float x ? != 0 => 1 / x
 
-Zero is not admitted by this function. The function is total because division returns a
-result for every argument it does admit.
+Zero is not admitted by this function. The function is total because division returns a result for every argument it does admit.
 
 The admitted domain may instead remain broad while the body is marked `partial`:
 
     float x => partial 1 / x
 
-Here every `float` is admitted, but evaluation may be undefined for an admitted argument.
-`partial` tells the compiler not to derive a more precise definedness condition by
-inspecting the marked expression. A consumer must conservatively allow any invocation to
-be undefined.
+Here every `float` is admitted, but evaluation may be undefined for an admitted argument. The `partial` marker prevents inference of a more precise definedness condition, as specified under [Partiality](#partiality).
 
-`partial` has no second meaning as a filter over function sets. It is comparable to an
-unspecified throws clause: it records that undefinedness may escape from the marked
-expression without describing the condition that causes it. If that undefinedness is
-handled before leaving the function, the function may still satisfy a `total` contract.
+If undefinedness is handled before leaving the function, the function may still satisfy a `total` contract:
 
     float x => (partial 1 / x) ;; 0
 
-Without `partial`, a body may still be inferred to have a smaller defined subset. For
-example, the body of `float x => 1 / x` reveals that evaluation is undefined at zero. At
-a call site the compiler propagates that potential undefinedness unless it can prove the
-actual argument is nonzero. The caller may establish that restriction, handle
-undefinedness, or itself remain potentially undefined.
+Without `partial`, a body may still be inferred to have a smaller defined subset. For example, the body of `float x => 1 / x` reveals that evaluation is undefined at zero. At a call site the compiler propagates that potential undefinedness unless it can prove the actual argument is nonzero. The caller may establish that restriction, handle undefinedness, or itself remain potentially undefined.
 
-Undefinedness is not a value and is never added to the result set. Evaluation either
-continues with a result or transfers to an undefined continuation, essentially by
-throwing `UndefinedException`. It cannot be bound, stored, passed, or compared.
-Undefinedness is observable only through constructs that handle or observe definedness,
-including `;;`, `?`, `;`, guarded logical operators and `catch`.
+### Ordered pairs and the underlying collection
 
-### Mappings and the underlying collection
+A function is backed by a set or multiset of ordered pairs `origin -> result`; see [Ordered Pairs](#ordered-pairs) for their structure and construction.
 
-A function is backed by a collection of *mappings*. A mapping is an ordinary product:
-`x -> y` denotes the product obtained by fusing the value of `x`, one level deep, with a
-named field `Result` bound to `y`:
+Every function `F` has an `AsSet` property that denotes its underlying set or multiset of ordered pairs, retaining the associated results. A set coalesces contributions with the same origin and merges their result alternatives. A multiset retains each contribution separately (see `+` on functions), giving correspondingly many solutions at that origin. The `fn` operator is the inverse of `AsSet`: it converts a set or multiset of ordered pairs into a function. The operator `->` constructs such a pair by extending its left operand with the public property `Result` bound to its right operand.
 
-    x -> y   =   (x @ Result = y)
+For a function `F : A ^^ B`, each ordered pair has an origin in `A` and a `Result` in `B`. The origins of its successful pairs form its defined subset, and their `Result` values form its range. Neither the declared argument set nor the admitted domain can in general be reconstructed from successful pairs: they are part of the function's declaration and restrictions.
 
-Every field of a mapping — the argument fields and `Result` — participates in its
-identity; there is no special pair structure.
+If the underlying multiset contains several ordered pairs with the same origin, `F` is nondeterministic at that argument, yielding the `Result` of each contribution. Multiplicities are observable as solution multiplicity under backtracking, including when results agree. A set-backed function is also nondeterministic at an origin whose merged `Result` permits several alternatives. This does not require several distinct member identities at that origin.
 
-Every function `F` has an `AsSet` property that denotes its underlying collection of
-mappings. The collection is in general a *multiset*: equal mappings may be present more
-than once (see `+` on functions), in which case the function has correspondingly
-many solutions at that argument. The `fn` operator is the inverse of `AsSet`: it converts
-a collection of mappings into a function.
-
-For a function `F : A ^^ B`, the underlying collection satisfies
-`F.AsSet <= A * records(B Result)`. Its successful mappings recover its defined subset,
-`def F = F.AsSet / records(B Result)`, and its successful result values recover
-`range F = F.AsSet..Result`. Neither the declared argument set nor the admitted domain
-can in general be reconstructed from successful mappings: they are part of the function's
-declaration and restrictions. Functions whose arguments are themselves nested tuples use
-`**` argument sets; the nesting survives because fusion is one level deep.
-
-Where several mappings of `F` share the same argument part, `F` is nondeterministic at
-that argument, yielding the `Result` of each such mapping; multiplicities are observable
-as solution multiplicity under backtracking.
-
-Two functions are equal under `==` exactly where their underlying collections are equal:
-functions compare extensionally.
-
-> Note (draft): the mechanism that names the result field — a structural named field
-> `Result` versus a name published on the last position of a plain tuple by the
-> `->`/`fn`/`^^` machinery — is not yet final.
+Functions compare extensionally under `==`: at every origin they must permit the same results with the same solution multiplicities, subject to the ordinary attribute-erasure rules. Their underlying collections are compared with their associated results, not merely by origin membership. Thus `fn { 1 -> 2 }` and `fn { 1 -> 3 }` are not equal functions, although their pairs have the same origin identity.
 
 ### Function contracts and separate compilation
 
-A function contract is a set of admissible function values. Attaching a contract to an
-implementation has the form:
+A function contract is a set of admissible function values. Attaching a contract to an implementation has the form:
 
     implementation contract ContractSet
 
-`contract` is left-declarative. It introduces one local scope spanning both operands;
-that frame is declarative over the implementation and referential over the contract.
-Inherited scope frames retain their modes. Declarations collected from a function inside
-the implementation, including its argument and result variables, are therefore available
-to an inline contract expression.
+`contract` is left-declarative. It introduces one local scope spanning both operands; that frame is declarative over the implementation and referential over the contract. Inherited scope frames retain their modes. Declarations collected from a function inside the implementation, including its argument and result variables, are therefore available to an inline contract expression.
 
-The implementation must be a member of `ContractSet`. While compiling the defining
-compilation unit, the compiler may inspect the implementation and use its full symbolic
-relation. Across a separate-compilation boundary, the compiled implementation remains
-callable, but its body is opaque: consumers may use only constraints entailed by the
-contract set. Facts inferred from the hidden body do not cross the boundary.
+The implementation must be a member of `ContractSet`. While compiling the defining compilation unit, the compiler may inspect the implementation and use its full symbolic relation. Across a separate-compilation boundary, the compiled implementation remains callable, but its body is opaque: consumers may use only constraints entailed by the contract set. Facts inferred from the hidden body do not cross the boundary.
 
-Contracts are sets rather than individual functions so ordinary set operators compose
-their requirements. Intersection requires a function to satisfy both contracts:
+Contracts are sets rather than individual functions so ordinary set operators compose their requirements. Intersection requires a function to satisfy both contracts:
 
     NonZeroArg = { x ? != 0 => _ }
     Forward = { bound x => _ }
@@ -814,6 +734,28 @@ These expressions are equivalent and produce a record whose `value` field is `1`
 Within a record field expression, the record's `this` binding denotes the record being defined. `this.field` references a field of that record, including the field whose expression contains the reference or another field of the same record. Thus `this.value` can reference the record's own `value` field, distinct from a surrounding local binding named `value`. Such references are subject to the same compile-time resolution requirement as other property references.
 
 The `this.` qualification is required for these references. An unqualified reference does not fall back to a field of the record when no surrounding binding supplies the name. Consequently, `record(value)` is a compilation error if its reference to `value` cannot otherwise resolve; declaring the record field does not satisfy that reference or turn the shorthand into an unconstrained field declaration.
+
+### Ordered Pairs
+
+An **ordered pair** consists of an origin value or tuple extended with a public property named `Result`. The operator `->` constructs an ordered pair: `origin -> result` extends the origin with `Result` bound to the result. Only the origin determines the pair's identity; `Result` is associated information and does not change that identity.
+
+An ordered pair is not a positional two-tuple `(origin, result)`. For a tuple-valued origin, `(a, b) -> y` is the tuple `(a, b)` extended with the public property `Result = y`, not `((a, b), y)`.
+
+The result is accessed by property selection:
+
+```ting
+(x -> y).Result
+```
+
+This expression yields `y`.
+
+When a set definition or set union combines ordered pairs with the same origin, it retains one member identity and merges the associated result alternatives. For example, `1 -> 2` and `1 -> 3` have the same identity; merging them makes `Result` at origin `1` nondeterministically `2` or `3`. Merging the same result again does not add another alternative. A multiset instead retains separate contributions and their solution multiplicities.
+
+Origin-based identity does not make different associated results interchangeable. Comparing complete origin/result associations, or functions built from them, must still observe the results. In particular, a function returning `2` at origin `1` is not equal to one returning `3` there.
+
+A set or multiset of ordered pairs can be converted into a function using `fn`. For example, `fn { x -> y }` denotes a function with origin `x` and result `y`. The underlying collection and solution multiplicities are specified under [Ordered pairs and the underlying collection](#ordered-pairs-and-the-underlying-collection).
+
+Function union `f | g` merges the results supplied by both functions at each shared origin. Function fallback `f || g` instead includes contributions from `g` only where no ordered pair in `f` has that origin. For `f = fn { 1 -> 2 }` and `g = fn { 1 -> 3 }`, `(f | g) 1` yields `2` or `3`, while `(f || g) 1` yields only `2`.
 
 ## Classes
 
@@ -1178,57 +1120,39 @@ The rule is purely lexical and admits no exception:
 | `(-1)`     | subtraction, and therefore ill-formed      |
 | `( -1)`    | negation                                   |
 
-Nothing precedes the `-` in `(-1)`, so it is the binary operator and has no left operand.
-A negated value that opens a bracketed construct, or a source file, must be written with
-the space: `( -1)`, `[ -1, 2]`.
+Nothing precedes the `-` in `(-1)`, so it is the binary operator and has no left operand. A negated value that opens a bracketed construct, or a source file, must be written with the space: `( -1)`, `[ -1, 2]`.
 
-The rule exists because a negative value has to be usable as a juxtaposed argument
-without taking the subtraction away from `n-1`.
+The rule exists because a negative value has to be usable as a juxtaposed argument without taking the subtraction away from `n-1`.
 
-Negation binds more tightly than every infix operator, because `-x` is a term. In
-particular `-a.b` denotes `(-a).b` and `-a^b` denotes `(-a)^b`, in the same way that the
-juxtaposition in `f a.b` denotes `(f a).b`.
+Negation binds more tightly than every infix operator, because `-x` is a term. In particular `-a.b` denotes `(-a).b` and `-a^b` denotes `(-a)^b`, in the same way that the juxtaposition in `f a.b` denotes `(f a).b`.
 
 #### `ask`
 
-Unary prefix semantic form. The operand is ambient. `ask request` makes the request
-denoted by its operand. Its semantics are specified under [Asking](#asking).
+Unary prefix semantic form. The operand is ambient. `ask request` makes the request denoted by its operand. Its semantics are specified under [Asking](#asking).
 
 #### `candidate`
 
-Erases class membership, yielding the candidate value the class was constructed over. It
-preserves attributes.
+Erases class membership, yielding the candidate value the class was constructed over. It preserves attributes.
 
-`primary` and `candidate` are keyword intrinsics rather than properties, so that they
-cannot be shadowed by a field of the same name.
+`primary` and `candidate` are keyword intrinsics rather than properties, so that they cannot be shadowed by a field of the same name.
 
 #### `class`
 
-Neutral. Constructs a class over the candidate set denoted by its operand. A class is an
-inclusive set; values of different classes are never equal even where their candidates
-are.
+Neutral. Constructs a class over the candidate set denoted by its operand. A class is an inclusive set; values of different classes are never equal even where their candidates are.
 
 #### `fn`
 
-Neutral. Converts a collection of mappings into a function: `fn S`, where the members of
-`S` are mappings (see [Mappings and the underlying
-collection](#mappings-and-the-underlying-collection)), denotes the function whose
-underlying collection is `S`. Where `S` contains several mappings with the same argument
-part the function is nondeterministic at that argument; where `S` is a multiset,
-multiplicities are retained as solution multiplicities.
+Neutral. Converts a set or multiset of ordered pairs into a function. In `fn S`, each pair `origin -> result` in `S` supplies the value of its public `Result` property as a result for its origin. The pair is the origin value or tuple extended with that property, not a positional two-tuple. The resulting function's underlying collection is `S`; see [Ordered pairs and the underlying collection](#ordered-pairs-and-the-underlying-collection).
 
-`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of
-mappings. It introduces no additional ordered-dispatch semantics beyond the mapping
-collection itself. Where several mappings in that collection share the same argument part,
-the resulting function is nondeterministic at that argument.
+If `S` is a multiset containing several ordered pairs with the same origin, each occurrence contributes a solution, even when results agree. If `S` is a set, contributions with the same origin have been merged; the function yields all result alternatives associated with that origin. Distinct results therefore cause nondeterminism without requiring distinct pair identities. Equal origin/result contributions are not repeated by a set.
+
+`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of ordered pairs. It introduces no additional ordered-dispatch semantics.
 
 #### `internal`
 
 As `public`, with internal access.
 
-Publishing operators nest. A name declared under two overlapping publishing contexts is
-unified, so `protected internal int Answer` declares one `Answer` that is both protected
-and internal.
+Publishing operators nest. A name declared under two overlapping publishing contexts is unified, so `protected internal int Answer` declares one `Answer` that is both protected and internal.
 
 #### `let`
 
@@ -1450,16 +1374,7 @@ Neutral. Subtracts the right operand from the left operand.
 
 #### `->`
 
-Right-referential. Constructs a mapping: the product obtained by fusing the value of the
-left operand, one level deep, with a named field `Result` bound to the value of the
-right operand:
-
-    x -> y   =   (x @ Result = y)
-
-A mapping is an ordinary product; all of its fields participate in its identity. For a
-tuple-valued left operand the fusion splices its top-level fields, so `(a, b) -> y`
-denotes `(a, b @ Result = y)`; a left operand built with `**` keeps its nesting, since
-fusion is one level deep.
+Right-referential. Constructs an ordered pair by extending the origin value or tuple on the left with a public property named `Result` bound to the right operand. The origin alone determines the pair's identity. See [Ordered Pairs](#ordered-pairs) for the resulting value's structure, property access, merging of results, and use with `fn`.
 
 #### `.`
 
@@ -1586,30 +1501,19 @@ Right-referential. For numeric operands, less than or equal to. For set operands
 
 #### `<|`
 
-Neutral. Backward application. `f <| x` denotes `f x`, with the same binding behaviour as
-`|>`.
+Neutral. Backward application. `f <| x` denotes `f x`, with the same binding behaviour as `|>`.
 
 #### `=`
 
-Right-referential. Relates its two operands and yields `true` or `false`. It
-compares values structurally, observing all three value layers — attributes, class
-membership and structural core — and is the only attribute-sensitive relation in the
-language. In a position that requires truth, such as a guard or a restriction, `a = b`
-must evaluate to `true`. Because the operator is right-referential, the left operand
-inherits the surrounding context, which is why `x = 5` declares `x` under a declarative
-scope; nothing about `=` itself declares anything.
+Right-referential. Relates its two operands and yields `true` or `false`. It compares values structurally, observing all three value layers - attributes, class membership and structural core - and is the only attribute-sensitive relation in the language. In a position that requires truth, such as a guard or a restriction, `a = b` must evaluate to `true`. Because the operator is right-referential, the left operand inherits the surrounding context, which is why `x = 5` declares `x` under a declarative scope; nothing about `=` itself declares anything.
 
 #### `==`
 
-Right-referential. Equality that ignores attributes but observes class membership and structural content. It denotes `=` applied to the attribute-erased operands: `(primary a) = (primary b)`. For set operands it yields `true` when both sets have the same members. See [Values and Equality](#values-and-equality) for the value layers and erasure rules.
+Right-referential. Equality that ignores attributes but observes class membership and structural content. It denotes `=` applied to the attribute-erased operands: `(primary a) = (primary b)`. For set operands, equality compares their members including associated result alternatives when the members are ordered pairs; having the same origins alone is insufficient. Function equality likewise compares the results and solution multiplicities at each origin. See [Values and Equality](#values-and-equality) for the value layers and erasure rules.
 
 #### `=>`
 
-Left-declarative. `pattern => expression` denotes a function. The left operand is a
-declarative pattern in the new lambda frame; that frame is referential in the right
-operand. Inherited frames retain their modes. Names declared by the pattern are therefore
-available in the body, while a body name absent from the lambda frame may still declare
-in an inherited declarative frame.
+Left-declarative. `pattern => expression` denotes a function. The left operand is a declarative pattern in the new lambda frame; that frame is referential in the right operand. Inherited frames retain their modes. Names declared by the pattern are therefore available in the body, while a body name absent from the lambda frame may still declare in an inherited declarative frame.
 
 #### `>`
 
@@ -1660,41 +1564,23 @@ Neutral. Exponentiation.
 
 For numeric operands, raises the left operand to the power of the right operand.
 
-For set operands, `B ^ A` denotes the set of functions from `A` to `B`. This is the usual
-reading of exponentiation on sets: the exponent is the domain and the base is the
-codomain. `string ^ int` is the set of functions from `int` to `string`.
+For set operands, `B ^ A` denotes the set of functions from `A` to `B`. This is the usual reading of exponentiation on sets: the exponent is the domain and the base is the codomain. `string ^ int` is the set of functions from `int` to `string`.
 
-For the signature `set*int`, `A ^ n` denotes the set of `n`-tuples over `A`, which is `A`
-fused with itself `n` times. `string^3` is the set of three-tuples of strings, the same
-set as `string*string*string`. This is the same reading: `n` stands for the set of the
-first `n` index positions, and a tuple is a function from index to component.
+For the signature `set*int`, `A ^ n` denotes the set of `n`-tuples over `A`, which is `A` fused with itself `n` times. `string^3` is the set of three-tuples of strings, the same set as `string*string*string`. This is the same reading: `n` stands for the set of the first `n` index positions, and a tuple is a function from index to component.
 
-The defined signatures are therefore `num*num`, `set*set` and `set*int`. There is no
-`int*set` signature: `2 ^ string` is ill-formed.
+The defined signatures are therefore `num*num`, `set*set` and `set*int`. There is no `int*set` signature: `2 ^ string` is ill-formed.
 
 `^^` is `^` with its operands reversed, so `A ^^ B` denotes `B ^ A` in every signature.
 
 #### `^^`
 
-Neutral. `^` with its operands reversed: `A ^^ B` denotes `B ^ A`. It is therefore
-defined for exactly the signatures `^` is defined for, and carries no meaning of its own.
+Neutral. `^` with its operands reversed: `A ^^ B` denotes `B ^ A`. It is therefore defined for exactly the signatures `^` is defined for, and carries no meaning of its own.
 
-Its principal use is the set of functions from the left operand set to the right operand
-set, which is the reading that puts the domain first. `int ^^ string` is the set of
-functions from `int` to `string`, the same set as `string ^ int`. The underlying
-collection of a member `F : A ^^ B` consists of mappings that fuse a member of `A` with a
-`Result` that is a member of `B`: `F.AsSet <= A * records(B Result)`. `A` and `B`
-constrain the declared argument and result sets; `A ^^ B` includes both total and partial
-functions. Use `total (A ^^ B)` where totality over the admitted domain is required.
-Without that guarantee, potential undefinedness propagates to uses where it cannot be
-ruled out from a visible body.
+Its principal use is the set of functions from the left operand set to the right operand set, which is the reading that puts the domain first. `int ^^ string` is the set of functions from `int` to `string`, the same set as `string ^ int`. The underlying collection of a member `F : A ^^ B` consists of ordered pairs whose origins are members of `A` and whose public `Result` properties have values in `B`. `A` and `B` constrain the declared argument and result sets; `A ^^ B` includes both total and partial functions. Use `total (A ^^ B)` where totality over the admitted domain is required. Without that guarantee, potential undefinedness propagates to uses where it cannot be ruled out from a visible body.
 
-For the signature `int*set`, `3 ^^ string` denotes `string ^ 3`, the set of three-tuples
-of strings.
+For the signature `int*set`, `3 ^^ string` denotes `string ^ 3`, the set of three-tuples of strings.
 
-Because the signatures are those of `^` reversed, they are `num*num`, `set*set` and
-`int*set`. There is no `set*int` signature: `string ^^ 2` is ill-formed. In particular it
-is not shorthand for `string ^^ string`, which must be written out.
+Because the signatures are those of `^` reversed, they are `num*num`, `set*set` and `int*set`. There is no `set*int` signature: `string ^^ 2` is ill-formed. In particular it is not shorthand for `string ^^ string`, which must be written out.
 
 #### `|`
 
