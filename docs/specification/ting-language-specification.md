@@ -741,12 +741,12 @@ In juxtaposition `f x`, the callee `f` is referential in every covering scope fr
 
 ### Collection literals
 - List literal: `[e1, e2, ...]`
-- Tuple literal: `(e1, e2, ...)`
-- Product literal with a named section: `(e1, e2 @ n1 = v1, n2 = v2)` (see [Products](#products))
 - Set literal: `{e1, e2, ...}`
 - Multiset literal: `{* e1, e2, ... *}`
 
 A collection literal is not a token: its elements are arbitrary expressions, so it is a syntactic form rather than a lexical one.
+
+Tuples and records are not collections; see [Tuples and Records](#tuples-and-records).
 
 ### Lists
 
@@ -754,47 +754,35 @@ A collection literal is not a token: its elements are arbitrary expressions, so 
 - List definitions can expand nondeterministic elements by backtracking.
 
 ### Sets and multisets
-- Sets are unique-element collections with definition-order semantics in docs.
-- Multisets permit duplicates and can preserve generation order.
+- Sets contain one member per identity in definition order. Ordered pairs with the same origin merge their associated result alternatives.
+- Multisets retain every contribution, including repeated origins and results, and can preserve generation order.
+
+## Tuples and Records
+
+Tuples and records are product values, not collections. Their components are fields, not collection elements.
 
 ### Products
 
-Tuples and records are the two extremes of a single product structure. A product value
-has zero or more *positional* fields, optionally followed by zero or more *named*
-fields. All fields — positional and named — participate in the identity of the product:
-two products are equal exactly where all of their fields agree.
+Tuples and records are the two extremes of a single product structure. A product value has zero or more *positional* fields, optionally followed by zero or more *named* fields. The positional and named fields of an ordinary product participate in its identity: two products are equal exactly where all of their fields agree. The public `Result` property attached by ordered-pair construction is not an additional identity-bearing field; an ordered pair retains its origin's identity. See [Ordered Pairs](#ordered-pairs).
 
 - A **tuple** is a product with only positional fields.
 - A **record** is a product with only named fields.
 - A scalar behaves as a one-field product.
 
-A product literal is written in parentheses. The `@` punctuation separates the
-positional section from the named section:
+A product literal is written in parentheses. The `@` punctuation separates the positional section from the named section:
 
     (p1, p2 @ n1 = v1, n2 = v2)
 
-Before `@` the elements are ambient expressions contributing positional fields, exactly
-as in a tuple literal. After `@` the section is declarative and is harvested like the
-operand of `record`: every name it declares becomes a named field of the product, and
-the truth values of the declaring propositions are discarded.
+Before `@` the elements are ambient expressions contributing positional fields, exactly as in a tuple literal. After `@` the section is declarative and is harvested like the operand of `record`: every name it declares becomes a named field of the product, and the truth values of the declaring propositions are discarded.
 
-`(@ Name = "Bob")` is therefore a record literal. A bare `(Name = "Bob")` is unchanged:
-it denotes the `bool` value of the proposition `Name = "Bob"`.
+`(@ Name = "Bob")` is therefore a record literal. A bare `(Name = "Bob")` is unchanged: it denotes the `bool` value of the proposition `Name = "Bob"`.
 
-The value of the positional section is *fused* into the product one level deep: its
-top-level fields become the positional fields of the result. Where `x` is the two-tuple
-`(a1, a2)`, the literal `(x @ Result = y)` denotes the product `(a1, a2 @ Result = y)`.
-Writing `@@` in place of `@` suppresses the fusion: the value of the positional section
-becomes a single field, nested whole. This mirrors the product set operators — `*` fuses
-one level deep, `**` does not (see [Product sets](#product-sets)).
+The value of the positional section is *fused* into the product one level deep: its top-level fields become the positional fields of the result. Where `x` is the two-tuple `(a1, a2)`, the literal `(x @ Result = y)` denotes the product `(a1, a2 @ Result = y)`. Writing `@@` in place of `@` suppresses the fusion: the value of the positional section becomes a single field, nested whole. This mirrors the product set operators - `*` fuses one level deep, `**` does not (see [Product sets](#product-sets)).
 
-> Note (draft): whether the named section of a product literal is purely structural
-> construction, or is additionally a binding form resolved against *published* names at
-> application sites (see [Named arguments](#named-arguments)), is not yet final. The
-> same question applies to record field names: structural and identity-bearing, or
-> publication metadata over positional tuples.
+> Note (draft): whether the named section of a product literal is purely structural construction, or is additionally a binding form resolved against *published* names at application sites (see [Named arguments](#named-arguments)), is not yet final. The same question applies to record field names: structural and identity-bearing, or publication metadata over positional tuples.
 
 ### Tuples
+- Tuple literal: `(e1, e2, ...)`.
 - Positional product values: products with only positional fields (see [Products](#products)).
 - Optional components are documented by example.
 - `tuple` and `tuples` operators provide explicit construction/type-set forms.
@@ -1158,37 +1146,22 @@ For the signature `set^^set`:
 
     !A = { x \ !(x : A) }
 
-Denotes the complement of `A`: the set whose members are exactly the values that are not
-members of `A`. Membership in the result is undefined for a value whose membership in `A`
-is undefined.
+Denotes the complement of `A`: the set whose members are exactly the values that are not members of `A`. Membership in the result is undefined for a value whose membership in `A` is undefined.
 
 For the signature `Funcs^^Funcs`:
 
-    !F = fn { x -> y \ (x -> y) !: F.AsSet }
+Denotes the relational complement of `F`: at each origin, `!F` permits exactly the result values that `F` does not permit. For an origin in `def F`, every result permitted by `F` is excluded; for an origin outside `def F`, any result is permitted. The complement is result-aware: finding an origin in `F.AsSet` does not establish that every possible result is already permitted there.
 
-where `AsSet` is the property of every function that returns its underlying collection
-of mappings. Denotes the relational complement of `F`: the function defined by every
-mapping that is not among `F`'s mappings. The set builder restricts the
-complement to mappings — `fn !(F.AsSet)` would be wrong, since the complement of a
-set also contains every value that is not a mapping at all. A function permits, at
-each argument value, a set of result values; `!F` permits exactly the values `F` does not
-permit. Applied to a member `x` of `def F`, `!F x` is nondeterministically any value
-other than `F x`; applied to a value outside `def F` it is nondeterministically any value
-at all. Negation on functions is an involution — `!!F` denotes `F` — and `F & !F` is
-undefined for every argument.
+Function complement is therefore not defined by origin non-membership in `F.AsSet`, nor by `fn !(F.AsSet)`. Double complementation restores the permitted origin/result associations, and `F & !F` is undefined for every argument.
 
 #### `-` (negation)
 
 Neutral. Arithmetic negation: `-x` denotes the additive inverse of `x`.
 
-`-` is also a binary infix operator, and prefix position is otherwise reserved for the
-partial application of a binary operator. Spacing alone decides between the three
-readings:
+`-` is also a binary infix operator, and prefix position is otherwise reserved for the partial application of a binary operator. Spacing alone decides between the three readings:
 
 - `-` with whitespace before it and none after it is **negation**.
-- `- ` with whitespace on both sides, applied to a single operand, is the **partial
-  application** of subtraction, per [Binary operators used as unary prefix
-  operators](#binary-operators-used-as-unary-prefix-operators).
+- `- ` with whitespace on both sides, applied to a single operand, is the **partial application** of subtraction, per [Binary operators used as unary prefix operators](#binary-operators-used-as-unary-prefix-operators).
 - Every other combination is **subtraction**.
 
 The rule is purely lexical and admits no exception:
@@ -1373,26 +1346,17 @@ For the signature `bool*bool^^bool`:
 | *undefined* | `false`     | *undefined* |
 | *undefined* | *undefined* | *undefined* |
 
-Both operands are evaluated: the result is `true` where both operands are `true`, `false`
-where either operand is `false`, and undefined where either operand is undefined.
+Both operands are evaluated: the result is `true` where both operands are `true`, `false` where either operand is `false`, and undefined where either operand is undefined.
 
 For the signature `set*set^^set`:
 
     A & B = { x \ x : A & x : B }
 
-Denotes the intersection of `A` and `B`: the set whose members are exactly the values
-that are members of both `A` and `B`. Both membership tests apply, so membership in the
-result is undefined for a value whose membership in either operand is undefined.
+Denotes the intersection of `A` and `B`: the set whose members are exactly the values that are members of both `A` and `B`. Both membership tests apply, so membership in the result is undefined for a value whose membership in either operand is undefined.
 
 For the signature `Funcs*Funcs^^Funcs`:
 
-    F & G = fn (F.AsSet & G.AsSet)
-
-The set overload applied to the operands' underlying collections of mappings. Denotes the
-function that permits, at each argument value, exactly the result values that both
-operands permit. Applied to `x` it yields `F x ?= G x`, the unification of the two
-results: it is defined at `x` where both operands are defined at `x` and their results
-unify, which for deterministic operands means where `F x = G x`.
+Denotes relational intersection: at each origin, the function permits exactly the results that both operands permit. A common origin alone is insufficient; their associated results must also unify. Applied to `x` it yields `F x ?= G x`, which for deterministic operands is defined where `F x = G x`. Thus `fn { 1 -> 2 } & fn { 1 -> 3 }` is undefined at `1`, despite the shared origin. This is a result-aware operation, not merely intersection of origin identities.
 
 #### `&&`
 
@@ -1444,71 +1408,41 @@ For the signature `bool*bool^^bool`:
 | *undefined* | `true`      | *undefined* |
 | *undefined* | *undefined* | *undefined* |
 
-The guard applies on both sides: if either operand evaluates to `false` the result is
-`false`, and undefinedness of the other operand is caught. If both operands evaluate to
-`true` the result is `true`. Otherwise the result is undefined.
+The guard applies on both sides: if either operand evaluates to `false` the result is `false`, and undefinedness of the other operand is caught. If both operands evaluate to `true` the result is `true`. Otherwise the result is undefined.
 
 For the signature `set*set^^set`:
 
     A &&& B = { x \ x : A &&& x : B }
 
-Denotes the mutually guarded intersection of `A` and `B`. A value that is not a member of
-either operand is not a member of the result, even where its membership in the other
-operand is undefined. A value that is a member of both operands is a member of the
-result. Otherwise membership in the result is undefined.
+Denotes the mutually guarded intersection of `A` and `B`. A value that is not a member of either operand is not a member of the result, even where its membership in the other operand is undefined. A value that is a member of both operands is a member of the result. Otherwise membership in the result is undefined.
 
 For the signature `Funcs*Funcs^^Funcs`:
 
-Denotes the mutually guarded counterpart of `&` on functions. The guard applies to both
-definedness tests: a defined non-membership of `x` in either operand's defined subset
-makes the result undefined at `x` even where the other operand's definedness there is
-undecidable.
-Where both operands are defined at `x` the result is `F x ?= G x`, as for `&`.
+Denotes the mutually guarded counterpart of `&` on functions. The guard applies to both definedness tests: a defined non-membership of `x` in either operand's defined subset makes the result undefined at `x` even where the other operand's definedness there is undecidable. Where both operands are defined at `x` the result is `F x ?= G x`, as for `&`.
 
 #### `*`
 
-Neutral. For numeric operands, the product. For set operands, the fusing product, one
-level deep: the members of `A * B` are the products obtained by fusing a member of `A`
-with a member of `B`. `int*float` is the set of tuples whose first component is an `int`
-and whose second is a `float`, and `int*int*string` is the set of three-tuples
-regardless of grouping. On sets, `/` is the inverse of `*`, and `**` is the non-fusing
-product. See [Product sets](#product-sets).
+Neutral. For numeric operands, the product. For set operands, the fusing product, one level deep: the members of `A * B` are the products obtained by fusing a member of `A` with a member of `B`. `int*float` is the set of tuples whose first component is an `int` and whose second is a `float`, and `int*int*string` is the set of three-tuples regardless of grouping. On sets, `/` is the inverse of `*`, and `**` is the non-fusing product. See [Product sets](#product-sets).
 
 #### `**`
 
-Neutral. The non-fusing product. For set operands, `A ** B` denotes the set of two-tuples
-whose first component is a member of `A` and whose second component is a member of `B`,
-each nested whole: no fusion takes place. Where `*` fuses one level deep —
-`int*int*string` is a set of three-tuples — `**` makes nesting expressible: members of
-`(int*int) ** string` are two-tuples whose first component is itself a two-tuple.
+Neutral. The non-fusing product. For set operands, `A ** B` denotes the set of two-tuples whose first component is a member of `A` and whose second component is a member of `B`, each nested whole: no fusion takes place. Where `*` fuses one level deep - `int*int*string` is a set of three-tuples - `**` makes nesting expressible: members of `(int*int) ** string` are two-tuples whose first component is itself a two-tuple.
 
 #### `+`
 
 Neutral. Numeric addition. For list operands, including `string`, it concatenates.
 
-For set and multiset operands, addition: the collection that retains every contribution
-from both operands.
+For set and multiset operands, addition: the collection that retains every contribution from both operands.
 
     {1, 2} + {2, 3}   =   {* 1, 2, 2, 3 *}
 
-The result is a multiset wherever the operands overlap: `#(A + B) = #A + #B` always
-holds. Unlike `|`, which unifies common members and is idempotent, `+` is not
-idempotent. The relation between `|` and `+` on sets mirrors the relation between the
-set definition `{ … }` and the multiset definition `{* … *}`: `|` keeps one
-contribution of each member, `+` keeps them all.
+The result is a multiset wherever the operands overlap: `#(A + B) = #A + #B` always holds. Unlike `|`, which coalesces common member identities and merges their associated results, `+` is not idempotent. The relation between `|` and `+` on sets mirrors the relation between the set definition `{ ... }` and the multiset definition `{* ... *}`: `|` merges contributions at each identity, while `+` keeps them separately. For ordered pairs, two contributions with the same origin are retained even when their results agree.
 
 For the signature `Funcs*Funcs^^Funcs`:
 
     F + G = fn (F.AsSet + G.AsSet)
 
-The addition overload applied to the operands' underlying collections of mappings. Like
-`F | G` it is defined at `x` where either operand is defined at `x` and permits every
-result value that either operand permits. The two differ in solution multiplicity:
-`F + G` retains both contributions wherever both operands are defined, so it is
-nondeterministic on exactly `def F & def G` — two solutions at every such argument, even
-where the results agree — while `F | G` unifies agreeing mappings. With `F` and `G` from
-the example under `|`, `(F + G) 4` yields `40` twice under backtracking, where
-`(F | G) 4` yields it once; at `2` both yield `20` or `21`.
+The addition overload applied to the operands' underlying collections of ordered pairs. Like `F | G` it permits results from either operand. Unlike union, it retains the separate contributions and adds their solution multiplicities at a shared origin. For deterministic `F` and `G`, this gives two solutions wherever both are defined, even when the results agree. With `F` and `G` from the example under `|`, `(F + G) 4` yields `40` twice under backtracking, where `(F | G) 4` yields it once; at `2` both yield `20` or `21`.
 
 #### `-`
 
@@ -1545,25 +1479,20 @@ Persons person => person./record(Name,Age=CalculateAge(DateOfBirth,DateOnly.ToDa
 
 The left operand must be a set. The right operand is always declarative.
 
-- In referential context, `some..prop` denotes the function from a member of `some` to the
-  property `prop` of that member. Every member of `some` must have a property compatible
-  with the right operand.
-- In declarative context, `some..prop` declares the property `prop` on every member of
-  `some`.
-- In prefix position, `..prop` denotes the function from a set whose members have a `prop`
-  property to the projection of that property over the members.
+- In referential context, `some..prop` denotes the function from a member of `some` to the property `prop` of that member. Every member of `some` must have a property compatible with the right operand.
+- In declarative context, `some..prop` declares the property `prop` on every member of `some`.
+- In prefix position, `..prop` denotes the function from a set whose members have a `prop` property to the projection of that property over the members.
 
-#### `...`
+#### `...`, `...<`, `<...`, `<...<`
 
-Neutral. Denotes a range: an expression that can assume any value between the left operand
-and the right operand. A range is ordered and nondeterministic; where a range provably
-contains a single value it is deterministic. Both bounds are included, so `a ... b` is
-equivalent to `x \ x >= a & x <= b`.
+The range operators are neutral. A range is an ordered, nondeterministic expression that can assume any value between its left and right bounds. Where a range provably contains one value, it is deterministic. The angle bracket on either side excludes the bound on that side:
 
-#### `...<`
-
-Neutral. As `...`, except that the upper bound is excluded: `a ...< b` is equivalent to
-`x \ x >= a & x < b`.
+| Operator | Lower bound | Upper bound | Equivalent restriction |
+| -------- | ----------- | ----------- | ---------------------- |
+| `a ... b` | included | included | `x \ x >= a & x <= b` |
+| `a ...< b` | included | excluded | `x \ x >= a & x < b` |
+| `a <... b` | excluded | included | `x \ x > a & x <= b` |
+| `a <...< b` | excluded | excluded | `x \ x > a & x < b` |
 
 #### `../`
 
@@ -1611,68 +1540,41 @@ This expression yields `1`: the right-hand `value` resolves directly to the reco
 
 #### `/`
 
-Neutral. For numeric operands, divides the left operand by the right operand. For set
-operands, divides a tuple set by a set, yielding the tuple set of the remaining
-components. Given `S = int*float*string`, `S/string` is `int*float` and
-`S/(float*string)` is `int`; a divisor that does not correspond to a trailing group of
-components is an error.
+Neutral. For numeric operands, divides the left operand by the right operand. For set operands, divides a tuple set by a set, yielding the tuple set of the remaining components. Given `S = int*float*string`, `S/string` is `int*float` and `S/(float*string)` is `int`; a divisor that does not correspond to a trailing group of components is an error.
 
 #### `/%`
 
-Neutral. Divides the left operand by the right operand and yields the tuple of quotient
-and remainder.
+Neutral. Divides the left operand by the right operand and yields the tuple of quotient and remainder.
 
 #### `:`
 
-Right-referential. Yields `true` when the left operand is a member of the right operand
-set.
+Right-referential. Yields `true` when the left operand is a member of the right operand set.
+
+In a set of ordered pairs, membership identifies a member by its origin. Establishing that origin's membership does not by itself establish that a particular result is permitted; that requires a constraint on the member's associated `Result`.
 
 #### `::`
 
-Right-referential. Yields `true` when the left operand is a collection all of whose
-elements are members of the right operand set.
+Right-referential. Yields `true` when the left operand is a collection all of whose elements are members of the right operand set.
 
-The left operand may be any collection, and in particular it may be a *multiset*:
-duplicate elements are admitted, and each contribution is tested for membership. This is
-what distinguishes `::` from `<=`. Both lift membership from a value to a collection of
-values, but `<=` relates two *sets*, so it unifies duplicate members and cannot say
-anything about multiplicity. `{* 1, 1, 2 *} :: int` holds, where the corresponding `<=`
-reading does not exist. `::` says nothing about the order of the elements.
+The left operand may be any collection, and in particular it may be a *multiset*: duplicate elements are admitted, and each contribution is tested for membership. This is what distinguishes `::` from `<=`. Both lift membership from a value to a collection of values, but `<=` relates two *sets*, so it unifies duplicate members and cannot say anything about multiplicity. `{* 1, 1, 2 *} :: int` holds, where the corresponding `<=` reading does not exist. `::` says nothing about the order of the elements.
 
 #### `:::`
 
-Right-referential. Yields `true` when the left operand is an ordered sequence of members
-of the right operand set.
+Right-referential. Yields `true` when the left operand is an ordered sequence of members of the right operand set.
 
-It differs from `::` only in additionally requiring that the collection is ordered. Like
-`::` it admits a multiset on the left, so duplicates are permitted:
-`{* 1, 1, 2 *} ::: int` holds wherever that multiset preserves its generation order.
+It differs from `::` only in additionally requiring that the collection is ordered. Like `::` it admits a multiset on the left, so duplicates are permitted: `{* 1, 1, 2 *} ::: int` holds wherever that multiset preserves its generation order.
 
 #### `;`
 
-Neutral. Introduces an ordered nondeterministic choice. `a ; b` assumes the value
-of `a` until backtracking forces it to assume the value of `b`. An undefined operand is
-disregarded; the expression is undefined only when both operands are undefined.
+Neutral. Introduces an ordered nondeterministic choice. `a ; b` assumes the value of `a` until backtracking forces it to assume the value of `b`. An undefined operand is disregarded; the expression is undefined only when both operands are undefined.
 
 #### `;;`
 
-Neutral. Alternative on undefined. `a ;; b` is `a` unless `a` is undefined, in
-which case it is `b`. The operator introduces no nondeterminism of its own, although
-either operand may itself be nondeterministic.
+Neutral. Alternative on undefined. `a ;; b` is `a` unless `a` is undefined, in which case it is `b`. The operator introduces no nondeterminism of its own, although either operand may itself be nondeterministic.
 
 #### `<`
 
 Right-referential. For numeric operands, less than. For set operands, proper subset.
-
-#### `<...`
-
-Neutral. As `...`, except that the lower bound is excluded: `a <... b` is equivalent to
-`x \ x > a & x <= b`.
-
-#### `<...<`
-
-Neutral. As `...`, except that both bounds are excluded: `a <...< b` is equivalent to
-`x \ x > a & x < b`.
 
 #### `<<`
 
@@ -1812,36 +1714,27 @@ For the signature `bool*bool^^bool`:
 | *undefined* | `false`     | *undefined* |
 | *undefined* | *undefined* | *undefined* |
 
-Both operands are evaluated: the result is `true` where either operand is `true`, `false`
-where both are `false`, and undefined where either operand is undefined.
+Both operands are evaluated: the result is `true` where either operand is `true`, `false` where both are `false`, and undefined where either operand is undefined.
 
 For the signature `set*set^^set`:
 
     A | B = { x \ x : A | x : B }
 
-Denotes the union of `A` and `B`: the set whose members are exactly the values that are
-members of either operand. Both membership tests apply, so membership in the result is
-undefined for a value whose membership in either operand is undefined.
+Denotes the union of `A` and `B`: the set whose members are exactly the values that are members of either operand. Both membership tests apply, so membership in the result is undefined for a value whose membership in either operand is undefined.
+
+For ordered-pair members, shared origins are coalesced and their associated `Result` alternatives are merged. `{ 1 -> 2 } | { 1 -> 3 }` therefore has one origin with possible results `2` and `3`. Agreeing results at a shared origin contribute one alternative, preserving union's idempotence. Origin membership determines which members occur; it does not discard the result information contributed by either operand.
 
 For the signature `Funcs*Funcs^^Funcs`:
 
     F | G = fn (F.AsSet | G.AsSet)
 
-The set overload applied to the operands' underlying collections of mappings. Denotes the
-function that permits, at each argument value, every result value that either operand
-permits. It is defined at `x` where either operand is defined at `x`; both definedness tests
-apply. Where only one operand is defined at `x` the result is that operand's result.
-Where both are defined at `x` with the same result, their mappings are identical and
-unify to a single member of the union, so the result there is deterministic; where their
-results differ the result is nondeterministically either. For
-`F = fn { 1 -> 10, 2 -> 20, 4 -> 40 }` and `G = fn { 2 -> 21, 3 -> 30, 4 -> 40 }`,
-`F | G` applied to `1` yields `10`, applied to `3` yields `30`, applied to `4` yields
-`40` deterministically, and applied to `2` yields nondeterministically `20` or `21`.
+The set union of the underlying ordered-pair collections, including the merging of associated results at shared origins. `F | G` permits every result supplied by either operand at an origin; both definedness tests apply. At a shared origin, different results remain alternatives rather than being discarded as duplicate identities. If both operands are deterministic there and yield the same result, the union permits it once and is deterministic at that origin.
+
+For `F = fn { 1 -> 10, 2 -> 20, 4 -> 40 }` and `G = fn { 2 -> 21, 3 -> 30, 4 -> 40 }`, `F | G` applied to `1` yields `10`, applied to `3` yields `30`, applied to `4` yields `40` deterministically, and applied to `2` yields nondeterministically `20` or `21`.
 
 #### `|>`
 
-Neutral. Forward application. `x |> f` denotes `f x`. Unlike juxtaposition, both
-operands are ambient, so neither is forced to be referential.
+Neutral. Forward application. `x |> f` denotes `f x`. Unlike juxtaposition, both operands are ambient, so neither is forced to be referential.
 
 #### `||`
 
@@ -1857,29 +1750,21 @@ For the signature `bool*bool^^bool`:
 | `false`     | *undefined* | *undefined* |
 | *undefined* | *ignored*   | *undefined* |
 
-If the left operand evaluates to `true` the result is `true`, and the right operand may be
-undefined and may not be evaluated. If the left operand evaluates to `false` the result is
-that of the right operand, even if the right operand is undefined. If the left operand is
-undefined the result is undefined.
+If the left operand evaluates to `true` the result is `true`, and the right operand may be undefined and may not be evaluated. If the left operand evaluates to `false` the result is that of the right operand, even if the right operand is undefined. If the left operand is undefined the result is undefined.
 
 For the signature `set*set^^set`:
 
     A || B = { x \ x : A || x : B }
 
-Denotes the guarded union of `A` and `B`. A member of `A` is a member of the result, even
-where its membership in `B` is undefined. For a value that is not a member of `A`,
-membership in the result is its membership in `B`. This is the union to use where the
-right operand's membership is only defined for non-members of the left operand.
+Denotes the guarded union of `A` and `B`. A member of `A` is a member of the result, even where its membership in `B` is undefined. For a value that is not a member of `A`, membership in the result is its membership in `B`. This is the union to use where the right operand's membership is only defined for non-members of the left operand.
+
+For ordered-pair members, this guard tests origin membership. If `A` contains an origin, its associated results are retained and `B` contributes no results at that origin. Only origins absent from `A` obtain their associated results from `B`.
 
 For the signature `Funcs*Funcs^^Funcs`:
 
-Denotes ordered choice. Applied to `x`, the result is `F x` if and only if `F` is defined
-at `x`; `G` is ignored there — it does not narrow the result, and its definedness
-may be undefined. Where `F` is not defined at `x` the result is `G x`. With `F` and `G`
-from the example under `|`, `F || G` applied to `2` yields only `20`. Unlike the strict
-operators, this is not the set overload on the underlying mappings — `F || G` is not
-`fn (F.AsSet || G.AsSet)` — because the guard applies to the definedness test, not to mapping
-membership.
+Denotes origin-based fallback. `F || G` retains the ordered-pair contributions from `F` and includes contributions from `G` only if no ordered pair in `F` has the same origin. The test concerns the origin, not whether a particular origin/result association is present. At an origin supplied by `F`, all of `F`'s results and solution multiplicities are retained; `G` contributes nothing there, even if it has different results or its definedness is undecidable. Only where `F` has no such origin does the result come from `G`.
+
+With `F` and `G` from the example under `|`, `(F || G) 2` yields only `20`, while `(F || G) 3` yields `30`. If `F` already has several results at an origin, `||` retains them rather than selecting only one, but it still excludes every contribution from `G` at that origin.
 
 #### `|||`
 
@@ -1896,59 +1781,40 @@ For the signature `bool*bool^^bool`:
 | *undefined* | `false`     | *undefined* |
 | *undefined* | *undefined* | *undefined* |
 
-The guard applies on both sides: if either operand evaluates to `true` the result is
-`true`, and undefinedness of the other operand is caught. If both operands evaluate to
-`false` the result is `false`. Otherwise the result is undefined.
+The guard applies on both sides: if either operand evaluates to `true` the result is `true`, and undefinedness of the other operand is caught. If both operands evaluate to `false` the result is `false`. Otherwise the result is undefined.
 
 For the signature `set*set^^set`:
 
     A ||| B = { x \ x : A ||| x : B }
 
-Denotes the mutually guarded union of `A` and `B`. A value that is a member of either
-operand is a member of the result, even where its membership in the other operand is
-undefined. A value that is a non-member of both operands is not a member of the result.
-Otherwise membership in the result is undefined.
+Denotes the mutually guarded union of `A` and `B`. A value that is a member of either operand is a member of the result, even where its membership in the other operand is undefined. A value that is a non-member of both operands is not a member of the result. Otherwise membership in the result is undefined.
+
+For ordered-pair members, a shared origin merges the result alternatives supplied by both operands as for `|`. Unlike `||`, the presence of the origin on the left does not suppress right-hand contributions. The mutual guards retain the defined side's results when membership on the other side is undefined.
 
 For the signature `Funcs*Funcs^^Funcs`:
 
-Denotes the mutually guarded counterpart of `|` on functions. As for `|`, the result at
-`x` permits every value permitted by either operand. The guard applies to both
-definedness tests: where one operand's definedness at `x` is undecidable but the other operand is
-defined at `x`, the result is the defined operand's result.
+Denotes the mutually guarded counterpart of `|` on functions. When both operands supply an origin, their result alternatives are merged as for `|`; this is not the left-biased fallback of `||`. The guard applies to both definedness tests: where one operand's definedness at `x` is undecidable but the other operand is defined at `x`, the result is the defined operand's result.
 
 
 #### `answer`
 
-Right-referential binary infix operator. In `expression answer handler`, the right
-operand is an answer-handler function for asks made by the left operand. Its semantics
-are specified under [Answering](#answering).
+Right-referential binary infix operator. In `expression answer handler`, the right operand is an answer-handler function for asks made by the left operand. Its semantics are specified under [Answering](#answering).
 
 #### `asks`
 
-Right-referential binary infix operator. `F asks A` augments the function `F` with the
-asks contract `A`, whose value must be a set of functions. Its semantics, including
-indeterminate local contracts and the empty default at export boundaries, are specified under
-[Effect contracts](#effect-contracts).
+Right-referential binary infix operator. `F asks A` augments the function `F` with the asks contract `A`, whose value must be a set of functions. Its semantics, including indeterminate local contracts and the empty default at export boundaries, are specified under [Effect contracts](#effect-contracts).
 
 #### `catch`
 
-Right-referential binary infix operator. In `expression catch handler`, the right operand
-is an exception-handler function for the left operand. Its semantics are specified under
-[Catch operator](#catch-operator).
+Right-referential binary infix operator. In `expression catch handler`, the right operand is an exception-handler function for the left operand. Its semantics are specified under [Catch operator](#catch-operator).
 
 #### `contract`
 
-Left-declarative. `implementation contract ContractSet` requires the implementation to
-be a member of the function set denoted by the right operand. The new contract frame is
-declarative over the implementation and referential over the contract expression, so the
-contract can refer to argument and result declarations collected from a nested function.
-The value is the implementation paired with its opaque external description; see
-[Function contracts and separate compilation](#function-contracts-and-separate-compilation).
+Left-declarative. `implementation contract ContractSet` requires the implementation to be a member of the function set denoted by the right operand. The new contract frame is declarative over the implementation and referential over the contract expression, so the contract can refer to argument and result declarations collected from a nested function. The value is the implementation paired with its opaque external description; see [Function contracts and separate compilation](#function-contracts-and-separate-compilation).
 
 #### `else`
 
-Neutral. Constructs an alternative from its two operands, for use as the right operand of
-`then`. `a then b else c` groups as `a then (b else c)`.
+Neutral. Constructs an alternative from its two operands, for use as the right operand of `then`. `a then b else c` groups as `a then (b else c)`.
 
 #### `in`
 
