@@ -1254,16 +1254,11 @@ Introduces a local scope spanning its operand. The new frame is declarative thro
 
 #### `partial`
 
-Marks its operand as potentially undefined without changing its admitted values or
-successful results. The operand is ambient. The compiler does not inspect through the
-marker to infer a narrower definedness condition; it conservatively assumes that the
-expression may transfer to the undefined continuation for any admitted bindings.
-`partial` neither catches undefinedness nor turns it into a value.
+Marks its operand as potentially undefined without changing its admitted values or successful results. The operand is ambient. The compiler does not inspect through the marker to infer a narrower definedness condition; it conservatively assumes that the expression may transfer to the undefined continuation for any admitted bindings. `partial` neither catches undefinedness nor turns it into a value.
 
 #### `primary`
 
-Erases attributes. It is total, deterministic, idempotent and deep, and it preserves class
-membership.
+Erases attributes. It is total, deterministic, idempotent and deep, and it preserves class membership.
 
 #### `private`
 
@@ -1293,24 +1288,17 @@ Denotes the set of records whose fields are those declared by the operand.
 
 #### `throw`
 
-Unary prefix semantic form. The operand is ambient. `throw exception` raises the
-exception denoted by its operand rather than returning a value. Its semantics are
-specified under [Throw operator](#throw-operator).
+Unary prefix semantic form. The operand is ambient. `throw exception` raises the exception denoted by its operand rather than returning a value. Its semantics are specified under [Throw operator](#throw-operator).
 
 #### `total`
 
-Accepts a set of functions and denotes the subset guaranteed to return at least one
-result for every argument in each function's admitted domain. It does not change those
-functions or narrow their domains. A bare function set such as `A ^^ B` includes both
-total and partial functions; `total (A ^^ B)` adds the definedness guarantee.
+Accepts a set of functions and denotes the subset guaranteed to return at least one result for every argument in each function's admitted domain. It does not change those functions or narrow their domains. A bare function set such as `A ^^ B` includes both total and partial functions; `total (A ^^ B)` adds the definedness guarantee.
 
-`total` is a set filter and has no expression-body meaning. Membership may be established
-by analysis of a visible implementation or supplied by an opaque contract.
+`total` is a set filter and has no expression-body meaning. Membership may be established by analysis of a visible implementation or supplied by an opaque contract.
 
 #### `tuple`
 
-Marks its operand as an explicit tuple construction. It contributes no meaning of its own:
-`tuple E` denotes `E`.
+Marks its operand as an explicit tuple construction. It contributes no meaning of its own: `tuple E` denotes `E`.
 
 #### `tuples`
 
@@ -1804,54 +1792,31 @@ The left operand is a proposition and the right operand is any expression. The v
 
 #### `then`
 
-Right-referential. Expresses implication. If the left operand is `true`, the value
-of the expression is the value of the right operand. If the left operand is `false`, the
-expression makes no statement about the right operand and is undefined.
+Right-referential. Expresses implication. If the left operand is `true`, the value of the expression is the value of the right operand. If the left operand is `false`, the expression makes no statement about the right operand and is undefined.
 
 #### `throws`
 
-Right-referential binary infix operator. `F throws E` augments the function `F` with the
-throws contract `E`, whose value must be a set of exception values. Its semantics,
-including indeterminate local contracts and the empty default at export boundaries, are specified under
-[Exception contracts](#exception-contracts).
+Right-referential binary infix operator. `F throws E` augments the function `F` with the throws contract `E`, whose value must be a set of exception values. Its semantics, including indeterminate local contracts and the empty default at export boundaries, are specified under [Exception contracts](#exception-contracts).
 
 #### `where`
 
-Right-declarative. Introduces a local scope spanning the expression; the right operand
-declares into that scope and the left operand refers to it. The value of the expression is
-the value of the left operand on the condition that the right operand evaluates to true.
+Right-declarative. Introduces a local scope spanning the expression; the right operand declares into that scope and the left operand refers to it. The value of the expression is the value of the left operand on the condition that the right operand evaluates to true.
 
 ### Nullary operators
 
-A nullary operator is an operator that takes no operands. Ting has one, the keyword token
-`void`.
+A nullary operator is an operator that takes no operands. Ting has one, the keyword token `void`.
 
 #### `void`
 
-`void` denotes *the absence of a value*. It is the only way to write undefinedness
-directly in source.
+`void` denotes *the absence of a value*. It is the only way to write undefinedness directly in source.
 
-**`void` is not a value.** It is not a member of any set — not even of a set that
-contains everything — it cannot be bound to a name, held in a collection, or passed as an
-argument. An expression that yields `void` yields nothing at all; there is no object
-there for anything to observe. In particular `void` cannot be compared to anything:
-`void = void`, `x == void` and `x != void` are not propositions that hold or fail, they
-are themselves undefined. Definedness is therefore never tested by comparing against
-`void`; the operators that observe definedness are `;;`, `?`, `;`, the guarded logical
-operators, and `catch`.
+**`void` is not a value.** It is not a member of any set - not even of a set that contains everything - it cannot be bound to a name, held in a collection, or passed as an argument. An expression that yields `void` yields nothing at all; there is no object there for anything to observe. In particular `void` cannot be compared to anything: `void = void`, `x == void` and `x != void` are not propositions that hold or fail, they are themselves undefined. Definedness is therefore never tested by comparing against `void`; the operators that observe definedness are `;;`, `?`, `;`, the guarded logical operators, and `catch`.
 
-`void` is not a unit value and not a null value. An empty tuple `()`, an empty set `{}`
-and an empty list `[]` are all values, and each is distinct from `void`.
+`void` is not a unit value and not a null value. An empty tuple `()`, an empty set `{}` and an empty list `[]` are all values, and each is distinct from `void`.
 
-Where an expression evaluates to `void` the expression is *undefined*, which is
-essentially the same as throwing an `UndefinedException` at that point. `void` is what
-makes that outcome writable, so it is how a function is made explicitly undefined
-somewhere in its domain:
+Where an expression evaluates to `void` the expression is *undefined*, which is essentially the same as throwing an `UndefinedException` at that point. `void` is what makes that outcome writable, so it is how a function is made explicitly undefined somewhere in its domain:
 
     let F = int n => n < 0 then void else n * 2
 
-`F` declares that it accepts an `int`; for a negative `int` it has no value to offer. It
-does not *return* `void`, and it does not return nothing either: for such an argument it
-does not return at all. Control leaves by the undefinedness path, which is equivalent to
-throwing an `UndefinedException`. See [Partial functions](#partial-functions).
+`F` declares that it accepts an `int`; for a negative `int` it has no value to offer. It does not *return* `void`, and it does not return nothing either: for such an argument it does not return at all. Control leaves by the undefinedness path, which is equivalent to throwing an `UndefinedException`. See [Partiality](#partiality).
 
