@@ -775,7 +775,7 @@ An expression that consumes a nondeterministic value becomes nondeterministic it
 
 Set definitions handle the nondeterminism arising from their member list by collecting the alternative values as members of the resulting set. This nondeterminism does not propagate to the set definition itself. See [Set definitions](#set-definitions).
 
-The unary prefix operators `determ` and `nondeterm` explicitly mark an expression as deterministic or nondeterministic, respectively. If the compiler can prove that the specified determinism is incorrect, the expression is a compilation error.
+The unary prefix operator `determ` requires its operand expression to be deterministic under the applicable constraints. The compiler must prove this requirement; failure to prove determinism is a compilation error, even if nondeterminism has not been proved either. The operator does not select a result or discard alternatives.
 
 ```ting
 a = determ 0;1
@@ -789,7 +789,15 @@ a = determ {0;1}
 
 This is valid because the set definition collects the nondeterministic alternatives. The value of `a` is the single deterministic set `{0, 1}`.
 
-An expression exported from a module is required to be *deterministic* unless explicitly marked as *nondeterministic* using the unary prefix operator `nondeterm`. This requirement includes the bodies of exported functions. If the compiler cannot prove that the expression is deterministic, it assumes the expression is nondeterministic and requires this explicit marker.
+The unary prefix operator `nondeterm` permits its operand expression to be nondeterministic without requiring it. A deterministic operand is valid. The operator does not add alternatives or change the expression's successful results.
+
+```ting
+nondeterm 42
+```
+
+This is valid and yields the single value `42`.
+
+An expression exported from a module is required to be *deterministic* unless possible nondeterminism is explicitly permitted using `nondeterm`. This requirement includes the bodies of exported functions. If the compiler cannot prove that the expression is deterministic, it treats the expression as potentially nondeterministic and requires this explicit marker.
 
 ```ting
 f = float x => x*1;x*2
@@ -797,7 +805,7 @@ f = float x => x*1;x*2
 
 This local function definition is valid without an explicit determinism marker. The compiler can infer that applying `f` is nondeterministic for any actual argument other than `0`. At `0`, both alternatives yield `0`, so the application is deterministic.
 
-Exporting the function requires its body's nondeterminism to be explicitly marked:
+Exporting the function requires its body's possible nondeterminism to be explicitly permitted:
 
 ```ting
 public f = float x => x*1;x*2
@@ -809,7 +817,7 @@ This is a compilation error because the exported function's body is not determin
 public f = float x => nondeterm x*1;x*2
 ```
 
-This is valid: `nondeterm` explicitly marks the body's nondeterminism.
+`nondeterm` permits the body's possible nondeterminism without requiring every application of `f` to be nondeterministic. 
 
 TODO: Choice, ranges, and set/list expansion interact via backtracking semantics.
 
