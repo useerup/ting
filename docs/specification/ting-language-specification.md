@@ -9,15 +9,9 @@ Ting is logic programming language. The logic oriented core allows it to unify t
 
 ## Programs
 
-A compilation unit is a single expression held in a single source file. There is no
-declaration list at file level: the file *is* the expression, and everything it declares
-it declares through scope-introducing forms within that expression.
+A compilation unit is a single expression held in a single source file. There is no declaration list at file level: the file *is* the expression, and everything it declares it declares through scope-introducing forms within that expression.
 
-The surface syntax for combining compilation units into modules is not yet specified.
-The semantic boundary required for separate compilation is specified by function
-contracts: the defining compilation context may analyze an implementation body, while a
-consumer of an exported value may use only its contract. This does not require a second
-syntactic category for module-level declarations.
+The surface syntax for combining compilation units into modules is not yet specified. The semantic boundary required for separate compilation is specified by function contracts: the defining compilation context may analyze an implementation body, while a consumer of an exported value may use only its contract. This does not require a second syntactic category for module-level declarations.
 
 
 ## Lexical Structure
@@ -28,15 +22,13 @@ Longest-match tokenization applies.
 
 Example: `a<=b` tokenizes as `a`, `<=`, `b`.
 
-The character tokens are tokens formed from non-alphanumeric characters, as opposed to
-keyword tokens such as `let`, `where` or `catch`.
+The character tokens are tokens formed from non-alphanumeric characters, as opposed to keyword tokens such as `let`, `where` or `catch`.
 
 The following tokens exists:
 
 - Unary prefix operators. [Unary prefix operators](#Opers)
 - Binary infix operators. See 
-- Nullary operators. The keyword token `void`. See [Nullary
-  operators](#nullary-operators).
+- Nullary operators. The keyword token `void`. See [Nullary operators](#nullary-operators).
 - Bracketing tokens.
 
 #### Unary prefix
@@ -46,9 +38,7 @@ The following tokens exists:
 | `!`   | logical negation |
 | `-`   | arithmetic negation (see [`-`](#--negation)) |
 
-The remaining prefix operators are keyword tokens: `let`, `public`, `private`,
-`protected`, `internal`, `record`, `records`, `tuple`, `tuples`, `fn`, `class`,
-`primary`, `candidate`, `total`, `partial`, `throw` and `ask`.
+The remaining prefix operators are keyword tokens: `let`, `public`, `private`, `protected`, `internal`, `record`, `records`, `tuple`, `tuples`, `fn`, `class`, `primary`, `candidate`, `total`, `partial`, `throw` and `ask`.
 
 #### Binary infix
 
@@ -81,9 +71,7 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `^`                              | exponentiation, set of functions, tuple power        |
 | `.` `..`                         | property, member property                            |
 
-The alphabetic entries in the table are keyword binary infix operators. The binding
-power of `contract` makes `f = p => b contract C` group as
-`f = ((p => b) contract C)`.
+The alphabetic entries in the table are keyword binary infix operators. The binding power of `contract` makes `f = p => b contract C` group as `f = ((p => b) contract C)`.
 
 #### Unary suffix
 
@@ -112,17 +100,12 @@ Bracketing tokens occur in pairs.
 
 ### Comments
 
-A comment is whitespace. It may appear anywhere whitespace may appear, and nowhere else —
-in particular, not inside a string literal or a quoted identifier, where `//` and `/*` are
-ordinary characters.
+A comment is whitespace. It may appear anywhere whitespace may appear, and nowhere else - in particular, not inside a string literal or a quoted identifier, where `//` and `/*` are ordinary characters.
 
 There are two forms:
 
 - A **line comment** begins with `//` and extends to the end of the line.
-- A **block comment** begins with `/*` and extends to the matching `*/`. Block comments
-  **nest**: a `/*` inside a block comment opens an inner comment that must be closed before
-  the outer one. This is what makes commenting out a region that already contains a comment
-  work. An unterminated block comment is a compile-time error.
+- A **block comment** begins with `/*` and extends to the matching `*/`. Block comments **nest**: a `/*` inside a block comment opens an inner comment that must be closed before the outer one. This is what makes commenting out a region that already contains a comment work. An unterminated block comment is a compile-time error.
 
 Because a comment is whitespace, `a/**/b` is two tokens, not one.
 
@@ -275,9 +258,7 @@ Let N be the number of leading dollar characters in the opener.
 - Braces not consumed as delimiters are literal text.
 - Unmatched delimiter groups are invalid.
 
-Each replacement expression is evaluated.
-Its value must be a string or be convertible to a string.
-The interpolated identifier value is the concatenation of literal segments and converted replacement values.
+Each replacement expression is evaluated. Its value must be a string or be convertible to a string. The interpolated identifier value is the concatenation of literal segments and converted replacement values.
 
 Name resolution compares the resulting names after the replacement expressions have been evaluated. Interpolated identifier references are subject to the same compile-time resolution requirement as other references.
 
@@ -293,9 +274,7 @@ Format specifiers
 
 ### Numeric literals
 - Numeric literals include integer and floating forms.
-- Numeric literals are unsigned. A leading `-` is never part of the literal; it is the
-  negation operator applied to it. This is what keeps `n-1` a subtraction rather than `n`
-  applied to the literal `-1`.
+- Numeric literals are unsigned. A leading `-` is never part of the literal; it is the negation operator applied to it. This is what keeps `n-1` a subtraction rather than `n` applied to the literal `-1`.
 - Numeric separators are supported (example in syntax docs).
 
 ### Whitespace and indentation
@@ -304,35 +283,17 @@ Format specifiers
 
 ## Declarations and Binding
 
-Ting has no separate declaration syntax. Whether an identifier occurrence declares a
-name or refers to one is determined by walking the ordered stack of scopes covering
-that occurrence after any enclosing scope-introducing operands have been analyzed and
-their scopes materialized. Each frame on the stack is independently either
-**declarative** or **referential** at that point in the expression, but the role of
-the occurrence is an outcome of the whole walk, not a property of the top frame alone.
+Ting has no separate declaration syntax. Whether an identifier occurrence declares a name or refers to one is determined by walking the ordered stack of scopes covering that occurrence after any enclosing scope-introducing operands have been analyzed and their scopes materialized. Each frame on the stack is independently either **declarative** or **referential** at that point in the expression, but the role of the occurrence is an outcome of the whole walk, not a property of the top frame alone.
 
-Name binding walks the stack from the innermost frame outward, using the scopes that
-have already been introduced by surrounding operators and declarations:
+Name binding walks the stack from the innermost frame outward, using the scopes that have already been introduced by surrounding operators and declarations:
 
 1. In a referential frame, a name that is proved to be always declared in that scope resolves the occurrence and ends the walk. The walk continues outward only if the name is proved to be never declared in that scope.
-2. If the walk reaches a declarative frame without being resolved by an earlier
-  referential frame, the occurrence becomes a declaration. The same declaration
-  identity is contributed to that frame and to following declarative frames only for
-  as long as they remain adjacent in the walk.
-3. The first referential frame encountered after declaration has started is a barrier:
-  declaration propagation stops there and does not resume in farther declarative frames.
-4. Contributing a name already present in a declarative frame adds a constraint to the
-  existing binding; the declarations are unified rather than shadowing one another.
+2. If the walk reaches a declarative frame without being resolved by an earlier referential frame, the occurrence becomes a declaration. The same declaration identity is contributed to that frame and to following declarative frames only for as long as they remain adjacent in the walk.
+3. The first referential frame encountered after declaration has started is a barrier: declaration propagation stops there and does not resume in farther declarative frames.
+4. Contributing a name already present in a declarative frame adds a constraint to the existing binding; the declarations are unified rather than shadowing one another.
 5. If every frame is referential and none contains the name, the occurrence is unresolved and compilation fails.
 
-This makes declaration composition sensitive to the order and mode of individual scope
-frames. An inner referential frame can resolve a name before an outer declarative frame
-is reached, while a name absent from that inner frame may be declared by the outer one.
-Scope-introducing operators such as `./` and `../` first analyze the operand that
-defines the scope, then analyze the other operand under that scope; the binding walk is
-therefore performed after the relevant scope has been populated. When declaration starts,
-only the contiguous declarative segment participates in the same declaration identity;
-interleaved referential frames are hard boundaries.
+This makes declaration composition sensitive to the order and mode of individual scope frames. An inner referential frame can resolve a name before an outer declarative frame is reached, while a name absent from that inner frame may be declared by the outer one. Scope-introducing operators such as `./` and `../` first analyze the operand that defines the scope, then analyze the other operand under that scope; the binding walk is therefore performed after the relevant scope has been populated. When declaration starts, only the contiguous declarative segment participates in the same declaration identity; interleaved referential frames are hard boundaries.
 
 Classification of an occurrence may be deferred during compile-time analysis. An occurrence whose stack begins with a declarative frame declares immediately; every other occurrence stays undecided until the scopes its walk crosses are sufficiently determined. Declarations are settled first, to a fixpoint, and references are resolved only afterwards, so no reference resolves before every reachable declaration has been recorded. An expression scope (`./`) exposes names from its defining operand itself; for a record, these are its fields. An expression member scope (`../`) instead exposes fields of the set's members as functions from those members to field values. Determining whether either scope provides a particular name may require logical resolution of its defining expression.
 
@@ -380,9 +341,7 @@ The following forms introduce declarative scopes:
 - Left-declarative operators: conditional value `in`, lambda `=>`, such-that `\`, contract `contract`
 - Right-declarative operator: `where`
 
-`let` introduces a local scope that is declarative throughout its operand. A
-left-declarative or right-declarative operator instead introduces a mixed-mode local
-scope as described under [Declarative and referential operators](#declarative-and-referential-operators).
+`let` introduces a local scope that is declarative throughout its operand. A left-declarative or right-declarative operator instead introduces a mixed-mode local scope as described under [Declarative and referential operators](#declarative-and-referential-operators).
 
 ### Local binding
 - Canonical form: `pattern = expr in body`.
@@ -454,18 +413,13 @@ Ting models types as sets.
 
 `unit` is the singleton set whose only member is the empty tuple:
 
-  unit = { () }
+    unit = { () }
 
-The empty tuple `()` is an ordinary defined value with no fields. It is distinct from
-`void`, which is the absence of a value, and from `{}`, which is the empty set.
+The empty tuple `()` is an ordinary defined value with no fields. It is distinct from `void`, which is the absence of a value, and from `{}`, which is the empty set.
 
-A function in `unit ^^ A` accepts no information; its sole possible argument is `()`.
-A function in `A ^^ unit` produces `()` where it is defined and therefore communicates
-definedness without carrying result information.
+A function in `unit ^^ A` accepts no information; its sole possible argument is `()`. A function in `A ^^ unit` produces `()` where it is defined and therefore communicates definedness without carrying result information.
 
-For the fusing product, `unit` is the identity: `unit * A = A` and `A * unit = A`.
-The non-fusing product retains the empty tuple as a component, so the members of
-`unit ** A` are `((), a)` for `a : A`, and the members of `A ** unit` are `(a, ())`.
+For the fusing product, `unit` is the identity: `unit * A = A` and `A * unit = A`. The non-fusing product retains the empty tuple as a component, so the members of `unit ** A` are `((), a)` for `a : A`, and the members of `A ** unit` are `(a, ())`.
 
 ### Built-in meta sets
 
@@ -574,28 +528,13 @@ Contracts are sets rather than individual functions so ordinary set operators co
         float x => 1 / x
         contract total (float ^^ float) & NonZeroArg & Forward
 
-`!= 0` is the binary `!=` operator used in prefix position, and therefore denotes the
-predicate `value => value != 0`. The restriction `x ? != 0` admits every value satisfying
-that predicate; by itself it is not restricted to numbers. `float ^^ float` separately
-states the visible argument and result sets, while `total` guarantees a result for every
-admitted argument. `_` leaves the corresponding value
-unconstrained, so the set expression ranges over every function satisfying the stated
-restriction rather than exposing a particular result relation.
+`!= 0` is the binary `!=` operator used in prefix position, and therefore denotes the predicate `value => value != 0`. The restriction `x ? != 0` admits every value satisfying that predicate; by itself it is not restricted to numbers. `float ^^ float` separately states the visible argument and result sets, while `total` guarantees a result for every admitted argument. `_` leaves the corresponding value unconstrained, so the set expression ranges over every function satisfying the stated restriction rather than exposing a particular result relation.
 
-The contract is deliberately allowed to reveal less than the compiler can infer from the
-implementation. A complete opaque contract must explicitly state every fact on which a
-consumer may rely, including argument and result sets, admitted-domain restrictions,
-supported binding modes, and any totality guarantee. If the contract does not use
-`total`, the consumer must conservatively allow the function to be undefined at an
-admitted argument even where the hidden implementation is known to be total in its
-defining compilation unit.
+The contract is deliberately allowed to reveal less than the compiler can infer from the implementation. A complete opaque contract must explicitly state every fact on which a consumer may rely, including argument and result sets, admitted-domain restrictions, supported binding modes, and any totality guarantee. If the contract does not use `total`, the consumer must conservatively allow the function to be undefined at an admitted argument even where the hidden implementation is known to be total in its defining compilation unit.
 
 ### Binding status and implementation modes
 
-`bound` and `free` are built-in predicates over the current binding state of logical
-variables. They support compiler flow analysis and allow one relation to provide
-different implementations for different directions of use. For example, a contract for
-integer addition can describe three solving modes:
+`bound` and `free` are built-in predicates over the current binding state of logical variables. They support compiler flow analysis and allow one relation to provide different implementations for different directions of use. For example, a contract for integer addition can describe three solving modes:
 
     {
         (int a, int b) => int c \
@@ -604,46 +543,27 @@ integer addition can describe three solving modes:
              bound(b, c) & free(a))
     }
 
-The first mode computes `c` from `a` and `b`; the others solve for `b` or `a`. These are
-not three different mathematical functions. They are implementations of the same
-relation `a + b = c` selected according to available information.
+The first mode computes `c` from `a` and `b`; the others solve for `b` or `a`. These are not three different mathematical functions. They are implementations of the same relation `a + b = c` selected according to available information.
 
-Mode applicability is monotonic with respect to additional bindings. A mode that can
-produce a variable when it is free remains usable when that variable is already bound:
-the compiler may introduce a fresh free output for the selected implementation, compute
-it, and unify it with the bound actual value. Thus, when `a`, `b` and `c` are all bound,
-the compiler may use any of the three modes and the call succeeds exactly when the
-computed value unifies with the actual value. Directional implementations of one
-function are required to realize the same relation, so mode selection may affect
-execution strategy but not meaning.
+Mode applicability is monotonic with respect to additional bindings. A mode that can produce a variable when it is free remains usable when that variable is already bound: the compiler may introduce a fresh free output for the selected implementation, compute it, and unify it with the bound actual value. Thus, when `a`, `b` and `c` are all bound, the compiler may use any of the three modes and the call succeeds exactly when the computed value unifies with the actual value. Directional implementations of one function are required to realize the same relation, so mode selection may affect execution strategy but not meaning.
 
-Supported modes and totality guarantees are function metadata rather than successful
-mappings. Contract membership and structural equality `=` observe this metadata, while
-attribute-erasing equality `==` continues to compare functions extensionally by their
-underlying mappings.
+Supported modes and totality guarantees are function metadata rather than successful ordered pairs. Contract membership and structural equality `=` observe this metadata, while attribute-erasing equality `==` continues to compare functions extensionally by their underlying ordered pairs.
 
 ### Named arguments
 
-> Note: this section is a draft. The design depends on the module system and is not yet
-> final.
+> Note: this section is a draft. The design depends on the module system and is not yet final.
 
-Parameter names may be *published* as part of a function's visible interface by applying
-a publishing operator to the parameter pattern:
+Parameter names may be *published* as part of a function's visible interface by applying a publishing operator to the parameter pattern:
 
     public Sum = public(int a, int b) => a + b
 
-A call site to which the names are published may bind arguments by name in the named
-section of the argument product:
+A call site to which the names are published may bind arguments by name in the named section of the argument product:
 
     Sum(1, 2)
     Sum(1 @ b = 2)
     Sum(@ a = 1, b = 2)
 
-Names published this way are publication metadata attached to the declaration; tuple
-values remain purely positional, and application remains unification of the parameter
-pattern with the argument. Where no names are published, only positional application is
-available. Whether published names attach to the function value itself or to the binding
-through which the function is reached is not yet specified.
+Names published this way are publication metadata attached to the declaration; tuple values remain purely positional, and application remains unification of the parameter pattern with the argument. Where no names are published, only positional application is available. Whether published names attach to the function value itself or to the binding through which the function is reached is not yet specified.
 
 ### Sets as identity functions
 
@@ -951,9 +871,9 @@ expr catch Exception ex => "Error: " + ex.Message   // Catches any exception, bi
 expr catch (ArgumentException e) => "Invalid argument: " + e.ParamName   // Catches ArgumentException only
 
 expr catch fn{
-  (ArgumentException _) -> "Bad arg",
-  (NullReferenceException _) -> "Null ref",
-  _ -> "Other error"   // Fallback for any exception type
+    (ArgumentException _) -> "Bad arg",
+    (NullReferenceException _) -> "Null ref",
+    _ -> "Other error"   // Fallback for any exception type
 }
 ```
 
@@ -961,104 +881,45 @@ The `catch` operator is left-associative.
 
 ### Exception contracts
 
-`throws` is a binary infix operator. `F throws E` augments the function denoted by its
-left operand with a throws contract denoted by its right operand. `E` must be a set of
-exception values and declares the exceptions that may escape applications of `F`. The
-declaration is an upper bound: every exception that may escape must be a member of `E`,
-but `F` need not throw every member of `E`. An exception handled within `F` does not
-escape `F`. Exceptions thrown while evaluating a catch handler are outside that handler's
-trap and may escape the whole `catch` expression.
+`throws` is a binary infix operator. `F throws E` augments the function denoted by its left operand with a throws contract denoted by its right operand. `E` must be a set of exception values and declares the exceptions that may escape applications of `F`. The declaration is an upper bound: every exception that may escape must be a member of `E`, but `F` need not throw every member of `E`. An exception handled within `F` does not escape `F`. Exceptions thrown while evaluating a catch handler are outside that handler's trap and may escape the whole `catch` expression.
 
-Without a `throws` augmentation, the throws contract of a function is indeterminate. Its
-absence does not state that the function throws no exceptions. `F throws {}` gives `F`
-an empty throws set and guarantees that no exception escapes an application of `F`. An
-implementation with this augmentation may throw exceptions only where they are caught
-before leaving the function.
+Without a `throws` augmentation, the throws contract of a function is indeterminate. Its absence does not state that the function throws no exceptions. `F throws {}` gives `F` an empty throws set and guarantees that no exception escapes an application of `F`. An implementation with this augmentation may throw exceptions only where they are caught before leaving the function.
 
-Within a compilation unit the compiler may infer escaping exceptions from a visible
-function body for analysis, but inference does not augment the function with a throws
-contract. At a module export boundary, an omitted `throws` contract is collapsed to the
-empty set, as if the function had been augmented with `throws {}`. The exported function
-therefore guarantees that no exception escapes unless its `throws` contract explicitly
-admits that exception. An exported function whose declared or defaulted set omits a
-possibly escaping exception is a compilation error.
+Within a compilation unit the compiler may infer escaping exceptions from a visible function body for analysis, but inference does not augment the function with a throws contract. At a module export boundary, an omitted `throws` contract is collapsed to the empty set, as if the function had been augmented with `throws {}`. The exported function therefore guarantees that no exception escapes unless its `throws` contract explicitly admits that exception. An exported function whose declared or defaulted set omits a possibly escaping exception is a compilation error.
 
 ## Effects
 
-Ting effects allow an expression to request a result from its surrounding evaluation
-context. `ask` creates a request, and `answer` installs a function that handles requests
-made while evaluating its left operand. Nested `answer` expressions form an ordered
-handler stack from the innermost handler to the outermost. A handled `ask` receives the
-results of applying its handler, and its containing expression continues from those
-results.
+Ting effects allow an expression to request a result from its surrounding evaluation context. `ask` creates a request, and `answer` installs a function that handles requests made while evaluating its left operand. Nested `answer` expressions form an ordered handler stack from the innermost handler to the outermost. A handled `ask` receives the results of applying its handler, and its containing expression continues from those results.
 
 ### Asking
 
-`ask R` evaluates `R` to a request value and searches the enclosing answer-handler stack
-for the nearest handler whose function is defined for that value. The result relation of
-`ask R` is the result relation obtained by applying that handler to the request. The
-handler may be nondeterministic and return multiple results. Their values, undefinedness,
-and solution multiplicity are those of the `ask` expression.
+`ask R` evaluates `R` to a request value and searches the enclosing answer-handler stack for the nearest handler whose function is defined for that value. The result relation of `ask R` is the result relation obtained by applying that handler to the request. The handler may be nondeterministic and return multiple results. Their values, undefinedness, and solution multiplicity are those of the `ask` expression.
 
-An ask does not terminate its containing expression. It resumes once for every result
-returned by the handler. Each resumption continues evaluation of the containing
-expression separately, with that handler result in place of `ask R`. Equal results with
-distinct solution multiplicity produce distinct resumptions. If the handler returns no
-result, the ask has no resumption and is undefined.
+An ask does not terminate its containing expression. It resumes once for every result returned by the handler. Each resumption continues evaluation of the containing expression separately, with that handler result in place of `ask R`. Equal results with distinct solution multiplicity produce distinct resumptions. If the handler returns no result, the ask has no resumption and is undefined.
 
 ### Answering
 
-`answer` is a binary infix operator. In `E answer H`, the left operand `E` is evaluated
-with the function `H` pushed onto its answer-handler stack. When `E` asks a request value
-that `H` can accept, `H` is applied to that value and each result of the application is
-returned to the corresponding `ask` expression as a separate resumption. If `H` cannot
-accept the request, lookup continues with the next handler on the enclosing stack.
+`answer` is a binary infix operator. In `E answer H`, the left operand `E` is evaluated with the function `H` pushed onto its answer-handler stack. When `E` asks a request value that `H` can accept, `H` is applied to that value and each result of the application is returned to the corresponding `ask` expression as a separate resumption. If `H` cannot accept the request, lookup continues with the next handler on the enclosing stack.
 
-The right operand is outside the scope of the handler it supplies. Consequently, an ask
-made while evaluating `H`, including while applying `H` to a request, is offered only to
-enclosing handlers.
+The right operand is outside the scope of the handler it supplies. Consequently, an ask made while evaluating `H`, including while applying `H` to a request, is offered only to enclosing handlers.
 
 `answer` is left-associative, so handlers may be stacked:
 
-  E answer H1 answer H2
+    E answer H1 answer H2
 
-This groups as `(E answer H1) answer H2`. `H1` is tried before `H2` for asks made by `E`.
-An ask made while evaluating `H1` is outside the scope of `H1` but inside the scope of
-`H2`.
+This groups as `(E answer H1) answer H2`. `H1` is tried before `H2` for asks made by `E`. An ask made while evaluating `H1` is outside the scope of `H1` but inside the scope of `H2`.
 
 ### Effect contracts
 
-The compiler must determine statically that every reachable `ask` has a handler on its
-answer-handler stack that can accept every request value the ask may produce. An ask not
-handled within its containing function escapes that function. At each call site, the
-escaping ask is analyzed as if it occurred at that point on the caller's handler stack.
+The compiler must determine statically that every reachable `ask` has a handler on its answer-handler stack that can accept every request value the ask may produce. An ask not handled within its containing function escapes that function. At each call site, the escaping ask is analyzed as if it occurred at that point on the caller's handler stack.
 
-`asks` is a binary infix operator. `F asks A` augments the function denoted by its left
-operand with an asks contract denoted by its right operand. `A` must be a set of
-functions. Its members describe the answer handlers that may be required by applications
-of `F`: an ask admitted by one of those functions may escape `F`, and the result set of
-that function describes the results the ask may receive. The declaration is an upper
-bound and does not require `F` to make every ask described by every member of `A`. An ask
-handled within `F` does not escape `F`. Asks made by an answer handler are not handled by
-that same handler and may escape the whole `answer` expression.
+`asks` is a binary infix operator. `F asks A` augments the function denoted by its left operand with an asks contract denoted by its right operand. `A` must be a set of functions. Its members describe the answer handlers that may be required by applications of `F`: an ask admitted by one of those functions may escape `F`, and the result set of that function describes the results the ask may receive. The declaration is an upper bound and does not require `F` to make every ask described by every member of `A`. An ask handled within `F` does not escape `F`. Asks made by an answer handler are not handled by that same handler and may escape the whole `answer` expression.
 
-A function need not be augmented with `asks`. Without that augmentation its asks
-contract is indeterminate: no conclusion can be drawn from the function value about
-which answer handlers an application may require. In particular, absence of an `asks`
-augmentation does not state that the function makes no asks.
+A function need not be augmented with `asks`. Without that augmentation its asks contract is indeterminate: no conclusion can be drawn from the function value about which answer handlers an application may require. In particular, absence of an `asks` augmentation does not state that the function makes no asks.
 
-`F asks {}` gives `F` an empty asks set and guarantees that no ask escapes an application
-of `F`. An implementation with this augmentation may contain asks only where they are
-handled before leaving the function.
+`F asks {}` gives `F` an empty asks set and guarantees that no ask escapes an application of `F`. An implementation with this augmentation may contain asks only where they are handled before leaving the function.
 
-Within a compilation unit the compiler may infer escaping asks from a visible function
-body for analysis, but inference does not augment the function with an asks contract. At
-a module export boundary, an omitted `asks` contract is collapsed to the empty set, as
-if the function had been augmented with `asks {}`. The exported function therefore
-guarantees that no ask escapes unless its `asks` contract explicitly admits a required
-handler function. An exported function whose declared or defaulted set does not admit a
-handler for a possibly escaping ask is a compilation error. A complete program in which
-an ask can reach the end of its handler stack is also a compilation error.
+Within a compilation unit the compiler may infer escaping asks from a visible function body for analysis, but inference does not augment the function with an asks contract. At a module export boundary, an omitted `asks` contract is collapsed to the empty set, as if the function had been augmented with `asks {}`. The exported function therefore guarantees that no ask escapes unless its `asks` contract explicitly admits a required handler function. An exported function whose declared or defaulted set does not admit a handler for a possibly escaping ask is a compilation error. A complete program in which an ask can reach the end of its handler stack is also a compilation error.
 
 For example, where `unit` is the singleton set containing `()`:
 
@@ -1072,11 +933,7 @@ answer || >>>
     Readers () => Console.ReadLine
 ```
 
-The first ask produces the request `Readers ()`. The `Readers` case answers it with the
-line returned by `Console.ReadLine`. Composition passes that result to `ask Writers`,
-which produces a `Writers` request containing the line. The `Writers` case answers that
-request by applying `Console.WriteLine`. Both asks are covered by the single handler
-function formed with guarded choice.
+The first ask produces the request `Readers ()`. The `Readers` case answers it with the line returned by `Console.ReadLine`. Composition passes that result to `ask Writers`, which produces a `Writers` request containing the line. The `Writers` case answers that request by applying `Console.WriteLine`. Both asks are covered by the single handler function formed with guarded choice.
 
 
 
@@ -1088,60 +945,35 @@ The functions an operator can name are taken from a scope available to the parse
 
 ### Declarative and referential operators
 
-A **declarative operator** introduces a new local scope spanning its operands. The new
-scope is declarative over one operand and referential over the other. It does not change
-the modes of inherited scope frames.
+A **declarative operator** introduces a new local scope spanning its operands. The new scope is declarative over one operand and referential over the other. It does not change the modes of inherited scope frames.
 
-A **right-referential** operator introduces no scope. Over its right operand it converts
-every declarative frame already on the scope stack to referential, preserving the frames
-and their order. Its left operand is analyzed first and may itself introduce the scope
-used by the right operand. The right operand is then analyzed against that materialized
-scope stack.
+A **right-referential** operator introduces no scope. Over its right operand it converts every declarative frame already on the scope stack to referential, preserving the frames and their order. Its left operand is analyzed first and may itself introduce the scope used by the right operand. The right operand is then analyzed against that materialized scope stack.
 
-A **left-referential** operator is the mirror image: over its left operand it converts
-every declarative frame already on the stack to referential, while its right operand is
-ambient.
+A **left-referential** operator is the mirror image: over its left operand it converts every declarative frame already on the stack to referential, while its right operand is ambient.
 
 
 
 #### Neutral
 
-A neutral operator forces no role on either operand and introduces no scope. Both operands
-are ambient, so a neutral operator expression declares exactly where the surrounding
-context declares and refers everywhere else. Neutrality is what allows an operator to be
-used unchanged on both sides of a declaration.
+A neutral operator forces no role on either operand and introduces no scope. Both operands are ambient, so a neutral operator expression declares exactly where the surrounding context declares and refers everywhere else. Neutrality is what allows an operator to be used unchanged on both sides of a declaration.
 
 Prefix operators are neutral in the same sense: their single operand is ambient.
 
 #### Right-referential
 
-The right operand is referential in every covering scope; the left operand is ambient.
-No scope is introduced. Concretely, every declarative frame covering the operator is
-viewed as referential while traversing the right operand.
+The right operand is referential in every covering scope; the left operand is ambient. No scope is introduced. Concretely, every declarative frame covering the operator is viewed as referential while traversing the right operand.
 
-This asymmetry is what gives `x = 5` its meaning. The right operand is a value to be read,
-while the left operand inherits the surrounding context and therefore introduces `x` when a
-declarative scope covers the expression. Nothing about the operator itself declares
-anything; the operator only decides how its operands are interpreted against the scopes
-already in force.
+This asymmetry is what gives `x = 5` its meaning. The right operand is a value to be read, while the left operand inherits the surrounding context and therefore introduces `x` when a declarative scope covers the expression. Nothing about the operator itself declares anything; the operator only decides how its operands are interpreted against the scopes already in force.
 
 #### Left-declarative
 
-A left-declarative operator introduces a local scope spanning the whole operator
-expression. The new frame is declarative in the left operand and referential in the
-right. Inherited frames keep their modes in both operands. Consequently, a name absent
-from the new referential frame on the right may still be declared in an inherited
-declarative frame.
+A left-declarative operator introduces a local scope spanning the whole operator expression. The new frame is declarative in the left operand and referential in the right. Inherited frames keep their modes in both operands. Consequently, a name absent from the new referential frame on the right may still be declared in an inherited declarative frame.
 
-This is not equivalent to placing an invisible `let` around a right-referential
-operator. `let` makes its frame declarative throughout its operand, whereas a
-left-declarative operator creates one frame whose mode differs between its operands.
+This is not equivalent to placing an invisible `let` around a right-referential operator. `let` makes its frame declarative throughout its operand, whereas a left-declarative operator creates one frame whose mode differs between its operands.
 
 #### Right-declarative
 
-The mirror image of left-declarative. A local scope spanning the whole operator expression
-is introduced. Its new frame is referential in the left operand and declarative in the
-right, while inherited frames retain their modes.
+The mirror image of left-declarative. A local scope spanning the whole operator expression is introduced. Its new frame is referential in the left operand and declarative in the right, while inherited frames retain their modes.
 
 ### Operator Precedence and Associativity
 
@@ -1149,22 +981,15 @@ TODO: precedence and associativity are intentionally left unspecified in this dr
 
 ### Binary operators used as unary prefix operators
 
-Any binary operator may be written in prefix position with a single operand. The result is
-the function obtained by partial application: `( : rhs)` is a function that accepts `lhs`
-and evaluates `lhs : rhs`.
+Any binary operator may be written in prefix position with a single operand. The result is the function obtained by partial application: `( : rhs)` is a function that accepts `lhs` and evaluates `lhs : rhs`.
 
-`-` is the one operator for which the prefix position is not always partial application:
-written immediately before its operand it is negation instead. See [`-`](#--negation).
+`-` is the one operator for which the prefix position is not always partial application: written immediately before its operand it is negation instead. See [`-`](#--negation).
 
 
 
 ### Unary prefix operators
 
-A unary prefix operator is written before its single operand. The operators listed here
-are prefix-only: the grammar accepts no infix form for them. Any binary infix operator may
-also be written in prefix position, but that denotes partial application rather than a
-distinct operator; see [Binary operators used as unary prefix
-operators](#binary-operators-used-as-unary-prefix-operators).
+A unary prefix operator is written before its single operand. The operators listed here are prefix-only: the grammar accepts no infix form for them. Any binary infix operator may also be written in prefix position, but that denotes partial application rather than a distinct operator; see [Binary operators used as unary prefix operators](#binary-operators-used-as-unary-prefix-operators).
 
 #### `!`
 
@@ -1270,13 +1095,11 @@ As `public`, with protected access.
 
 #### `public`
 
-Introduces a scope in which the operand is declarative and publishes every name the
-operand declares with public access.
+Introduces a scope in which the operand is declarative and publishes every name the operand declares with public access.
 
 #### `record`
 
-Evaluates its operand as a record scope: every name the operand declares becomes a field
-of the resulting record.
+Evaluates its operand as a record scope: every name the operand declares becomes a field of the resulting record.
 
 A single-name field declaration also references that name for its value, as specified under [Records](#records).
 
@@ -1312,8 +1135,7 @@ A binary infix operator is written between its two operands.
 
 #### `!:`
 
-Right-referential. Yields `true` when the left operand is not a member of the right
-operand set.
+Right-referential. Yields `true` when the left operand is not a member of the right operand set.
 
 #### `!=`
 
@@ -1327,14 +1149,9 @@ Neutral. The remainder of dividing the left operand by the right operand.
 
 Neutral. Strict conjunction.
 
-A non-guarded operator always evaluates both of its operands, so its table lists every
-combination of `true`, `false` and *undefined*. *undefined* is not a third truth value:
-it is the row for an operand that yields no value at all (see [`void`](#void)), and a
-result of *undefined* means the expression yields no value either. The table of a guarded
-operator uses one further operand value:
+A non-guarded operator always evaluates both of its operands, so its table lists every combination of `true`, `false` and *undefined*. *undefined* is not a third truth value: it is the row for an operand that yields no value at all (see [`void`](#void)), and a result of *undefined* means the expression yields no value either. The table of a guarded operator uses one further operand value:
 
-- *ignored* — the operand is either not evaluated, or its result is disregarded even where
-  it is undefined.
+- *ignored* - the operand is either not evaluated, or its result is disregarded even where it is undefined.
 
 Where two rows match the same pair of operands they give the same result.
 
@@ -1378,26 +1195,17 @@ For the signature `bool*bool^^bool`:
 | `true`      | *undefined* | *undefined* |
 | *undefined* | *ignored*   | *undefined* |
 
-If the left operand evaluates to `false` the result is `false`, and the right operand may
-be undefined and may not be evaluated. If the left operand evaluates to `true` the result
-is that of the right operand, even if the right operand is undefined. If the left operand
-is undefined the result is undefined.
+If the left operand evaluates to `false` the result is `false`, and the right operand may be undefined and may not be evaluated. If the left operand evaluates to `true` the result is that of the right operand, even if the right operand is undefined. If the left operand is undefined the result is undefined.
 
 For the signature `set*set^^set`:
 
     A && B = { x \ x : A && x : B }
 
-Denotes the guarded intersection of `A` and `B`. A value that is not a member of `A` is
-not a member of the result, even where its membership in `B` is undefined. For a member
-of `A`, membership in the result is its membership in `B`. This is the intersection to
-use where the right operand's membership is only defined for members of the left operand.
+Denotes the guarded intersection of `A` and `B`. A value that is not a member of `A` is not a member of the result, even where its membership in `B` is undefined. For a member of `A`, membership in the result is its membership in `B`. This is the intersection to use where the right operand's membership is only defined for members of the left operand.
 
 For the signature `Funcs*Funcs^^Funcs`:
 
-Denotes the guarded counterpart of `&` on functions. The guard applies to the
-definedness test: where `x` is not a member of `def F` the result is undefined at `x`
-without consulting `G`, whose definedness may itself be undecidable there. Where `F` is
-defined at `x` the result at `x` is `F x ?= G x`, as for `&`.
+Denotes the guarded counterpart of `&` on functions. The guard applies to the definedness test: where `x` is not a member of `def F` the result is undefined at `x` without consulting `G`, whose definedness may itself be undecidable there. Where `F` is defined at `x` the result at `x` is `F x ?= G x`, as for `&`.
 
 #### `&&&`
 
@@ -1464,9 +1272,7 @@ The left operand is an expression that has properties. The right operand is a de
 
 - In referential context, `whole.part` selects the property `part` of `whole`.
 - In declarative context, `whole.part` declares a property `part` directly on `whole`.
-- In prefix position, `.part` denotes the function `whole => whole.part`. `.Name` accepts
-  a value with a `Name` property and returns it; `.(string Name)` is defined only where
-  that property is a member of `string`.
+- In prefix position, `.part` denotes the function `whole => whole.part`. `.Name` accepts a value with a `Name` property and returns it; `.(string Name)` is defined only where that property is a member of `string`.
 
 ~~~ting
 Persons person => person./record(Name,Age=CalculateAge(DateOfBirth,DateOnly.ToDay))
@@ -1603,29 +1409,21 @@ Right-referential. For numeric operands, greater than. For set operands, proper 
 
 #### `>=`
 
-Right-referential. For numeric operands, greater than or equal to. For set operands,
-superset.
+Right-referential. For numeric operands, greater than or equal to. For set operands, superset.
 
 #### `>>`
 
-Neutral. Forward composition. `f >> g` denotes the function that applies `f` to its
-argument and then applies `g` to the result.
+Neutral. Forward composition. `f >> g` denotes the function that applies `f` to its argument and then applies `g` to the result.
 
 #### `?`
 
-Right-referential. Restriction. `left ? predicate` restricts `left` to the values for
-which `predicate` is satisfied.
+Right-referential. Restriction. `left ? predicate` restricts `left` to the values for which `predicate` is satisfied.
 
 #### `?=`
 
-Right-referential, and binds as tightly as `=`. Declaration by unification: the left
-operand is unified with the right rather than asserted equal to it, and where the two
-cannot be unified the expression is *undefined* rather than `false`.
+Right-referential, and binds as tightly as `=`. Declaration by unification: the left operand is unified with the right rather than asserted equal to it, and where the two cannot be unified the expression is *undefined* rather than `false`.
 
-Declarations contributed by the left operand are available when the now-referential
-scope frames are searched on the right, so recursive bindings can be written with `?=`.
-Its distinction from `=` is semantic: failed unification is undefined rather than the
-boolean value `false`.
+Declarations contributed by the left operand are available when the now-referential scope frames are searched on the right, so recursive bindings can be written with `?=`. Its distinction from `=` is semantic: failed unification is undefined rather than the boolean value `false`.
 
     let f ?= fn{ 0 -> 1, int n -> n * f (n - 1) } in f 3
 
@@ -1635,10 +1433,7 @@ Right-referential. TODO: its semantics are not yet specified.
 
 #### `\`
 
-Left-declarative. Such-that. Introduces a local scope spanning the expression; the
-left operand declares into it and the right operand is a proposition over the names
-declared. The value is the value of the left operand for those values that satisfy the
-right operand. `int x \ x != 0` denotes an `int` that is not zero.
+Left-declarative. Such-that. Introduces a local scope spanning the expression; the left operand declares into it and the right operand is a proposition over the names declared. The value is the value of the left operand for those values that satisfy the right operand. `int x \ x != 0` denotes an `int` that is not zero.
 
 #### `^`
 
