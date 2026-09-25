@@ -893,13 +893,17 @@ Ting effects allow an expression to request a result from its surrounding evalua
 
 ### Asking
 
-`ask R` evaluates `R` to a request value and searches the enclosing answer-handler stack for the nearest handler whose function is defined for that value. The result relation of `ask R` is the result relation obtained by applying that handler to the request. The handler may be nondeterministic and return multiple results. Their values, undefinedness, and solution multiplicity are those of the `ask` expression.
+`ask R` evaluates `R` to invoke an answer handler. An answer handler is a function. The request is handled by applying the first handler from the innermost to the outermost handler that is available for the request. The first handler that is defined for the request is applied, and the result is returned as the result of the ask expression.
 
-An ask does not terminate its containing expression. It resumes once for every result returned by the handler. Each resumption continues evaluation of the containing expression separately, with that handler result in place of `ask R`. Equal results with distinct solution multiplicity produce distinct resumptions. If the handler returns no result, the ask has no resumption and is undefined.
+A non-deterministic handler may supply multiple solutions which will make the `ask R` expression non-deterministic. An ask resumes once for every result returned by the answering handler. Each resumption continues evaluation of the containing expression separately, with that handler result in place of `ask R`. 
+
+A potentially exhausted handler stack is subject to the compile-time coverage requirement under [Effect contracts](#effect-contracts).
 
 ### Answering
 
-`answer` is a binary infix operator. In `E answer H`, the left operand `E` is evaluated with the function `H` pushed onto its answer-handler stack. When `E` asks a request value that `H` can accept, `H` is applied to that value and each result of the application is returned to the corresponding `ask` expression as a separate resumption. If `H` cannot accept the request, lookup continues with the next handler on the enclosing stack.
+`answer` is a binary infix operator. In `E answer H`, the left operand `E` is evaluated with the function `H` pushed onto its answer-handler stack. `H` answers a request if it is defined for that request, using the function application and fallback rules under [Asking](#asking). If the handler `H` is not defined for the request, lookup continues with the next handler. 
+
+A handler whose body may be undefined for an admitted request must make that partiality explicit. For example, `int req => partial (req ? != 0)` denotes a partial handler as a consequence of the ordinary [expression partiality rules](#partiality): `partial` applies to the restriction expression, which is also the lambda's body. If undefinedness is handled within the body so the body as a whole is total, the handler need not be marked partial. The handler-specific default does not make ordinary functions or all members of `A ^^ B` total; see [Partial functions](#partial-functions).
 
 The right operand is outside the scope of the handler it supplies. Consequently, an ask made while evaluating `H`, including while applying `H` to a request, is offered only to enclosing handlers.
 
@@ -907,15 +911,63 @@ The right operand is outside the scope of the handler it supplies. Consequently,
 
     E answer H1 answer H2
 
-This groups as `(E answer H1) answer H2`. `H1` is tried before `H2` for asks made by `E`. An ask made while evaluating `H1` is outside the scope of `H1` but inside the scope of `H2`.
+This groups as `(E answer H1) answer H2`. `H1` is tried before `H2` for asks made by `E`. If `H1` is undefined for a request, that request is offered to `H2`. An ask made while evaluating `H1` is outside the scope of `H1` but inside the scope of `H2`.
+
+For example:
+
+```ting
+(ask 0 answer (int request => partial (request ? != 0))) answer (int request => 42)
+(ask 7 answer (int request => partial (request ? != 0))) answer (int request => 42)
+```
+
+Both requests match the inner handler's `int` parameter pattern, but that alone does not select it. In the first expression, the inner function is undefined at `0`, so the outer function is selected and the expression yields `42`. In the second, the inner function is defined at `7` and yields `7`, so it is selected and the outer handler is not consulted. The body restriction does not remove `0` from the inner function's admitted domain; it makes the function undefined there.
+
+A handler may itself perform an effect before answering. Assuming `Console.WriteLine` writes one line and yields `()` on normal completion:
+
+```ting
+(ask 7 answer
+    (int request => ((() = ask "handling request") in request)))
+answer (string message => Console.WriteLine message)
+```
+
+The integer handler asks for a message to be logged before returning `7`. Its logging request is outside its own handler scope and is answered by the outer string handler. The equality with `()` requires that logging request to complete before the integer handler supplies its result. The expression prints `handling request` once and yields `7`: the integer handler is not run once to test definedness and again to obtain its answer.
 
 ### Effect contracts
 
-The compiler must determine statically that every reachable `ask` has a handler on its answer-handler stack that can accept every request value the ask may produce. An ask not handled within its containing function escapes that function. At each call site, the escaping ask is analyzed as if it occurred at that point on the caller's handler stack.
+The compiler must determine statically that the answer-handler stack can answer every request value a reachable `ask` may produce. Matching a handler's parameter pattern alone does not establish coverage: analysis must also account for the path on which its application is undefined and the request continues to an enclosing handler. An ask not fully handled within its containing function escapes that function for the requests that may be forwarded. At each call site, the escaping ask is analyzed as if it occurred at that point on the caller's handler stack.
 
-`asks` is a binary infix operator. `F asks A` augments the function denoted by its left operand with an asks contract denoted by its right operand. `A` must be a set of functions. Its members describe the answer handlers that may be required by applications of `F`: an ask admitted by one of those functions may escape `F`, and the result set of that function describes the results the ask may receive. The declaration is an upper bound and does not require `F` to make every ask described by every member of `A`. An ask handled within `F` does not escape `F`. Asks made by an answer handler are not handled by that same handler and may escape the whole `answer` expression.
+`asks` is a binary infix operator. `F asks A` augments the function denoted by its left operand with an asks contract denoted by its right operand. `A` must be a set of functions. Its members describe the answer handlers that may be required by applications of `F`: an ask admitted by one of those functions may escape `F`, and that function's result constraints for the particular request describe the replies the ask may receive. The declaration is an upper bound and does not require `F` to make every ask described by every member of `A`. An ask handled within `F` does not escape `F`. Asks made by an answer handler are not handled by that same handler and may escape the whole `answer` expression.
 
-A function need not be augmented with `asks`. Without that augmentation its asks contract is indeterminate: no conclusion can be drawn from the function value about which answer handlers an application may require. In particular, absence of an `asks` augmentation does not state that the function makes no asks.
+For example, a function can declare that it may make string requests expecting integer replies:
+
+```ting
+ReadPort = (() => ask "port") asks (string ^^ int)
+in
+    ReadPort () answer (string request => 8080)
+```
+
+`string ^^ int` is the set of handler functions described by the asks contract, not the argument and result sets of `ReadPort` itself. `ReadPort` accepts `()` and asks for `"port"`. The caller's handler answers with `8080`, so the whole expression yields `8080`. The contract does not install a handler: a complete program that calls `ReadPort ()` without a suitable enclosing handler is a compilation error.
+
+Compatibility is checked per request. For each reachable request, the compiler must check every handler application that could supply its answer under the ordered fallback rules. Every possible reply must satisfy the asks contract's result constraints for that same request; belonging to an overall result set is insufficient. For example, if a contract permits integer replies to `"port"` and string replies to `"host"`, an integer reply to `"host"` is incompatible. This is a static check using applicable constraints and available handler contracts, not trial execution of a handler body. Contracts describe the guarantees available to this analysis; they do not select a handler in place of the function-definedness rule under [Asking](#asking).
+
+For each request, the answer produced by the handler stack must meet the contract's totality and determinism requirements. When `total` is required, lookup must produce at least one reply under the applicable constraints. An inner handler may still be partial: its replies must satisfy the contract, and whenever it yields no reply, an enclosing handler must supply a compatible one. A `determ` requirement requires the answer to be deterministic for a fixed request under those constraints; accepting several alternative reply values merely because they have the right type is insufficient. Without a determinism requirement, nondeterministic replies are permitted, but every alternative must satisfy the reply constraints. Totality alone does not imply determinism.
+
+Compatibility follows the actual lookup order, not the existence of some suitable handler in the stack. A handler that could supply the first result must be compatible even if a compatible handler exists farther out. Failure to establish compatibility is a compilation error, not a reason to continue lookup; successful replies are not discarded to select another handler.
+
+For example, this expression is a compilation error:
+
+```ting
+ReadPort = (() => ask "port") asks (string ^^ int)
+in
+    (ReadPort () answer (string request => "wrong"))
+    answer (string request => 8080)
+```
+
+The inner handler is defined for the request and would supply a string, so the function-definedness rule selects it. The contract requires an integer reply, making the expression a compilation error. The outer handler cannot repair this mismatch because reply compatibility does not change which function is selected.
+
+A function need not be augmented with `asks`. Without that augmentation its asks contract is inferred. In particular, absence of an `asks` augmentation does not state that the function makes no asks.
+
+The compiler analyzes all expressions and keeps track of which asks may escape every expression, including requests for which inner handler functions may be undefined. It is a compilation error if a potential ask can reach the end of the complete handler stack, including handlers supplied by callers. A compiler warning is issued if the compiler can prove that an answer-handler will never be invoked because there is no corresponding potential ask; requests forwarded by undefined inner handler applications count as potential asks for this analysis.
 
 `F asks {}` gives `F` an empty asks set and guarantees that no ask escapes an application of `F`. An implementation with this augmentation may contain asks only where they are handled before leaving the function.
 
@@ -1561,7 +1613,7 @@ Denotes the mutually guarded counterpart of `|` on functions. When both operands
 
 #### `answer`
 
-Right-referential binary infix operator. In `expression answer handler`, the right operand is an answer-handler function for asks made by the left operand. Its semantics are specified under [Answering](#answering).
+Right-referential binary infix operator. In `expression answer handler`, the right operand is an ordinary function used to answer asks made by the left operand. It is selected when it is the innermost handler function defined for the request; selection is not based on its contract. It is assumed total over its admitted domain unless explicitly marked partial. An undefined handler application forwards the request to the next handler. Its semantics are specified under [Answering](#answering).
 
 #### `asks`
 
@@ -1605,7 +1657,7 @@ A nullary operator is an operator that takes no operands. Ting has one, the keyw
 
 `void` denotes *the absence of a value*. It is the only way to write undefinedness directly in source.
 
-**`void` is not a value.** It is not a member of any set - not even of a set that contains everything - it cannot be bound to a name, held in a collection, or passed as an argument. An expression that yields `void` yields nothing at all; there is no object there for anything to observe. In particular `void` cannot be compared to anything: `void = void`, `x == void` and `x != void` are not propositions that hold or fail, they are themselves undefined. Definedness is therefore never tested by comparing against `void`; the operators that observe definedness are `;;`, `?`, `;`, the guarded logical operators, and `catch`.
+**`void` is not a value.** It is not a member of any set - not even of a set that contains everything - it cannot be bound to a name, held in a collection, or passed as an argument. An expression that yields `void` yields nothing at all; there is no object there for anything to observe. In particular `void` cannot be compared to anything: `void = void`, `x == void` and `x != void` are not propositions that hold or fail, they are themselves undefined. Definedness is therefore never tested by comparing against `void`; the operators that observe definedness are `;;`, `?`, `;`, the guarded logical operators, `catch`, and `answer` for partial handler applications.
 
 `void` is not a unit value and not a null value. An empty tuple `()`, an empty set `{}` and an empty list `[]` are all values, and each is distinct from `void`.
 
