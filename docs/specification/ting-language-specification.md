@@ -475,15 +475,23 @@ Three sets must be distinguished for a function:
 2. Its **admitted domain**, which refines the declared argument set with restrictions in the parameter pattern.
 3. Its **defined subset**, the admitted arguments for which evaluation actually returns at least one result.
 
-A function is **total** where its defined subset equals its admitted domain. It is **partial** where an admitted argument may produce no result. Membership in `A ^^ B` states the declared argument and result sets but says nothing about totality: `A ^^ B` contains both total and partial functions. `total (A ^^ B)` is the subset guaranteed to return at least one result for every admitted argument.
+A function is **total** where its defined subset equals its admitted domain. It is **partial** where an admitted argument may produce no result. Membership in `A ^^ B` states the declared argument and result sets but says nothing about totality: `A ^^ B` contains both total and partial functions.
 
-`total` applies to sets of functions, not to function bodies. It is primarily useful in contracts, where it makes a definedness guarantee available across an opaque compilation boundary. A visible implementation need not be annotated with `total`; the compiler may prove from its body that it belongs to a total function set.
+Function partiality follows from ordinary expression partiality: if the body expression is partial under the function's admitted arguments, the function is partial. Undefinedness handled within the body need not make the body as a whole partial. An expression can always produce a function value even though applying that function to some admitted arguments yields no result.
 
-There are two ways to make a potentially undefined operation explicit. The preferred way, when its definedness condition is known, is to narrow the admitted domain:
+A lambda whose body is marked `total` is guaranteed to yield at least one result under the applicable constraints, including restrictions on its arguments. This follows from the ordinary [expression totality rule](#partiality), not a separate rule for lambdas. Marking the expression that produces a function value `total` only guarantees that the function value is produced; it does not guarantee that applying the function yields a result.
 
-    float x ? != 0 => 1 / x
+When an operation's definedness condition is known, the admitted domain can be narrowed so that the body satisfies `total`:
 
-Zero is not admitted by this function. The function is total because division returns a result for every argument it does admit.
+    float x ? != 0 => total (1 / x)
+
+Zero is not admitted by this function. The argument restriction lets the compiler establish that division returns a result for every admitted argument. The function would also be inferred total without the marker; `total` makes that requirement explicit.
+
+Without that restriction, the same requirement fails:
+
+    float x => total (1 / x)
+
+This is a compilation error because zero is admitted and division is undefined there. `total` does not remove zero from the admitted domain.
 
 The admitted domain may instead remain broad while the body is marked `partial`:
 
@@ -491,9 +499,9 @@ The admitted domain may instead remain broad while the body is marked `partial`:
 
 Here every `float` is admitted, but evaluation may be undefined for an admitted argument. The `partial` marker prevents inference of a more precise definedness condition, as specified under [Partiality](#partiality).
 
-If undefinedness is handled before leaving the function, the function may still satisfy a `total` contract:
+If undefinedness is handled within the body, the body as a whole can satisfy `total`:
 
-    float x => (partial 1 / x) ;; 0
+    float x => total ((partial (1 / x)) ;; 0)
 
 Without `partial`, a body may still be inferred to have a smaller defined subset. For example, the body of `float x => 1 / x` reveals that evaluation is undefined at zero. At a call site the compiler propagates that potential undefinedness unless it can prove the actual argument is nonzero. The caller may establish that restriction, handle undefinedness, or itself remain potentially undefined.
 
@@ -521,16 +529,16 @@ The implementation must be a member of `ContractSet`. While compiling the defini
 
 Contracts are sets rather than individual functions so ordinary set operators compose their requirements. Intersection requires a function to satisfy both contracts:
 
-    NonZeroArg = { x ? != 0 => _ }
+    NonZeroArg = { x ? != 0 => total _ }
     Forward = { bound x => _ }
 
     Reciprocal =
         float x => 1 / x
-        contract total (float ^^ float) & NonZeroArg & Forward
+        contract (float ^^ float) & NonZeroArg & Forward
 
-`!= 0` is the binary `!=` operator used in prefix position, and therefore denotes the predicate `value => value != 0`. The restriction `x ? != 0` admits every value satisfying that predicate; by itself it is not restricted to numbers. `float ^^ float` separately states the visible argument and result sets, while `total` guarantees a result for every admitted argument. `_` leaves the corresponding value unconstrained, so the set expression ranges over every function satisfying the stated restriction rather than exposing a particular result relation.
+`!= 0` is the binary `!=` operator used in prefix position, and therefore denotes the predicate `value => value != 0`. The restriction `x ? != 0` admits every value satisfying that predicate; by itself it is not restricted to numbers. `float ^^ float` separately states the visible argument and result sets. The `total _` body in `NonZeroArg` requires a result for every admitted argument without prescribing a particular result. Here `total` applies to the lambda's body expression, not to the surrounding set. Contract membership requires the implementation to satisfy that body-totality guarantee, which consumers can then rely on without inspecting the implementation.
 
-The contract is deliberately allowed to reveal less than the compiler can infer from the implementation. A complete opaque contract must explicitly state every fact on which a consumer may rely, including argument and result sets, admitted-domain restrictions, supported binding modes, and any totality guarantee. If the contract does not use `total`, the consumer must conservatively allow the function to be undefined at an admitted argument even where the hidden implementation is known to be total in its defining compilation unit.
+The contract is deliberately allowed to reveal less than the compiler can infer from the implementation. A complete opaque contract must explicitly state every fact on which a consumer may rely, including argument and result sets, admitted-domain restrictions, supported binding modes, and any totality guarantee. Without a guarantee that the body is total, the consumer must conservatively allow the function to be undefined at an admitted argument even where the hidden implementation is known to be total in its defining compilation unit.
 
 ### Binding status and implementation modes
 
@@ -1509,7 +1517,7 @@ The defined signatures are therefore `num*num`, `set*set` and `set*int`. There i
 
 Neutral. `^` with its operands reversed: `A ^^ B` denotes `B ^ A`. It is therefore defined for exactly the signatures `^` is defined for, and carries no meaning of its own.
 
-Its principal use is the set of functions from the left operand set to the right operand set, which is the reading that puts the domain first. `int ^^ string` is the set of functions from `int` to `string`, the same set as `string ^ int`. The underlying collection of a member `F : A ^^ B` consists of ordered pairs whose origins are members of `A` and whose public `Result` properties have values in `B`. `A` and `B` constrain the declared argument and result sets; `A ^^ B` includes both total and partial functions. Use `total (A ^^ B)` where totality over the admitted domain is required. Without that guarantee, potential undefinedness propagates to uses where it cannot be ruled out from a visible body.
+Its principal use is the set of functions from the left operand set to the right operand set, which is the reading that puts the domain first. `int ^^ string` is the set of functions from `int` to `string`, the same set as `string ^ int`. The underlying collection of a member `F : A ^^ B` consists of ordered pairs whose origins are members of `A` and whose public `Result` properties have values in `B`. `A` and `B` constrain the declared argument and result sets; `A ^^ B` includes both total and partial functions. A contract can require totality over the admitted domain by marking a lambda body `total`; see [Function contracts and separate compilation](#function-contracts-and-separate-compilation). Without that guarantee, potential undefinedness propagates to uses where it cannot be ruled out from a visible body.
 
 For the signature `int*set`, `3 ^^ string` denotes `string ^ 3`, the set of three-tuples of strings.
 
