@@ -1221,13 +1221,10 @@ For the signature `bool*bool^^bool`:
 | ----------- | ----------- | ----------- |
 | `true`      | `true`      | `true`      |
 | `true`      | `false`     | `false`     |
-| `true`      | *undefined* | *undefined* |
 | `false`     | `true`      | `false`     |
 | `false`     | `false`     | `false`     |
-| `false`     | *undefined* | *undefined* |
-| *undefined* | `true`      | *undefined* |
-| *undefined* | `false`     | *undefined* |
-| *undefined* | *undefined* | *undefined* |
+| `bool _`    | *undefined* | *undefined* |
+| *undefined* | `bool _`    | *undefined* |
 
 Both operands are evaluated: the result is `true` where both operands are `true`, `false` where either operand is `false`, and undefined where either operand is undefined.
 
@@ -1279,8 +1276,7 @@ For the signature `bool*bool^^bool`:
 | *ignored*   | `false`     | `false`     |
 | `true`      | `true`      | `true`      |
 | `true`      | *undefined* | *undefined* |
-| *undefined* | `true`      | *undefined* |
-| *undefined* | *undefined* | *undefined* |
+| *undefined* | *ignored*   | *undefined* |
 
 The guard applies on both sides: if either operand evaluates to `false` the result is `false`, and undefinedness of the other operand is caught. If both operands evaluate to `true` the result is `true`. Otherwise the result is undefined.
 
