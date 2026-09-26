@@ -729,14 +729,12 @@ This expression yields `2`: the inner `in` introduces a new `this` binding, and 
 
 ## Partiality and Nondeterminism
 
-Partiality and nondeterminism are independent properties of expressions, not exclusively of functions. Partiality concerns whether an expression may yield no value; nondeterminism concerns whether it may yield several alternative values.
+Partiality and nondeterminism are independent properties of expressions. Partiality concerns whether an expression may yield no value; nondeterminism concerns whether it may yield several alternative values.
 
-| | Deterministic | Nondeterministic |
-| --- | --- | --- |
-| Total | Exactly one value | One or more alternative values |
+|         | Deterministic     | Nondeterministic                |
+| ------- | ----------------- | ------------------------------- |
+| Total   | Exactly one value | One or more alternative values  |
 | Partial | Zero or one value | Zero or more alternative values |
-
-These properties apply to function bodies and function applications. They must be distinguished from the properties of the expression that produces the function value itself. Function-specific domains and totality contracts are specified under [Partial functions](#partial-functions).
 
 ### Partiality
 
@@ -746,9 +744,13 @@ Undefinedness is not a value and is never added to the result set. Evaluation ei
 
 Potential undefinedness propagates to a consuming expression unless it is handled or the compiler can prove that the expression being consumed is defined under the applicable constraints. Set definitions handle undefined element expressions by collecting no contribution from them; see [Set definitions](#set-definitions).
 
-The unary prefix operator `partial` marks its operand as potentially undefined without changing its admitted values or successful results. It tells the compiler not to derive a more precise definedness condition by inspecting the marked expression. A consumer must conservatively allow the marked expression to be undefined.
+The unary prefix keyword predicate `total` can be applied to any expression. `total expression` requires that expression to yield at least one value under the applicable constraints. It preserves the expression's values and does not produce a boolean or require determinism. The compiler must establish the guarantee from those constraints and any available contracts; otherwise the expression is a compilation error. `total` does not narrow the admitted bindings, catch undefinedness, or supply a missing value.
 
-`partial` has no second meaning as a filter over function sets. It is comparable to an unspecified throws clause: it records that undefinedness may escape from the marked expression without describing the condition that causes it. It neither catches undefinedness nor turns it into a value. The `total` operator, by contrast, applies to sets of functions, not to expression bodies; see [Partial functions](#partial-functions).
+For example, `total (1 + 2)` yields `3`, whereas `total void` is a compilation error. `total (0;1)` is valid because totality permits several alternative values.
+
+The unary prefix keyword predicate `partial` can likewise be applied to any expression to indicate that the expression may be undefined, without changing its admitted values or successful results. It tells the compiler not to derive a more precise definedness condition by inspecting the marked expression. A consumer must conservatively allow the marked expression to be undefined.
+
+`partial` is comparable to an unspecified throws clause: it records that undefinedness may escape from the marked expression without describing the condition that causes it. It neither catches undefinedness nor turns it into a value. Neither `total` nor `partial` filters a set of functions: they describe the definedness of the operand expression, not of applications of function values it produces. Function-body guarantees and their use in contracts are described under [Partial functions](#partial-functions).
 
 ### Nondeterminism
 
@@ -1007,7 +1009,7 @@ The first ask produces the request `Readers ()`. The `Readers` case answers it w
 
 ## Operators
 
-Ting's ordinary operators are surface syntax for applying functions: `a + b` applies `_+_` to the tuple `(a, b)`, and `!p` applies `!_` to `p`. Scope operators and semantic markers such as `contract`, `asks`, `throws`, `partial`, `throw`, `ask` and `answer` have additional scope, analysis, or control-flow rules specified in their respective sections. This specification does not prescribe the compiler's internal expression representation.
+Ting's ordinary operators are surface syntax for applying functions: `a + b` applies `_+_` to the tuple `(a, b)`, and `!p` applies `!_` to `p`. Scope operators and semantic markers such as `contract`, `asks`, `throws`, `total`, `partial`, `throw`, `ask` and `answer` have additional scope, analysis, or control-flow rules specified in their respective sections. This specification does not prescribe the compiler's internal expression representation.
 
 The functions an operator can name are taken from a scope available to the parser, so they are never looked up lexically and cannot be shadowed by a declaration.
 
@@ -1147,7 +1149,7 @@ Introduces a local scope spanning its operand. The new frame is declarative thro
 
 #### `partial`
 
-Marks its operand as potentially undefined without changing its admitted values or successful results. The operand is ambient. The compiler does not inspect through the marker to infer a narrower definedness condition; it conservatively assumes that the expression may transfer to the undefined continuation for any admitted bindings. `partial` neither catches undefinedness nor turns it into a value.
+Unary prefix keyword predicate. Marks any expression as potentially undefined without changing its admitted values or successful results. The operand is ambient. The compiler does not inspect through the marker to infer a narrower definedness condition; it conservatively assumes that the expression may transfer to the undefined continuation for any admitted bindings. `partial` neither catches undefinedness nor turns it into a value. See [Partiality](#partiality).
 
 #### `primary`
 
@@ -1183,9 +1185,7 @@ Unary prefix semantic form. The operand is ambient. `throw exception` raises the
 
 #### `total`
 
-Accepts a set of functions and denotes the subset guaranteed to return at least one result for every argument in each function's admitted domain. It does not change those functions or narrow their domains. A bare function set such as `A ^^ B` includes both total and partial functions; `total (A ^^ B)` adds the definedness guarantee.
-
-`total` is a set filter and has no expression-body meaning. Membership may be established by analysis of a visible implementation or supplied by an opaque contract.
+Unary prefix keyword predicate. Requires any expression to yield at least one value under the applicable constraints, preserving its values and nondeterminism. The operand is ambient. The compiler must establish the guarantee or report a compilation error. `total` neither handles undefinedness nor narrows admitted bindings, and it is not a filter over function sets. See [Partiality](#partiality) for the expression rule and [Partial functions](#partial-functions) for its consequences when applied to a lambda body.
 
 #### `tuple`
 
