@@ -33,9 +33,9 @@ The following tokens exists:
 
 #### Unary prefix
 
-| Token | Name             |
-| ----- | ---------------- |
-| `!`   | logical negation |
+| Token | Name                                         |
+| ----- | -------------------------------------------- |
+| `!`   | logical negation                             |
 | `-`   | arithmetic negation (see [`-`](#--negation)) |
 
 The remaining prefix operators are keyword tokens: `let`, `public`, `private`, `protected`, `internal`, `record`, `records`, `tuple`, `tuples`, `fn`, `class`, `primary`, `candidate`, `total`, `partial`, `throw` and `ask`.
@@ -44,32 +44,32 @@ The remaining prefix operators are keyword tokens: `let`, `public`, `private`, `
 
 Listed in order of increasing binding power. Tokens on the same row bind equally tightly.
 
-| Tokens                           | Role                                                 |
-| -------------------------------- | ---------------------------------------------------- |
-| `where`                          | right-declarative condition                          |
-| `in`                             | left-declarative conditional value                   |
-| `=` `?=`                         | structural equality, unification                     |
-| `then` `else`                    | implication, alternative                             |
-| `contract` `asks` `throws`       | function abstraction, effect and exception contracts |
-| `->`                             | ordered pair construction                            |
-| `>>` `<<` `\|>` `<\|`            | composition and application                          |
-| `=>`                             | lambda                                               |
-| `./` `../`                       | left-referential expression scope, left-referential expression-member scope            |
-| `catch` `answer`                 | exception and effect handling                        |
-| `\`                              | such-that / restriction                              |
-| `\|` `\|\|` `\|\|\|`             | disjunction, guarded disjunction, mutually guarded disjunction |
-| `&` `&&` `&&&`                   | conjunction, guarded conjunction, mutually guarded conjunction |
-| `?` `??`                         | restriction, alternative-on-undefined                |
-| `:` `::` `:::`                   | member-of, collection-of, sequence-of                |
-| `<` `<=` `>=` `>` `==` `!=` `!:` | comparison, attribute-blind equality, non-membership |
-| `...` `...<` `<...` `<...<`      | ranges                                               |
-| `;` `;;`                         | choice, alternative-on-undefined                     |
-| `^^`                             | reversed exponentiation, set of functions            |
-| `**`                             | non-fusing product                                   |
-| `+` `-`                          | addition, subtraction                                |
-| `*` `/` `%` `/%`                 | multiplication, division, modulo, divmod             |
-| `^`                              | exponentiation, set of functions, tuple power        |
-| `.` `..`                         | property, member property                            |
+| Tokens                           | Role                                                                        |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| `where`                          | right-declarative condition                                                 |
+| `in`                             | left-declarative conditional value                                          |
+| `=` `?=`                         | structural equality, unification                                            |
+| `then` `else`                    | implication, alternative                                                    |
+| `contract` `asks` `throws`       | function abstraction, effect and exception contracts                        |
+| `->`                             | ordered pair construction                                                   |
+| `>>` `<<` `\|>` `<\|`            | composition and application                                                 |
+| `=>`                             | lambda                                                                      |
+| `./` `../`                       | left-referential expression scope, left-referential expression-member scope |
+| `catch` `answer`                 | exception and effect handling                                               |
+| `\`                              | such-that / restriction                                                     |
+| `\|` `\|\|` `\|\|\|`             | disjunction, guarded disjunction, mutually guarded disjunction              |
+| `&` `&&` `&&&`                   | conjunction, guarded conjunction, mutually guarded conjunction              |
+| `?` `??`                         | restriction, alternative-on-undefined                                       |
+| `:` `::` `:::`                   | member-of, collection-of, sequence-of                                       |
+| `<` `<=` `>=` `>` `==` `!=` `!:` | comparison, attribute-blind equality, non-membership                        |
+| `...` `...<` `<...` `<...<`      | ranges                                                                      |
+| `;` `;;`                         | choice, alternative-on-undefined                                            |
+| `^^`                             | reversed exponentiation, set of functions                                   |
+| `**`                             | non-fusing product                                                          |
+| `+` `-`                          | addition, subtraction                                                       |
+| `*` `/` `%` `/%`                 | multiplication, division, modulo, divmod                                    |
+| `^`                              | exponentiation, set of functions, tuple power                               |
+| `.` `..`                         | property, member property                                                   |
 
 The alphabetic entries in the table are keyword binary infix operators. The binding power of `contract` makes `f = p => b contract C` group as `f = ((p => b) contract C)`.
 
@@ -91,12 +91,12 @@ Bracketing tokens occur in pairs.
 
 #### Punctuation
 
-| Token | Role                                                                                                                            |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `,`   | separates elements of a bracketed list                                                                                          |
+| Token | Role                                                                                                                                            |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `,`   | separates elements of a bracketed list                                                                                                          |
 | `@`   | separates the positional section of a product literal from its named section, fusing the positional value one level (see [Products](#products)) |
-| `@@`  | as `@`, but non-fusing: the positional value stays a single component (see [Products](#products))                               |
-| `$`   | prefixes an interpolated string or identifier (a run of one or more, see [Interpolated identifiers](#interpolated-identifiers)) |
+| `@@`  | as `@`, but non-fusing: the positional value stays a single component (see [Products](#products))                                               |
+| `$`   | prefixes an interpolated string or identifier (a run of one or more, see [Interpolated identifiers](#interpolated-identifiers))                 |
 
 ### Comments
 
@@ -388,9 +388,9 @@ A value has three layers, from the outside inward:
 The two equalities observe these layers as follows:
 
 | Relation | Attributes | Class membership | Structural content |
-| --- | --- | --- | --- |
-| `=` | observed | observed | observed |
-| `==` | ignored | observed | observed |
+| -------- | ---------- | ---------------- | ------------------ |
+| `=`      | observed   | observed         | observed           |
+| `==`     | ignored    | observed         | observed           |
 
 `primary e` erases attributes throughout the structure, not only at the outermost level. It is total, deterministic, and idempotent, and preserves class membership. `candidate e` erases class membership to yield the candidate value while preserving attributes. Both are keyword intrinsics, not properties that can be shadowed by user-declared fields.
 
@@ -1097,17 +1097,17 @@ Neutral. Arithmetic negation: `-x` denotes the additive inverse of `x`.
 
 The rule is purely lexical and admits no exception:
 
-| Expression | Reading                                    |
-| ---------- | ------------------------------------------ |
-| `n - 1`    | subtraction                                |
-| `n-1`      | subtraction                                |
-| `n- 1`     | subtraction                                |
-| `n -1`     | `n` applied to the negation of `1`         |
-| `f -1 -2`  | `f` applied to `-1`, then to `-2`          |
-| `x + -1`   | negation                                   |
-| `[1, -1]`  | negation                                   |
-| `(-1)`     | subtraction, and therefore ill-formed      |
-| `( -1)`    | negation                                   |
+| Expression | Reading                               |
+| ---------- | ------------------------------------- |
+| `n - 1`    | subtraction                           |
+| `n-1`      | subtraction                           |
+| `n- 1`     | subtraction                           |
+| `n -1`     | `n` applied to the negation of `1`    |
+| `f -1 -2`  | `f` applied to `-1`, then to `-2`     |
+| `x + -1`   | negation                              |
+| `[1, -1]`  | negation                              |
+| `(-1)`     | subtraction, and therefore ill-formed |
+| `( -1)`    | negation                              |
 
 Nothing precedes the `-` in `(-1)`, so it is the binary operator and has no left operand. A negated value that opens a bracketed construct, or a source file, must be written with the space: `( -1)`, `[ -1, 2]`.
 
@@ -1354,12 +1354,12 @@ The left operand must be a set. The right operand is always declarative.
 
 The range operators are neutral. A range is an ordered, nondeterministic expression that can assume any value between its left and right bounds. Where a range provably contains one value, it is deterministic. The angle bracket on either side excludes the bound on that side:
 
-| Operator | Lower bound | Upper bound | Equivalent restriction |
-| -------- | ----------- | ----------- | ---------------------- |
-| `a ... b` | included | included | `x \ x >= a & x <= b` |
-| `a ...< b` | included | excluded | `x \ x >= a & x < b` |
-| `a <... b` | excluded | included | `x \ x > a & x <= b` |
-| `a <...< b` | excluded | excluded | `x \ x > a & x < b` |
+| Operator    | Lower bound | Upper bound | Equivalent restriction |
+| ----------- | ----------- | ----------- | ---------------------- |
+| `a ... b`   | included    | included    | `x \ x >= a & x <= b`  |
+| `a ...< b`  | included    | excluded    | `x \ x >= a & x < b`   |
+| `a <... b`  | excluded    | included    | `x \ x > a & x <= b`   |
+| `a <...< b` | excluded    | excluded    | `x \ x > a & x < b`    |
 
 #### `../`
 
