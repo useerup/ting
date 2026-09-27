@@ -913,7 +913,7 @@ Ting effects allow an expression to request a result from its surrounding evalua
 
 `ask R` evaluates `R` to invoke an answer handler. An answer handler is a function. The request is handled by applying the first handler from the innermost to the outermost handler that is available for the request. The first handler that is defined for the request is applied, and the result is returned as the result of the ask expression.
 
-A non-deterministic handler may supply multiple solutions which will make the `ask R` expression non-deterministic. An ask resumes once for every result returned by the answering handler. Each resumption continues evaluation of the containing expression separately, with that handler result in place of `ask R`. 
+A non-deterministic handler will cause the ask expression to become nondeterministic as well. 
 
 A potentially exhausted handler stack is subject to the compile-time coverage requirement under [Effect contracts](#effect-contracts).
 
