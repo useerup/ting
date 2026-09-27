@@ -929,7 +929,7 @@ The right operand is outside the scope of the handler it supplies. Consequently,
 
     E answer H1 answer H2
 
-This groups as `(E answer H1) answer H2`. `H1` is tried before `H2` for asks made by `E`. If `H1` is undefined for a request, that request is offered to `H2`. An ask made while evaluating `H1` is outside the scope of `H1` but inside the scope of `H2`.
+`answer` is left-associative, so this groups as `(E answer H1) answer H2`. `H1` is tried before `H2` for asks made by `E`. If `H1` is undefined for a request, that request is offered to `H2`. An ask made while evaluating `H1` is outside the scope of `H1` but inside the scope of `H2`.
 
 For example:
 
