@@ -2,6 +2,7 @@
   <Project Path="Ting.Ast/Ting.Ast.fsproj" />
   <Project Path="Ting.Parser/Ting.Parser.fsproj" />
   <Project Path="Compiler/Compiler.fsproj" />
+  <Project Path="Ting.Syntax/Ting.Syntax.fsproj" />
   <Project Path="TingCompilerCli/TingCompilerCli.fsproj" />
   <Project Path="Examples.Tests/Examples.Tests.fsproj" />
   <Project Path="Examples.Tools/Examples.Tools.fsproj" />
