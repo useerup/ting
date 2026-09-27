@@ -909,15 +909,18 @@ Within a compilation unit the compiler may infer escaping exceptions from a visi
 
 Ting effects allow an expression to request a result from its surrounding evaluation context. `ask` creates a request, and `answer` installs a function that handles requests made while evaluating its left operand. Nested `answer` expressions form an ordered handler stack from the innermost handler to the outermost. A handled `ask` receives the results of applying its handler, and its containing expression continues from those results.
 
+
 ### Asking
 
-`ask R` evaluates `R` to invoke an answer handler. An answer handler is a function. The request is handled by applying the first handler from the innermost to the outermost handler that is available for the request. The first handler that is defined for the request is applied, and the result is returned as the result of the ask expression.
+`ask R` evaluates `R` to invoke an answer handler. The request is handled by applying the first handler from the innermost to the outermost handler that is available for the request. The first handler that is defined for the request is applied, and the result is returned as the result of the ask expression.
 
 A non-deterministic handler will cause the ask expression to become nondeterministic as well. 
 
 A potentially exhausted handler stack is subject to the compile-time coverage requirement under [Effect contracts](#effect-contracts).
 
 ### Answering
+
+An *answer handler* is a function. The handler answers *ask requests* by applying the function to the ask request.
 
 `answer` is a binary infix operator. In `E answer H`, the left operand `E` is evaluated with the function `H` pushed onto its answer-handler stack. `H` answers a request if it is defined for that request, using the function application and fallback rules under [Asking](#asking). If the handler `H` is not defined for the request, lookup continues with the next handler. 
 
