@@ -15,8 +15,20 @@ type private Lexer(source: SourceText) =
     let startsWith (i: int) (s: string) =
         i + s.Length <= len && String.CompareOrdinal(text, i, s, 0, s.Length) = 0
 
+    let rec skipBlockComment (start: int) (i: int) (depth: int) =
+        if i >= len then source.Fail(start, start + 2, "unterminated block comment")
+        elif startsWith i "/*" then skipBlockComment start (i + 2) (depth + 1)
+        elif startsWith i "*/" then
+            if depth = 1 then i + 2 else skipBlockComment start (i + 2) (depth - 1)
+        else skipBlockComment start (i + 1) depth
+
+    /// Comments are whitespace.
     let rec skipTrivia (i: int) =
         if i < len && Char.IsWhiteSpace text[i] then skipTrivia (i + 1)
+        elif startsWith i "//" then
+            let e = text.IndexOf('\n', i)
+            if e < 0 then len else skipTrivia (e + 1)
+        elif startsWith i "/*" then skipTrivia (skipBlockComment i (i + 2) 1)
         else i
 
     member this.Tokens(start: int) : Token list =
