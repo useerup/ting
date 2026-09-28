@@ -1,0 +1,42 @@
+module Ting.Syntax.Render
+
+open System
+open System.Text
+open Token
+open Syntax
+
+type private Doc =
+    | Leaf of string
+    | Node of string * Doc list
+
+let private width = 72
+
+let rec private flat (doc: Doc) =
+    match doc with
+    | Leaf text -> text
+    | Node(head, children) -> "(" + String.concat " " (head :: List.map flat children) + ")"
+
+let rec private toDoc (expr: Expr) : Doc =
+    match expr with
+    | Identifier(_, name) -> Leaf name
+    | Number(_, digits, _) -> Leaf digits
+    | Group(_, inner) -> toDoc inner
+    | Apply(_, callee, argument) -> Node("apply", [ toDoc callee; toDoc argument ])
+    | Infix(_, op, left, right) -> Node(op.Text, [ toDoc left; toDoc right ])
+
+let rec private layout (sb: StringBuilder) (indent: int) (doc: Doc) =
+    let line = flat doc
+    match doc with
+    | Node(head, children) when indent + line.Length > width ->
+        sb.Append('(').Append(head) |> ignore
+        for child in children do
+            sb.Append('\n').Append(' ', indent + 2) |> ignore
+            layout sb (indent + 2) child
+        sb.Append(')') |> ignore
+    | _ -> sb.Append(line) |> ignore
+
+/// An S-expression view of the tree. Grouping parentheses are not shown.
+let render (expr: Expr) : string =
+    let sb = StringBuilder()
+    layout sb 0 (toDoc expr)
+    sb.ToString()
