@@ -21,7 +21,7 @@ and TokenKind =
 
 /// Longest match is applied by trying longer symbols first.
 let symbols =
-    [ "%"; "*"; "+"; "-"; "/"; "/%"; "^"; "("; ")" ]
+    [ "!="; "%"; "*"; "+"; "-"; "/"; "/%"; "<"; "<="; "="; "=="; ">"; ">="; "?="; "^"; "("; ")" ]
     |> List.sortByDescending String.length
 
 let describe (kind: TokenKind) =

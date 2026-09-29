@@ -26,7 +26,9 @@ type InfixInfo =
 /// Associativity is provisional (see specification issue SYN-01).
 let private rows: (string list * Associativity * (string -> BindingClass)) list =
     let all b = fun (_: string) -> b
-    [ [ "+"; "-" ], LeftAssoc, all Neutral
+    [ [ "="; "?=" ], LeftAssoc, all RightReferential
+      [ "<"; "<="; ">="; ">"; "=="; "!=" ], NonAssoc, all RightReferential
+      [ "+"; "-" ], LeftAssoc, all Neutral
       [ "*"; "/"; "%"; "/%" ], LeftAssoc, all Neutral
       [ "^" ], LeftAssoc, all Neutral ]
 

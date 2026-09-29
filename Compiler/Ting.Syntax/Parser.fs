@@ -63,6 +63,12 @@ type private Parser(tokens: Token[]) =
                 advance () |> ignore
                 let right = this.Expr(rightPower info)
                 left <- Infix(Span.between left.Span right.Span, operatorOf token info.Text, left, right)
+                if info.Assoc = NonAssoc then
+                    let next = peek ()
+                    match infixOf next with
+                    | Some nextInfo when nextInfo.Row = info.Row && not (isNegation next) ->
+                        fail next.Span $"'{info.Text}' and '{nextInfo.Text}' do not associate; add parentheses"
+                    | _ -> ()
             | _ -> go <- false
         left
 
