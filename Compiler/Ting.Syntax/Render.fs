@@ -11,6 +11,18 @@ type private Doc =
 
 let private width = 72
 
+let private suffix (digits: string) (kind: NumberKind) =
+    match kind with
+    | Int -> ""
+    | Float -> if digits.Contains '.' then "" else "f"
+    | UInt -> "u"
+    | Short -> "s"
+    | UShort -> "us"
+    | Long -> "L"
+    | ULong -> "UL"
+    | Double -> "d"
+    | Decimal -> "m"
+
 let rec private flat (doc: Doc) =
     match doc with
     | Leaf text -> text
@@ -19,7 +31,10 @@ let rec private flat (doc: Doc) =
 let rec private toDoc (expr: Expr) : Doc =
     match expr with
     | Identifier(_, name) -> Leaf name
-    | Number(_, digits, _) -> Leaf digits
+    | This _ -> Leaf "this"
+    | Void _ -> Leaf "void"
+    | Bool(_, value) -> Leaf(if value then "true" else "false")
+    | Number(_, digits, kind) -> Leaf(digits + suffix digits kind)
     | Group(_, inner) -> toDoc inner
     | Tuple(_, items) -> Node("tuple", List.map toDoc items)
     | Product(_, positional, fusion, named) ->

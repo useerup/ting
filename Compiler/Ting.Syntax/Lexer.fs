@@ -2,6 +2,7 @@ module Ting.Syntax.Lexer
 
 open System
 open System.Globalization
+open System.Text
 open Source
 open Token
 
@@ -11,6 +12,7 @@ let private isIdentCont (c: char) = Char.IsLetterOrDigit c || c = '_'
 type private Lexer(source: SourceText) =
     let text = source.Text
     let len = text.Length
+    let at i = if i >= 0 && i < len then text[i] else '\000'
 
     let startsWith (i: int) (s: string) =
         i + s.Length <= len && String.CompareOrdinal(text, i, s, 0, s.Length) = 0
@@ -59,19 +61,65 @@ type private Lexer(source: SourceText) =
         elif isIdentStart c then
             let mutable e = i + 1
             while e < len && isIdentCont text[e] do e <- e + 1
-            Identifier(text.Substring(i, e - i)), e
+            let word = text.Substring(i, e - i)
+            (if keywords.Contains word then Keyword word else Identifier word), e
         else
             match symbols |> List.tryFind (startsWith i) with
             | Some s -> Symbol s, i + s.Length
             | None -> source.Fail(i, i + 1, $"unexpected character '{c}'")
 
     member _.Number(i: int) : TokenKind * int =
-        let mutable e = i
-        while e < len && Char.IsDigit text[e] do e <- e + 1
-        let value = text.Substring(i, e - i)
-        if not (fst (Int32.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture))) then
-            source.Fail(i, e, $"numeric literal '{value}' is not representable as int")
-        Number(value, Int), e
+        let digits = StringBuilder()
+        let rec scanDigits j =
+            if j < len && Char.IsDigit text[j] then
+                digits.Append(text[j]) |> ignore
+                scanDigits (j + 1)
+            elif j < len && text[j] = '_' then
+                if Char.IsDigit(at (j + 1)) then scanDigits (j + 1)
+                else source.Fail(j, j + 1, "a digit separator must be followed by a digit")
+            else
+                j
+        let j = scanDigits i
+        let j, isReal =
+            if at j = '.' && Char.IsDigit(at (j + 1)) then
+                digits.Append('.') |> ignore
+                scanDigits (j + 1), true
+            else
+                j, false
+        let suffixes =
+            [ "UL", ULong; "us", UShort; "u", UInt; "s", Short; "L", Long
+              "f", Float; "d", Double; "m", Decimal ]
+        let kind, e =
+            match suffixes |> List.tryFind (fun (s, _) -> startsWith j s) with
+            | Some(s, k) -> k, j + s.Length
+            | None -> (if isReal then Float else Int), j
+        if e < len && isIdentCont text[e] then
+            source.Fail(i, e + 1, "invalid numeric literal suffix")
+        let value = digits.ToString()
+        let inv = CultureInfo.InvariantCulture
+        let ints = NumberStyles.None
+        let reals = NumberStyles.AllowDecimalPoint
+        let fits =
+            match kind with
+            | Int -> not isReal && fst (Int32.TryParse(value, ints, inv))
+            | UInt -> not isReal && fst (UInt32.TryParse(value, ints, inv))
+            | Short -> not isReal && fst (Int16.TryParse(value, ints, inv))
+            | UShort -> not isReal && fst (UInt16.TryParse(value, ints, inv))
+            | Long -> not isReal && fst (Int64.TryParse(value, ints, inv))
+            | ULong -> not isReal && fst (UInt64.TryParse(value, ints, inv))
+            | Float ->
+                match Single.TryParse(value, reals, inv) with
+                | true, v -> Single.IsFinite v
+                | _ -> false
+            | Double ->
+                match Double.TryParse(value, reals, inv) with
+                | true, v -> Double.IsFinite v
+                | _ -> false
+            | Decimal -> fst (Decimal.TryParse(value, reals, inv))
+        if not fits then
+            let setName = (string kind).ToLowerInvariant()
+            source.Fail(i, e, $"numeric literal '{text.Substring(i, e - i)}' is not representable as {setName}")
+        Number(value, kind), e
 
 /// Raises SyntaxException at the first lexical error.
 let tokenize (source: SourceText) : Token list =
