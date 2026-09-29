@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <Compile Include="Notebook.fs" />
+    <Compile Include="ParserTests.fs" />
     <Compile Include="SyntaxNotebookTests.fs" />
   </ItemGroup>
 

@@ -34,11 +34,22 @@ type private Lexer(source: SourceText) =
     member this.Tokens(start: int) : Token list =
         let tokens = ResizeArray<Token>()
         let mutable i = skipTrivia start
+        let mutable spaceBefore = i > start
         while i < len do
             let kind, e = this.Token i
-            tokens.Add { Kind = kind; Span = source.SpanOf(i, e) }
-            i <- skipTrivia e
-        tokens.Add { Kind = EndOfInput; Span = source.SpanOf(i, i) }
+            let next = skipTrivia e
+            tokens.Add
+                { Kind = kind
+                  Span = source.SpanOf(i, e)
+                  SpaceBefore = spaceBefore
+                  SpaceAfter = next > e || next >= len }
+            spaceBefore <- next > e
+            i <- next
+        tokens.Add
+            { Kind = EndOfInput
+              Span = source.SpanOf(i, i)
+              SpaceBefore = spaceBefore
+              SpaceAfter = true }
         List.ofSeq tokens
 
     member this.Token(i: int) : TokenKind * int =

@@ -28,6 +28,10 @@ type private Parser(tokens: Token[]) =
         let token = peek ()
         if isSymbol text token then advance () else unexpected token $"'{text}'"
 
+    /// `-` with whitespace before it and none after it.
+    let isNegation (token: Token) =
+        token.Kind = Symbol "-" && token.SpaceBefore && not token.SpaceAfter
+
     let infixOf (token: Token) =
         match token.Kind with
         | Symbol text -> tryInfix text
@@ -38,6 +42,7 @@ type private Parser(tokens: Token[]) =
         | TokenKind.Identifier _
         | TokenKind.Number _ -> true
         | Symbol "(" -> true
+        | Symbol "-" -> isNegation token
         | _ -> false
 
     let operatorOf (token: Token) (text: string) = { Text = text; Span = token.Span }
@@ -54,7 +59,7 @@ type private Parser(tokens: Token[]) =
         while go do
             let token = peek ()
             match infixOf token with
-            | Some info when leftPower info >= minPower ->
+            | Some info when leftPower info >= minPower && not (isNegation token) ->
                 advance () |> ignore
                 let right = this.Expr(rightPower info)
                 left <- Infix(Span.between left.Span right.Span, operatorOf token info.Text, left, right)
@@ -65,6 +70,8 @@ type private Parser(tokens: Token[]) =
         let token = peek ()
         match token.Kind with
         | _ when startsAtom token -> this.Application()
+        | Symbol "-" when not token.SpaceBefore ->
+            fail token.Span "'-' without whitespace before it is subtraction, which needs a left operand; write ' -x' for negation"
         | _ -> unexpected token "an expression"
 
     /// Juxtaposition: an atom applied to following atoms, left-associative.
@@ -80,6 +87,9 @@ type private Parser(tokens: Token[]) =
         match token.Kind with
         | TokenKind.Identifier name -> Identifier(token.Span, name)
         | TokenKind.Number(digits, kind) -> Number(token.Span, digits, kind)
+        | Symbol "-" when isNegation token ->
+            let operand = this.Atom()
+            Prefix(Span.between token.Span operand.Span, operatorOf token "-", operand)
         | Symbol "(" ->
             let inner = this.Expr 0
             let close = expectSymbol ")"

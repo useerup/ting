@@ -14,6 +14,8 @@ type Expr =
     | Group of Span * Expr
     /// Juxtaposition `f x`.
     | Apply of Span * Expr * Expr
+    /// Prefix keywords, `!`, and negation (operator text `-`).
+    | Prefix of Span * Operator * Expr
     | Infix of Span * Operator * Expr * Expr
 
     member this.Span =
@@ -22,4 +24,5 @@ type Expr =
         | Number(s, _, _)
         | Group(s, _)
         | Apply(s, _, _)
+        | Prefix(s, _, _)
         | Infix(s, _, _, _) -> s

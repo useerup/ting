@@ -22,6 +22,8 @@ let rec private toDoc (expr: Expr) : Doc =
     | Number(_, digits, _) -> Leaf digits
     | Group(_, inner) -> toDoc inner
     | Apply(_, callee, argument) -> Node("apply", [ toDoc callee; toDoc argument ])
+    | Prefix(_, op, operand) when op.Text = "-" -> Node("negate", [ toDoc operand ])
+    | Prefix(_, op, operand) -> Node(op.Text, [ toDoc operand ])
     | Infix(_, op, left, right) -> Node(op.Text, [ toDoc left; toDoc right ])
 
 let rec private layout (sb: StringBuilder) (indent: int) (doc: Doc) =

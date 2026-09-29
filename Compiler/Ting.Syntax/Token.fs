@@ -7,7 +7,9 @@ type NumberKind =
 
 type Token =
     { Kind: TokenKind
-      Span: Span }
+      Span: Span
+      SpaceBefore: bool
+      SpaceAfter: bool }
 
 and TokenKind =
     | Identifier of string
