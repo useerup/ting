@@ -21,6 +21,13 @@ let rec private toDoc (expr: Expr) : Doc =
     | Identifier(_, name) -> Leaf name
     | Number(_, digits, _) -> Leaf digits
     | Group(_, inner) -> toDoc inner
+    | Tuple(_, items) -> Node("tuple", List.map toDoc items)
+    | Product(_, positional, fusion, named) ->
+        let mark = if fusion = Fusing then "@" else "@@"
+        Node("product", List.map toDoc positional @ [ Leaf mark ] @ List.map toDoc named)
+    | Set(_, items) -> Node("set", List.map toDoc items)
+    | Multiset(_, items) -> Node("multiset", List.map toDoc items)
+    | List(_, items) -> Node("list", List.map toDoc items)
     | Apply(_, callee, argument) -> Node("apply", [ toDoc callee; toDoc argument ])
     | Prefix(_, op, operand) when op.Text = "-" -> Node("negate", [ toDoc operand ])
     | Prefix(_, op, operand) -> Node(op.Text, [ toDoc operand ])

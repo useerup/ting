@@ -16,6 +16,7 @@ let private parsed (code: string) =
 [<InlineData("n -1", "(apply n (negate 1))")>]
 [<InlineData("f -1 -2", "(apply (apply f (negate 1)) (negate 2))")>]
 [<InlineData("x + -1", "(+ x (negate 1))")>]
+[<InlineData("[1, -1]", "(list 1 (negate 1))")>]
 [<InlineData("( -1)", "(negate 1)")>]
 [<InlineData(" -a^b", "(^ (negate a) b)")>]
 let ``minus spacing`` (code: string, expected: string) = Assert.Equal(expected, parsed code)

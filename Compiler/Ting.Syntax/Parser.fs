@@ -41,7 +41,7 @@ type private Parser(tokens: Token[]) =
         match token.Kind with
         | TokenKind.Identifier _
         | TokenKind.Number _ -> true
-        | Symbol "(" -> true
+        | Symbol("(" | "[" | "{" | "{*") -> true
         | Symbol "-" -> isNegation token
         | _ -> false
 
@@ -102,11 +102,49 @@ type private Parser(tokens: Token[]) =
         | Symbol "-" when isNegation token ->
             let operand = this.Atom()
             Prefix(Span.between token.Span operand.Span, operatorOf token "-", operand)
-        | Symbol "(" ->
-            let inner = this.Expr 0
-            let close = expectSymbol ")"
-            Group(Span.between token.Span close.Span, inner)
+        | Symbol "(" -> this.Parens token
+        | Symbol "[" ->
+            let items, close = this.Items "]"
+            List(Span.between token.Span close.Span, items)
+        | Symbol "{" ->
+            let items, close = this.Items "}"
+            Set(Span.between token.Span close.Span, items)
+        | Symbol "{*" ->
+            let items, close = this.Items "*}"
+            Multiset(Span.between token.Span close.Span, items)
         | _ -> unexpected token "an expression"
+
+    /// One or more comma-separated expressions.
+    member this.CommaList() : Expr list =
+        let items = ResizeArray [ this.Expr 0 ]
+        while isSymbol "," (peek ()) do
+            advance () |> ignore
+            items.Add(this.Expr 0)
+        List.ofSeq items
+
+    member this.Items(close: string) : Expr list * Token =
+        if isSymbol close (peek ()) then
+            [], advance ()
+        else
+            let items = this.CommaList()
+            let token = peek ()
+            if isSymbol close token then items, advance () else unexpected token $"',' or '{close}'"
+
+    member this.Parens(openToken: Token) : Expr =
+        let positional =
+            match (peek ()).Kind with
+            | Symbol(")" | "@" | "@@") -> []
+            | _ -> this.CommaList()
+        let token = advance ()
+        match token.Kind, positional with
+        | Symbol ")", [ single ] -> Group(Span.between openToken.Span token.Span, single)
+        | Symbol ")", items -> Tuple(Span.between openToken.Span token.Span, items)
+        | Symbol("@" | "@@" as mark), _ ->
+            let fusion = if mark = "@" then Fusing else NonFusing
+            let named = this.CommaList()
+            let close = expectSymbol ")"
+            Product(Span.between openToken.Span close.Span, positional, fusion, named)
+        | _ -> unexpected token "',', '@', '@@' or ')'"
 
 /// Parses one compilation unit. Stops at the first error.
 let parse (text: string) : Result<Expr, SyntaxError> =
