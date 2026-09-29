@@ -11,6 +11,14 @@ f ?= g = h
 ```
 
 ```ting
+a | b || c ||| d & e && f &&& g
+```
+
+```ting-output
+(||| (|| (| a b) c) (&&& (&& (& d e) f) g))
+```
+
+```ting
 a < b == c
 ```
 

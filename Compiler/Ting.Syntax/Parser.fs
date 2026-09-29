@@ -75,10 +75,16 @@ type private Parser(tokens: Token[]) =
     member this.PrefixPosition() : Expr =
         let token = peek ()
         match token.Kind with
+        | Symbol "!" -> this.PrefixOperator(token, "!")
         | _ when startsAtom token -> this.Application()
         | Symbol "-" when not token.SpaceBefore ->
             fail token.Span "'-' without whitespace before it is subtraction, which needs a left operand; write ' -x' for negation"
         | _ -> unexpected token "an expression"
+
+    member this.PrefixOperator(token: Token, text: string) : Expr =
+        advance () |> ignore
+        let operand = this.Expr(prefixOperandPower text)
+        Prefix(Span.between token.Span operand.Span, operatorOf token text, operand)
 
     /// Juxtaposition: an atom applied to following atoms, left-associative.
     member this.Application() : Expr =
