@@ -19,6 +19,7 @@ type Expr =
     | Void of Span
     | Bool of Span * bool
     | Number of Span * string * NumberKind
+    | String of Span * StringPart list
     /// `( e )`: grouping, not a product layer.
     | Group of Span * Expr
     /// `()` and `(e1, e2, ...)`.
@@ -41,6 +42,7 @@ type Expr =
         | Void s
         | Bool(s, _)
         | Number(s, _, _)
+        | String(s, _)
         | Group(s, _)
         | Tuple(s, _)
         | Product(s, _, _, _)
@@ -50,3 +52,6 @@ type Expr =
         | Apply(s, _, _)
         | Prefix(s, _, _)
         | Infix(s, _, _, _) -> s
+
+and StringPart =
+    | Text of string

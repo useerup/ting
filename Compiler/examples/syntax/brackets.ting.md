@@ -19,6 +19,22 @@ Products: positional section, `@`, named section.
 ```
 
 ```ting
+(@ Name = "Bob")
+```
+
+```ting-output
+(product @ (= Name "Bob"))
+```
+
+```ting
+(Name = "Bob")
+```
+
+```ting-output
+(= Name "Bob")
+```
+
+```ting
 (x @ Result = y)
 ```
 
@@ -32,6 +48,16 @@ Products: positional section, `@`, named section.
 
 ```ting-output
 (product x @@ (= Result y))
+```
+
+`@"` opens a verbatim string, so `@@"` is `@` followed by a verbatim string.
+
+```ting
+(x @@"s")
+```
+
+```ting-output
+(product x @ "s")
 ```
 
 Collections.

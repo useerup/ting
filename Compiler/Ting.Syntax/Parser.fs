@@ -40,7 +40,8 @@ type private Parser(tokens: Token[]) =
     let startsAtom (token: Token) =
         match token.Kind with
         | TokenKind.Identifier _
-        | TokenKind.Number _ -> true
+        | TokenKind.Number _
+        | TokenKind.String _ -> true
         | Keyword("this" | "void" | "true" | "false") -> true
         | Symbol("(" | "[" | "{" | "{*") -> true
         | Symbol "-" -> isNegation token
@@ -100,6 +101,7 @@ type private Parser(tokens: Token[]) =
         match token.Kind with
         | TokenKind.Identifier name -> Identifier(token.Span, name)
         | TokenKind.Number(digits, kind) -> Number(token.Span, digits, kind)
+        | TokenKind.String parts -> String(token.Span, this.Parts parts)
         | Keyword "this" -> This token.Span
         | Keyword "void" -> Void token.Span
         | Keyword "true" -> Bool(token.Span, true)
@@ -150,6 +152,9 @@ type private Parser(tokens: Token[]) =
             let close = expectSymbol ")"
             Product(Span.between openToken.Span close.Span, positional, fusion, named)
         | _ -> unexpected token "',', '@', '@@' or ')'"
+
+    member _.Parts(parts: TokenStringPart list) : StringPart list =
+        parts |> List.map (function TextPart text -> Text text)
 
 /// Parses one compilation unit. Stops at the first error.
 let parse (text: string) : Result<Expr, SyntaxError> =

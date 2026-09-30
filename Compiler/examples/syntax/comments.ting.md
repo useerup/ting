@@ -28,6 +28,14 @@ a/**/b
 ```
 
 ```ting
+"// not a comment"
+```
+
+```ting-output
+"// not a comment"
+```
+
+```ting
 a /* unterminated
 ```
 

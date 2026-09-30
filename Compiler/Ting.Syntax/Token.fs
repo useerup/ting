@@ -24,9 +24,14 @@ and TokenKind =
     | Keyword of string
     /// Digits without separators, including any fraction.
     | Number of string * NumberKind
+    /// Every string form after delimiter, escape and indentation processing.
+    | String of TokenStringPart list
     /// Operators and punctuation.
     | Symbol of string
     | EndOfInput
+
+and TokenStringPart =
+    | TextPart of string
 
 let keywords =
     set
@@ -44,5 +49,6 @@ let describe (kind: TokenKind) =
     | Identifier name -> $"identifier '{name}'"
     | Keyword word -> $"'{word}'"
     | Number(digits, _) -> $"number '{digits}'"
+    | String _ -> "string"
     | Symbol text -> $"'{text}'"
     | EndOfInput -> "end of input"
