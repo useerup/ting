@@ -32,6 +32,8 @@ and TokenKind =
 
 and TokenStringPart =
     | TextPart of string
+    /// The tokens of a replacement block, terminated by EndOfInput.
+    | HolePart of Token list
 
 let keywords =
     set

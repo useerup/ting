@@ -49,7 +49,9 @@ let rec private toDoc (expr: Expr) : Doc =
     | Void _ -> Leaf "void"
     | Bool(_, value) -> Leaf(if value then "true" else "false")
     | Number(_, digits, kind) -> Leaf(digits + suffix digits kind)
-    | String(_, parts) -> Leaf("\"" + renderParts escapeText parts + "\"")
+    | String(_, parts) when parts |> List.forall (function Text _ -> true | Hole _ -> false) ->
+        Leaf("\"" + renderParts escapeText parts + "\"")
+    | String(_, parts) -> Leaf("$\"" + renderParts escapeText parts + "\"")
     | Group(_, inner) -> toDoc inner
     | Tuple(_, items) -> Node("tuple", List.map toDoc items)
     | Product(_, positional, fusion, named) ->
@@ -66,7 +68,8 @@ let rec private toDoc (expr: Expr) : Doc =
 and private renderParts (text: string -> string) (parts: StringPart list) =
     parts
     |> List.map (function
-        | Text s -> text s)
+        | Text s -> text s
+        | Hole e -> "{" + flat (toDoc e) + "}")
     |> String.concat ""
 
 let rec private layout (sb: StringBuilder) (indent: int) (doc: Doc) =

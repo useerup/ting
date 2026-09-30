@@ -104,3 +104,61 @@ A raw string on a single line.
 ```ting-output
 "say \"hi\" "
 ```
+
+Interpolated strings.
+
+```ting
+$"Hello, {name}!"
+```
+
+```ting-output
+$"Hello, {name}!"
+```
+
+```ting
+$$"Value: {{x + 1}} and literal {braces}"
+```
+
+```ting-output
+$"Value: {(+ x 1)} and literal {braces}"
+```
+
+```ting
+$@"Path: {basePath}\file.txt"
+```
+
+```ting-output
+$"Path: {basePath}\\file.txt"
+```
+
+```ting
+$"""{"nested"}"""
+```
+
+```ting-output
+$"{"nested"}"
+```
+
+```ting
+$"outer {$"inner {x}"} done"
+```
+
+```ting-output
+$"outer {$"inner {x}"} done"
+```
+
+```ting
+$"empty {} braces are literal"
+```
+
+```ting-output
+"empty {} braces are literal"
+```
+
+```ting
+$ "space after dollar"
+```
+
+```ting-output
+error (1,1-1,2): '$' must be followed by a string
+```

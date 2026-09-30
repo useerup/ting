@@ -154,7 +154,10 @@ type private Parser(tokens: Token[]) =
         | _ -> unexpected token "',', '@', '@@' or ')'"
 
     member _.Parts(parts: TokenStringPart list) : StringPart list =
-        parts |> List.map (function TextPart text -> Text text)
+        parts
+        |> List.map (function
+            | TextPart text -> Text text
+            | HolePart holeTokens -> Hole(Parser(Array.ofList holeTokens).Complete()))
 
 /// Parses one compilation unit. Stops at the first error.
 let parse (text: string) : Result<Expr, SyntaxError> =

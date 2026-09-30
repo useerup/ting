@@ -82,26 +82,41 @@ type private Lexer(source: SourceText) =
             scalar (i + 2) n
         | _ -> source.Fail(i, min len (i + 2), "unrecognised escape sequence")
 
-    member this.Tokens(start: int) : Token list =
+    /// Lexes tokens from `start`. With `closing = Some n` it stops before a run of
+    /// n closing braces at bracket depth zero (the end of a replacement block).
+    member this.Tokens(start: int, closing: int option) : Token list * int =
         let tokens = ResizeArray<Token>()
+        let mutable depth = 0
         let mutable i = skipTrivia start
         let mutable spaceBefore = i > start
-        while i < len do
-            let kind, e = this.Token i
-            let next = skipTrivia e
-            tokens.Add
-                { Kind = kind
-                  Span = source.SpanOf(i, e)
-                  SpaceBefore = spaceBefore
-                  SpaceAfter = next > e || next >= len }
-            spaceBefore <- next > e
-            i <- next
+        let mutable stop = -1
+        while stop < 0 do
+            match closing with
+            | Some n when depth = 0 && runLength i '}' >= n -> stop <- i
+            | Some _ when i >= len -> source.Fail(start, i, "unterminated replacement block")
+            | None when i >= len -> stop <- i
+            | _ ->
+                let kind, e = this.Token i
+                match kind with
+                | Symbol "{"
+                | Symbol "{*" -> depth <- depth + 1
+                | Symbol "}"
+                | Symbol "*}" -> depth <- depth - 1
+                | _ -> ()
+                let next = skipTrivia e
+                tokens.Add
+                    { Kind = kind
+                      Span = source.SpanOf(i, e)
+                      SpaceBefore = spaceBefore
+                      SpaceAfter = next > e || next >= len }
+                spaceBefore <- next > e
+                i <- next
         tokens.Add
             { Kind = EndOfInput
-              Span = source.SpanOf(i, i)
+              Span = source.SpanOf(stop, stop)
               SpaceBefore = spaceBefore
               SpaceAfter = true }
-        List.ofSeq tokens
+        List.ofSeq tokens, stop
 
     member this.Token(i: int) : TokenKind * int =
         let c = text[i]
@@ -113,9 +128,22 @@ type private Lexer(source: SourceText) =
             let word = text.Substring(i, e - i)
             (if keywords.Contains word then Keyword word else Identifier word), e
         elif c = '"' then
-            this.StringLiteral(i, i, false)
+            this.StringLiteral(i, i, 0, false)
+        elif c = '$' then
+            let n = runLength i '$'
+            let j = i + n
+            match at j, at (j + 1) with
+            | '"', _ -> this.StringLiteral(i, j, n, false)
+            | '@', '"' -> this.StringLiteral(i, j + 1, n, true)
+            | _ -> source.Fail(i, j, "'$' must be followed by a string")
         elif c = '@' && at (i + 1) = '"' then
-            this.StringLiteral(i, i + 1, true)
+            this.StringLiteral(i, i + 1, 0, true)
+        elif c = '@' && at (i + 1) = '$' then
+            let n = runLength (i + 1) '$'
+            if at (i + 1 + n) = '"' then
+                this.StringLiteral(i, i + 1 + n, n, true)
+            else
+                source.Fail(i, i + 1 + n, "'@$' must be followed by a string")
         elif c = '@' then
             if at (i + 1) = '@' && at (i + 2) <> '"' then Symbol "@@", i + 2 else Symbol "@", i + 1
         else
@@ -176,8 +204,18 @@ type private Lexer(source: SourceText) =
             source.Fail(i, e, $"numeric literal '{text.Substring(i, e - i)}' is not representable as {setName}")
         Number(value, kind), e
 
+    /// A replacement block whose opening braces end just before `start`.
+    /// Not a block when it is empty or cannot be lexed; the braces are then literal.
+    member this.TryHole(start: int, braces: int) : (Token list * int) option =
+        try
+            match this.Tokens(start, Some braces) with
+            | [ _ ], _ -> None
+            | tokens, stop -> Some(tokens, stop + braces)
+        with SyntaxException _ ->
+            None
+
     /// Scans string content. Returns the parts and the index of the terminator.
-    member this.Content(start: int, openStart: int, mode: StringMode) : TokenStringPart list * int =
+    member this.Content(start: int, openStart: int, mode: StringMode, dollars: int) : TokenStringPart list * int =
         let parts = ResizeArray<TokenStringPart>()
         let buffer = StringBuilder()
         let flush () =
@@ -219,6 +257,21 @@ type private Lexer(source: SourceText) =
                         literal "\n"
                         loop (if c = '\r' then i + 2 else i + 1) true
                     | _ -> unterminated i
+                elif dollars > 0 && c = '{' then
+                    let run = runLength i '{'
+                    if run < dollars then
+                        literal (System.String('{', run))
+                        loop (i + run) false
+                    else
+                        match this.TryHole(i + run, dollars) with
+                        | Some(tokens, next) ->
+                            literal (System.String('{', run - dollars))
+                            flush ()
+                            parts.Add(HolePart tokens)
+                            loop next false
+                        | None ->
+                            literal (System.String('{', run))
+                            loop (i + run) false
                 else
                     match mode, c with
                     | Regular, '\\' ->
@@ -239,15 +292,15 @@ type private Lexer(source: SourceText) =
         flush ()
         List.ofSeq parts, stop
 
-    member this.StringLiteral(start: int, quote: int, verbatim: bool) : TokenKind * int =
+    member this.StringLiteral(start: int, quote: int, dollars: int, verbatim: bool) : TokenKind * int =
         let quotes = runLength quote '"'
         if verbatim then
-            let parts, stop = this.Content(quote + 1, start, Verbatim)
+            let parts, stop = this.Content(quote + 1, start, Verbatim, dollars)
             String parts, stop + 1
         elif quotes = 2 then
             String [], quote + 2
         elif quotes = 1 then
-            let parts, stop = this.Content(quote + 1, start, Regular)
+            let parts, stop = this.Content(quote + 1, start, Regular, dollars)
             String parts, stop + 1
         else
             let afterOpen = quote + quotes
@@ -266,12 +319,12 @@ type private Lexer(source: SourceText) =
                 let indent = text.Substring(lineStart, close - lineStart)
                 if lineStart < contentStart || not (Seq.forall Char.IsWhiteSpace indent) then
                     source.Fail(lineStart, close + quotes, "a raw string's closing delimiter must be on its own line")
-                let parts, _ = this.Content(contentStart, start, RawBlock(indent, lineStart))
+                let parts, _ = this.Content(contentStart, start, RawBlock(indent, lineStart), dollars)
                 String parts, close + quotes
             else
-                let parts, stop = this.Content(afterOpen, start, RawLine quotes)
+                let parts, stop = this.Content(afterOpen, start, RawLine quotes, dollars)
                 String parts, stop + quotes
 
 /// Raises SyntaxException at the first lexical error.
 let tokenize (source: SourceText) : Token list =
-    Lexer(source).Tokens 0
+    fst (Lexer(source).Tokens(0, None))

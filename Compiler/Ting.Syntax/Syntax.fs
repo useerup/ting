@@ -55,3 +55,4 @@ type Expr =
 
 and StringPart =
     | Text of string
+    | Hole of Expr
