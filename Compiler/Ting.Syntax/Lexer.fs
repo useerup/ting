@@ -14,6 +14,10 @@ type private StringMode =
     | Regular
     /// Ends at a `"` not followed by another; `""` is a literal quote.
     | Verbatim
+    /// A raw string on a single line, ending at a run of exactly K quotes.
+    | RawLine of int
+    /// A multi-line raw string: the base indentation and the end of the content lines.
+    | RawBlock of string * int
 
 type private Lexer(source: SourceText) =
     let text = source.Text
@@ -182,36 +186,56 @@ type private Lexer(source: SourceText) =
                 buffer.Clear() |> ignore
         let literal (s: string) = buffer.Append(s) |> ignore
         let unterminated i = source.Fail(openStart, i, "unterminated string literal")
-        let rec loop (i: int) : int =
-            if i >= len then
-                unterminated i
-            else
+        let rec loop (i: int) (lineStart: bool) : int =
+            match mode with
+            | RawBlock(_, limit) when i >= limit -> i
+            | RawBlock(indent, limit) when lineStart ->
+                if startsWith i indent then
+                    loop (i + indent.Length) false
+                else
+                    let lineEnd = let e = text.IndexOf('\n', i) in if e < 0 || e > limit then limit else e
+                    if Seq.forall Char.IsWhiteSpace (text.Substring(i, lineEnd - i)) then
+                        literal "\n"
+                        loop (lineEnd + 1) true
+                    else
+                        source.Fail(i, lineEnd, "raw string content is indented less than its closing delimiter")
+            | _ when i >= len -> unterminated i
+            | _ ->
                 let c = text[i]
                 let isTerminator =
                     match mode with
                     | Regular -> c = '"'
                     | Verbatim -> c = '"' && at (i + 1) <> '"'
+                    | RawLine k -> c = '"' && runLength i '"' = k
+                    | RawBlock _ -> false
                 if isTerminator then
                     i
                 elif c = '\n' || (c = '\r' && at (i + 1) = '\n') then
                     match mode with
                     | Verbatim ->
                         literal (string c)
-                        loop (i + 1)
-                    | Regular -> unterminated i
+                        loop (i + 1) false
+                    | RawBlock _ ->
+                        literal "\n"
+                        loop (if c = '\r' then i + 2 else i + 1) true
+                    | _ -> unterminated i
                 else
                     match mode, c with
                     | Regular, '\\' ->
                         let decoded, next = escape i
                         literal decoded
-                        loop next
+                        loop next false
                     | Verbatim, '"' ->
                         literal "\""
-                        loop (i + 2)
+                        loop (i + 2) false
+                    | RawLine _, '"' ->
+                        let run = runLength i c
+                        literal (System.String(c, run))
+                        loop (i + run) false
                     | _ ->
                         literal (string c)
-                        loop (i + 1)
-        let stop = loop start
+                        loop (i + 1) false
+        let stop = loop start true
         flush ()
         List.ofSeq parts, stop
 
@@ -222,9 +246,31 @@ type private Lexer(source: SourceText) =
             String parts, stop + 1
         elif quotes = 2 then
             String [], quote + 2
-        else
+        elif quotes = 1 then
             let parts, stop = this.Content(quote + 1, start, Regular)
             String parts, stop + 1
+        else
+            let afterOpen = quote + quotes
+            let lineEnd = let e = text.IndexOf('\n', afterOpen) in if e < 0 then len else e
+            if Seq.forall Char.IsWhiteSpace (text.Substring(afterOpen, lineEnd - afterOpen)) then
+                if lineEnd >= len then source.Fail(start, afterOpen, "unterminated raw string literal")
+                let contentStart = lineEnd + 1
+                let rec findClose (i: int) =
+                    let q = text.IndexOf('"', i)
+                    if q < 0 then source.Fail(start, afterOpen, "unterminated raw string literal")
+                    else
+                        let run = runLength q '"'
+                        if run = quotes then q else findClose (q + run)
+                let close = findClose contentStart
+                let lineStart = text.LastIndexOf('\n', close - 1) + 1
+                let indent = text.Substring(lineStart, close - lineStart)
+                if lineStart < contentStart || not (Seq.forall Char.IsWhiteSpace indent) then
+                    source.Fail(lineStart, close + quotes, "a raw string's closing delimiter must be on its own line")
+                let parts, _ = this.Content(contentStart, start, RawBlock(indent, lineStart))
+                String parts, close + quotes
+            else
+                let parts, stop = this.Content(afterOpen, start, RawLine quotes)
+                String parts, stop + quotes
 
 /// Raises SyntaxException at the first lexical error.
 let tokenize (source: SourceText) : Token list =

@@ -61,3 +61,46 @@ line two"
 ```ting-output
 "line one\nline two"
 ```
+
+Raw strings. The closing delimiter's indentation is stripped from every content line.
+
+```ting
+"""
+    line one
+    line two
+    """
+```
+
+```ting-output
+"line one\nline two\n"
+```
+
+```ting
+""""
+    contains """ three quotes
+    """"
+```
+
+```ting-output
+"contains \"\"\" three quotes\n"
+```
+
+```ting
+"""
+  under-indented
+    """
+```
+
+```ting-output
+error (2,1-2,17): raw string content is indented less than its closing delimiter
+```
+
+A raw string on a single line.
+
+```ting
+"""say "hi" """
+```
+
+```ting-output
+"say \"hi\" "
+```
