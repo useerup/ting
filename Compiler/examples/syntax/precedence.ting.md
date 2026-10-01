@@ -19,6 +19,14 @@ a | b || c ||| d & e && f &&& g
 ```
 
 ```ting
+x : A & y :: B | z ::: C
+```
+
+```ting-output
+(| (& (: x A) (:: y B)) (::: z C))
+```
+
+```ting
 a < b == c
 ```
 
@@ -32,6 +40,40 @@ a < b < c
 
 ```ting-output
 error (1,7-1,8): '<' and '<' do not associate; add parentheses
+```
+
+The specification lists the ranges below `;`, so `;` binds tighter and the next expression reads as `1 ... (3 ; 5) <...< 9`.
+
+```ting
+1 ... 3 ;  5 <...< 9
+```
+
+```ting-output
+error (1,14-1,19): '...' and '<...<' do not associate; add parentheses
+```
+
+```ting
+0 ; 1 ;; 2
+```
+
+```ting-output
+(;; (; 0 1) 2)
+```
+
+```ting
+A ^^ B ^^ C
+```
+
+```ting-output
+(^^ A (^^ B C))
+```
+
+```ting
+A ** B * C
+```
+
+```ting-output
+(** A (* B C))
 ```
 
 ```ting

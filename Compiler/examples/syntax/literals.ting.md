@@ -28,6 +28,16 @@
 (list true false void this (tuple) (list) (set) (multiset))
 ```
 
+A fraction needs a digit after the point, so ranges and properties are not swallowed.
+
+```ting
+1...n
+```
+
+```ting-output
+(... 1 n)
+```
+
 ```ting
 2147483648
 ```

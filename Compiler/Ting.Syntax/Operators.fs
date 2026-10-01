@@ -29,7 +29,12 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
     [ [ "="; "?=" ], LeftAssoc, all RightReferential
       [ "|"; "||"; "|||" ], LeftAssoc, all Neutral
       [ "&"; "&&"; "&&&" ], LeftAssoc, all Neutral
-      [ "<"; "<="; ">="; ">"; "=="; "!=" ], NonAssoc, all RightReferential
+      [ ":"; "::"; ":::" ], NonAssoc, all RightReferential
+      [ "<"; "<="; ">="; ">"; "=="; "!="; "!:" ], NonAssoc, all RightReferential
+      [ "..."; "...<"; "<..."; "<...<" ], NonAssoc, all Neutral
+      [ ";"; ";;" ], LeftAssoc, all Neutral
+      [ "^^" ], RightAssoc, all Neutral
+      [ "**" ], LeftAssoc, all Neutral
       [ "+"; "-" ], LeftAssoc, all Neutral
       [ "*"; "/"; "%"; "/%" ], LeftAssoc, all Neutral
       [ "^" ], LeftAssoc, all Neutral ]
@@ -58,5 +63,5 @@ let rightPower (info: InfixInfo) =
 /// Minimum binding power of the operand of a prefix keyword or `!` (provisional, see SYN-01).
 let prefixOperandPower (text: string) =
     match text with
-    | "!" -> leftPower infixTable["<"]
+    | "!" -> leftPower infixTable[":"]
     | _ -> invalidArg (nameof text) $"'{text}' is not a prefix operator"
