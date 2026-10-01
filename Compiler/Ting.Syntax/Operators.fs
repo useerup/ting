@@ -27,9 +27,14 @@ type InfixInfo =
 let private rows: (string list * Associativity * (string -> BindingClass)) list =
     let all b = fun (_: string) -> b
     [ [ "="; "?=" ], LeftAssoc, all RightReferential
+      [ "->" ], LeftAssoc, all RightReferential
+      [ ">>"; "<<"; "|>"; "<|" ], LeftAssoc, all Neutral
+      [ "=>" ], RightAssoc, all LeftDeclarative
       [ "./"; "../" ], LeftAssoc, all LeftReferential
+      [ "\\" ], LeftAssoc, all LeftDeclarative
       [ "|"; "||"; "|||" ], LeftAssoc, all Neutral
       [ "&"; "&&"; "&&&" ], LeftAssoc, all Neutral
+      [ "?"; "??" ], LeftAssoc, all RightReferential
       [ ":"; "::"; ":::" ], NonAssoc, all RightReferential
       [ "<"; "<="; ">="; ">"; "=="; "!="; "!:" ], NonAssoc, all RightReferential
       [ "..."; "...<"; "<..."; "<...<" ], NonAssoc, all Neutral

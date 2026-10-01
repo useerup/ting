@@ -20,6 +20,7 @@ let private parsed (code: string) =
 [<InlineData("( -1)", "(negate 1)")>]
 [<InlineData(" -a.b", "(. (negate a) b)")>]
 [<InlineData(" -a^b", "(^ (negate a) b)")>]
+[<InlineData("x ? - 1", "(? x (section - 1))")>]
 let ``minus spacing`` (code: string, expected: string) = Assert.Equal(expected, parsed code)
 
 [<Theory>]

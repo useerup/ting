@@ -11,6 +11,30 @@ f ?= g = h
 ```
 
 ```ting
+a -> b -> c
+```
+
+```ting-output
+(-> (-> a b) c)
+```
+
+```ting
+x |> f >> g <| y
+```
+
+```ting-output
+(<| (>> (|> x f) g) y)
+```
+
+```ting
+x => y => x + y
+```
+
+```ting-output
+(=> x (=> y (+ x y)))
+```
+
+```ting
 r ./ s ../ v
 ```
 
@@ -19,11 +43,27 @@ r ./ s ../ v
 ```
 
 ```ting
+int x \ x != 0 \ x < 10
+```
+
+```ting-output
+(\ (\ (apply int x) (!= x 0)) (< x 10))
+```
+
+```ting
 a | b || c ||| d & e && f &&& g
 ```
 
 ```ting-output
 (||| (|| (| a b) c) (&&& (&& (& d e) f) g))
+```
+
+```ting
+x ? p ?? q
+```
+
+```ting-output
+(?? (? x p) q)
 ```
 
 ```ting

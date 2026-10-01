@@ -3,6 +3,14 @@
 A binary operator in prefix position denotes partial application.
 
 ```ting
+x ? != 0
+```
+
+```ting-output
+(? x (section != 0))
+```
+
+```ting
 ( : rhs)
 ```
 
@@ -32,6 +40,14 @@ A binary operator in prefix position denotes partial application.
 
 ```ting-output
 (section . (apply string Name))
+```
+
+```ting
+xs |> map ( - 1)
+```
+
+```ting-output
+(|> xs (apply map (section - 1)))
 ```
 
 ```ting

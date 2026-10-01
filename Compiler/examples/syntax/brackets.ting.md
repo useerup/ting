@@ -71,6 +71,14 @@ Collections.
 ```
 
 ```ting
+{ x \ x : int & x > 0 }
+```
+
+```ting-output
+(set (\ x (& (: x int) (> x 0))))
+```
+
+```ting
 (a, b
 ```
 
