@@ -82,7 +82,13 @@ type private Parser(tokens: Token[]) =
         | _ when startsAtom token -> this.Application()
         | Symbol "-" when not token.SpaceBefore ->
             fail token.Span "'-' without whitespace before it is subtraction, which needs a left operand; write ' -x' for negation"
-        | _ -> unexpected token "an expression"
+        | _ ->
+            match infixOf token with
+            | Some info ->
+                advance () |> ignore
+                let operand = this.Expr(rightPower info)
+                Section(Span.between token.Span operand.Span, operatorOf token info.Text, operand)
+            | None -> unexpected token "an expression"
 
     member this.PrefixOperator(token: Token, text: string) : Expr =
         advance () |> ignore

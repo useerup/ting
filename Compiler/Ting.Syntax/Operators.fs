@@ -27,6 +27,7 @@ type InfixInfo =
 let private rows: (string list * Associativity * (string -> BindingClass)) list =
     let all b = fun (_: string) -> b
     [ [ "="; "?=" ], LeftAssoc, all RightReferential
+      [ "./"; "../" ], LeftAssoc, all LeftReferential
       [ "|"; "||"; "|||" ], LeftAssoc, all Neutral
       [ "&"; "&&"; "&&&" ], LeftAssoc, all Neutral
       [ ":"; "::"; ":::" ], NonAssoc, all RightReferential
@@ -37,7 +38,8 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
       [ "**" ], LeftAssoc, all Neutral
       [ "+"; "-" ], LeftAssoc, all Neutral
       [ "*"; "/"; "%"; "/%" ], LeftAssoc, all Neutral
-      [ "^" ], LeftAssoc, all Neutral ]
+      [ "^" ], LeftAssoc, all Neutral
+      [ "."; ".." ], LeftAssoc, all PropertyAccess ]
 
 let infixTable: Map<string, InfixInfo> =
     rows

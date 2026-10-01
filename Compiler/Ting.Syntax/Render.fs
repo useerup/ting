@@ -84,6 +84,7 @@ let rec private toDoc (expr: Expr) : Doc =
     | Prefix(_, op, operand) when op.Text = "-" -> Node("negate", [ toDoc operand ])
     | Prefix(_, op, operand) -> Node(op.Text, [ toDoc operand ])
     | Infix(_, op, left, right) -> Node(op.Text, [ toDoc left; toDoc right ])
+    | Section(_, op, operand) -> Node("section", [ Leaf op.Text; toDoc operand ])
 
 and private renderParts (text: string -> string) (parts: StringPart list) =
     parts

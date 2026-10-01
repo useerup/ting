@@ -18,6 +18,7 @@ let private parsed (code: string) =
 [<InlineData("x + -1", "(+ x (negate 1))")>]
 [<InlineData("[1, -1]", "(list 1 (negate 1))")>]
 [<InlineData("( -1)", "(negate 1)")>]
+[<InlineData(" -a.b", "(. (negate a) b)")>]
 [<InlineData(" -a^b", "(^ (negate a) b)")>]
 let ``minus spacing`` (code: string, expected: string) = Assert.Equal(expected, parsed code)
 
@@ -26,6 +27,10 @@ let ``minus spacing`` (code: string, expected: string) = Assert.Equal(expected, 
 [<InlineData("-1")>]
 let ``minus without a left operand is rejected`` (code: string) =
     Assert.StartsWith("error:", parsed code)
+
+[<Fact>]
+let ``juxtaposition binds tighter than property access`` () =
+    Assert.Equal("(. (apply f a) b)", parsed "f a.b")
 
 [<Fact>]
 let ``error positions point at the offending token`` () =

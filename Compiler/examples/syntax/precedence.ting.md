@@ -11,6 +11,14 @@ f ?= g = h
 ```
 
 ```ting
+r ./ s ../ v
+```
+
+```ting-output
+(../ (./ r s) v)
+```
+
+```ting
 a | b || c ||| d & e && f &&& g
 ```
 
@@ -82,4 +90,30 @@ a + b * c ^ d - e / f % g /% h
 
 ```ting-output
 (- (+ a (* b (^ c d))) (/% (% (/ e f) g) h))
+```
+
+```ting
+a.b..c.d
+```
+
+```ting-output
+(. (.. (. a b) c) d)
+```
+
+Juxtaposition binds tighter than every infix operator, including `.`.
+
+```ting
+f a.b
+```
+
+```ting-output
+(. (apply f a) b)
+```
+
+```ting
+Console.WriteLine message
+```
+
+```ting-output
+(. Console (apply WriteLine message))
 ```

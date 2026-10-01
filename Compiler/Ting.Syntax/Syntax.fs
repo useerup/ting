@@ -35,6 +35,8 @@ type Expr =
     /// Prefix keywords, `!`, and negation (operator text `-`).
     | Prefix of Span * Operator * Expr
     | Infix of Span * Operator * Expr * Expr
+    /// A binary operator in prefix position: `!= 0`, `.Name`, `- x`.
+    | Section of Span * Operator * Expr
 
     member this.Span =
         match this with
@@ -53,7 +55,8 @@ type Expr =
         | List(s, _)
         | Apply(s, _, _)
         | Prefix(s, _, _)
-        | Infix(s, _, _, _) -> s
+        | Infix(s, _, _, _)
+        | Section(s, _, _) -> s
 
 and StringPart =
     | Text of string

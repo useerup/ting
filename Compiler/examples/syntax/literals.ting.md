@@ -39,6 +39,14 @@ A fraction needs a digit after the point, so ranges and properties are not swall
 ```
 
 ```ting
+1.Double
+```
+
+```ting-output
+(. 1 Double)
+```
+
+```ting
 2147483648
 ```
 
