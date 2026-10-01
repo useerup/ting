@@ -160,5 +160,5 @@ $ "space after dollar"
 ```
 
 ```ting-output
-error (1,1-1,2): '$' must be followed by a string
+error (1,1-1,2): '$' must be followed by a string or a quoted identifier
 ```

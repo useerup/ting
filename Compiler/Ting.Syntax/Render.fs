@@ -11,6 +11,25 @@ type private Doc =
 
 let private width = 72
 
+let private isRegularIdentifier (name: string) =
+    name.Length > 0
+    && (Char.IsLetter name[0] || name[0] = '_')
+    && Seq.forall (fun c -> Char.IsLetterOrDigit c || c = '_') name
+    && not (keywords.Contains name)
+
+let private quoteIdentifier (name: string) =
+    if isRegularIdentifier name then
+        name
+    else
+        let mutable longestRun = 0
+        let mutable run = 0
+        for c in name do
+            run <- if c = '`' then run + 1 else 0
+            longestRun <- max longestRun run
+        let ticks = System.String('`', longestRun + 1)
+        if longestRun = 0 && not (name.StartsWith ' ' && name.EndsWith ' ') then ticks + name + ticks
+        else ticks + " " + name + " " + ticks
+
 let private escapeText (text: string) =
     let sb = StringBuilder()
     for rune in text.EnumerateRunes() do
@@ -44,7 +63,8 @@ let rec private flat (doc: Doc) =
 
 let rec private toDoc (expr: Expr) : Doc =
     match expr with
-    | Identifier(_, name) -> Leaf name
+    | Identifier(_, name) -> Leaf(quoteIdentifier name)
+    | InterpolatedIdentifier(_, parts) -> Leaf("$`" + renderParts id parts + "`")
     | This _ -> Leaf "this"
     | Void _ -> Leaf "void"
     | Bool(_, value) -> Leaf(if value then "true" else "false")

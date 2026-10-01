@@ -18,6 +18,8 @@ type private StringMode =
     | RawLine of int
     /// A multi-line raw string: the base indentation and the end of the content lines.
     | RawBlock of string * int
+    /// A quoted identifier, ending at a run of exactly M backticks.
+    | Quoted of int
 
 type private Lexer(source: SourceText) =
     let text = source.Text
@@ -127,15 +129,18 @@ type private Lexer(source: SourceText) =
             while e < len && isIdentCont text[e] do e <- e + 1
             let word = text.Substring(i, e - i)
             (if keywords.Contains word then Keyword word else Identifier word), e
+        elif c = '`' then
+            this.QuotedIdentifier(i, i, 0)
         elif c = '"' then
             this.StringLiteral(i, i, 0, false)
         elif c = '$' then
             let n = runLength i '$'
             let j = i + n
             match at j, at (j + 1) with
+            | '`', _ -> this.QuotedIdentifier(i, j, n)
             | '"', _ -> this.StringLiteral(i, j, n, false)
             | '@', '"' -> this.StringLiteral(i, j + 1, n, true)
-            | _ -> source.Fail(i, j, "'$' must be followed by a string")
+            | _ -> source.Fail(i, j, "'$' must be followed by a string or a quoted identifier")
         elif c = '@' && at (i + 1) = '"' then
             this.StringLiteral(i, i + 1, 0, true)
         elif c = '@' && at (i + 1) = '$' then
@@ -214,7 +219,7 @@ type private Lexer(source: SourceText) =
         with SyntaxException _ ->
             None
 
-    /// Scans string content. Returns the parts and the index of the terminator.
+    /// Scans string or quoted-identifier content. Returns the parts and the index of the terminator.
     member this.Content(start: int, openStart: int, mode: StringMode, dollars: int) : TokenStringPart list * int =
         let parts = ResizeArray<TokenStringPart>()
         let buffer = StringBuilder()
@@ -223,7 +228,9 @@ type private Lexer(source: SourceText) =
                 parts.Add(TextPart(buffer.ToString()))
                 buffer.Clear() |> ignore
         let literal (s: string) = buffer.Append(s) |> ignore
-        let unterminated i = source.Fail(openStart, i, "unterminated string literal")
+        let unterminated i =
+            let what = match mode with Quoted _ -> "quoted identifier" | _ -> "string literal"
+            source.Fail(openStart, i, $"unterminated {what}")
         let rec loop (i: int) (lineStart: bool) : int =
             match mode with
             | RawBlock(_, limit) when i >= limit -> i
@@ -245,6 +252,7 @@ type private Lexer(source: SourceText) =
                     | Regular -> c = '"'
                     | Verbatim -> c = '"' && at (i + 1) <> '"'
                     | RawLine k -> c = '"' && runLength i '"' = k
+                    | Quoted m -> c = '`' && runLength i '`' = m
                     | RawBlock _ -> false
                 if isTerminator then
                     i
@@ -281,7 +289,7 @@ type private Lexer(source: SourceText) =
                     | Verbatim, '"' ->
                         literal "\""
                         loop (i + 2) false
-                    | RawLine _, '"' ->
+                    | (RawLine _, '"' | Quoted _, '`') ->
                         let run = runLength i c
                         literal (System.String(c, run))
                         loop (i + run) false
@@ -324,6 +332,31 @@ type private Lexer(source: SourceText) =
             else
                 let parts, stop = this.Content(afterOpen, start, RawLine quotes, dollars)
                 String parts, stop + quotes
+
+    member this.QuotedIdentifier(start: int, ticks: int, dollars: int) : TokenKind * int =
+        let m = runLength ticks '`'
+        let parts, stop = this.Content(ticks + m, start, Quoted m, dollars)
+        let parts =
+            match parts with
+            | TextPart first :: _ when first.StartsWith ' ' ->
+                match List.last parts with
+                | TextPart last when last.EndsWith ' ' && not (parts.Length = 1 && first.Length = 1) ->
+                    let trimmed = parts |> List.mapi (fun k part ->
+                        match part with
+                        | TextPart s when k = 0 && k = parts.Length - 1 -> TextPart(s.Substring(1, s.Length - 2))
+                        | TextPart s when k = 0 -> TextPart(s.Substring 1)
+                        | TextPart s when k = parts.Length - 1 -> TextPart(s.Substring(0, s.Length - 1))
+                        | other -> other)
+                    trimmed |> List.filter (fun p -> p <> TextPart "")
+                | _ -> parts
+            | _ -> parts
+        let finish = stop + m
+        match parts with
+        | [] -> source.Fail(start, finish, "a quoted identifier must not be empty")
+        | [ TextPart name ] -> Identifier name, finish
+        | _ when parts |> List.forall (function TextPart _ -> true | HolePart _ -> false) ->
+            Identifier(parts |> List.map (function TextPart s -> s | HolePart _ -> "") |> String.concat ""), finish
+        | _ -> InterpolatedIdentifier parts, finish
 
 /// Raises SyntaxException at the first lexical error.
 let tokenize (source: SourceText) : Token list =

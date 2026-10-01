@@ -40,6 +40,7 @@ type private Parser(tokens: Token[]) =
     let startsAtom (token: Token) =
         match token.Kind with
         | TokenKind.Identifier _
+        | TokenKind.InterpolatedIdentifier _
         | TokenKind.Number _
         | TokenKind.String _ -> true
         | Keyword("this" | "void" | "true" | "false") -> true
@@ -100,6 +101,7 @@ type private Parser(tokens: Token[]) =
         let token = advance ()
         match token.Kind with
         | TokenKind.Identifier name -> Identifier(token.Span, name)
+        | TokenKind.InterpolatedIdentifier parts -> InterpolatedIdentifier(token.Span, this.Parts parts)
         | TokenKind.Number(digits, kind) -> Number(token.Span, digits, kind)
         | TokenKind.String parts -> String(token.Span, this.Parts parts)
         | Keyword "this" -> This token.Span

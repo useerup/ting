@@ -20,7 +20,9 @@ type Token =
       SpaceAfter: bool }
 
 and TokenKind =
+    /// A regular or quoted identifier. A quoted identifier may spell a keyword.
     | Identifier of string
+    | InterpolatedIdentifier of TokenStringPart list
     | Keyword of string
     /// Digits without separators, including any fraction.
     | Number of string * NumberKind
@@ -49,6 +51,7 @@ let symbols =
 let describe (kind: TokenKind) =
     match kind with
     | Identifier name -> $"identifier '{name}'"
+    | InterpolatedIdentifier _ -> "interpolated identifier"
     | Keyword word -> $"'{word}'"
     | Number(digits, _) -> $"number '{digits}'"
     | String _ -> "string"

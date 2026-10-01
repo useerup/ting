@@ -15,6 +15,7 @@ type Fusion =
 /// The surface syntax tree. It mirrors the source: no desugaring, no binding.
 type Expr =
     | Identifier of Span * string
+    | InterpolatedIdentifier of Span * StringPart list
     | This of Span
     | Void of Span
     | Bool of Span * bool
@@ -38,6 +39,7 @@ type Expr =
     member this.Span =
         match this with
         | Identifier(s, _)
+        | InterpolatedIdentifier(s, _)
         | This s
         | Void s
         | Bool(s, _)
