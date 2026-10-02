@@ -26,7 +26,10 @@ type InfixInfo =
 /// Associativity is provisional (see specification issue SYN-01).
 let private rows: (string list * Associativity * (string -> BindingClass)) list =
     let all b = fun (_: string) -> b
-    [ [ "="; "?=" ], LeftAssoc, all RightReferential
+    [ [ "where" ], RightAssoc, all RightDeclarative
+      [ "in" ], RightAssoc, all LeftDeclarative
+      [ "="; "?=" ], LeftAssoc, all RightReferential
+      [ "then"; "else" ], RightAssoc, (fun op -> if op = "then" then RightReferential else Neutral)
       [ "->" ], LeftAssoc, all RightReferential
       [ ">>"; "<<"; "|>"; "<|" ], LeftAssoc, all Neutral
       [ "=>" ], RightAssoc, all LeftDeclarative
@@ -70,5 +73,11 @@ let rightPower (info: InfixInfo) =
 /// Minimum binding power of the operand of a prefix keyword or `!` (provisional, see SYN-01).
 let prefixOperandPower (text: string) =
     match text with
+    | "let" | "public" | "private" | "protected" | "internal" -> 0
     | "!" -> leftPower infixTable[":"]
     | _ -> invalidArg (nameof text) $"'{text}' is not a prefix operator"
+
+let isPrefixKeyword (word: string) =
+    match word with
+    | "let" | "public" | "private" | "protected" | "internal" -> true
+    | _ -> false

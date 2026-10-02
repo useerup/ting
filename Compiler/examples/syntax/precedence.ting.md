@@ -3,11 +3,35 @@
 One example per row of the specification's binary infix table, loosest first. Associativity is provisional (specification issue SYN-01).
 
 ```ting
+a where b = 1 where c = 2
+```
+
+```ting-output
+(where a (where (= b 1) (= c 2)))
+```
+
+```ting
+x = 1 in y = 2 in x + y
+```
+
+```ting-output
+(in (= x 1) (in (= y 2) (+ x y)))
+```
+
+```ting
 f ?= g = h
 ```
 
 ```ting-output
 (= (?= f g) h)
+```
+
+```ting
+a then b else c then d else e
+```
+
+```ting-output
+(then a (else b (then c (else d e))))
 ```
 
 ```ting

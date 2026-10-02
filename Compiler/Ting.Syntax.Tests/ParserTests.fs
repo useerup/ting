@@ -34,6 +34,16 @@ let ``juxtaposition binds tighter than property access`` () =
     Assert.Equal("(. (apply f a) b)", parsed "f a.b")
 
 [<Fact>]
+let ``spans cover the source text`` () =
+    match Parser.parse "let x = 1 in\n  x + 2" with
+    | Ok(Syntax.Prefix(span, op, Syntax.Infix(_, inOp, _, body))) ->
+        Assert.Equal("(1,1-2,8)", Source.Span.render span)
+        Assert.Equal("(1,1-1,4)", Source.Span.render op.Span)
+        Assert.Equal("(1,11-1,13)", Source.Span.render inOp.Span)
+        Assert.Equal("(2,3-2,8)", Source.Span.render body.Span)
+    | other -> failwith $"unexpected parse {other}"
+
+[<Fact>]
 let ``error positions point at the offending token`` () =
     match Parser.parse "a +\n  )" with
     | Error e -> Assert.Equal("(2,3-2,4)", Source.Span.render e.Span)

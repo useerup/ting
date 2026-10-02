@@ -25,7 +25,7 @@ A quoted identifier may spell a keyword.
 ```
 
 ```ting-output
-(= in 1)
+(= `in` 1)
 ```
 
 ```ting
@@ -60,4 +60,14 @@ $$$`Field{{{index}}}`
 
 ```ting-output
 $`Field{index}`
+```
+
+A keyword is never an identifier. Here `in` is a binary operator in prefix position, so this is a section.
+
+```ting
+in = 1
+```
+
+```ting-output
+(section in (section = 1))
 ```

@@ -34,7 +34,8 @@ type private Parser(tokens: Token[]) =
 
     let infixOf (token: Token) =
         match token.Kind with
-        | Symbol text -> tryInfix text
+        | Symbol text
+        | Keyword text -> tryInfix text
         | _ -> None
 
     let startsAtom (token: Token) =
@@ -78,6 +79,7 @@ type private Parser(tokens: Token[]) =
     member this.PrefixPosition() : Expr =
         let token = peek ()
         match token.Kind with
+        | Keyword word when isPrefixKeyword word -> this.PrefixOperator(token, word)
         | Symbol "!" -> this.PrefixOperator(token, "!")
         | _ when startsAtom token -> this.Application()
         | Symbol "-" when not token.SpaceBefore ->

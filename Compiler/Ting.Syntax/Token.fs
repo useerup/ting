@@ -39,7 +39,9 @@ and TokenStringPart =
 
 let keywords =
     set
-        [ "void"; "this"; "true"; "false" ]
+        [ "let"; "public"; "private"; "protected"; "internal"
+          "where"; "in"; "then"; "else"
+          "void"; "this"; "true"; "false" ]
 
 /// Longest match is applied by trying longer symbols first.
 let symbols =
