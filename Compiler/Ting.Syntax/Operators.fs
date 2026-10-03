@@ -75,9 +75,11 @@ let prefixOperandPower (text: string) =
     match text with
     | "let" | "public" | "private" | "protected" | "internal" -> 0
     | "!" -> leftPower infixTable[":"]
+    | "fn" | "class" | "record" | "records" | "tuple" | "tuples" | "primary" | "candidate" -> leftPower infixTable["."]
     | _ -> invalidArg (nameof text) $"'{text}' is not a prefix operator"
 
 let isPrefixKeyword (word: string) =
     match word with
-    | "let" | "public" | "private" | "protected" | "internal" -> true
+    | "let" | "public" | "private" | "protected" | "internal"
+    | "fn" | "class" | "record" | "records" | "tuple" | "tuples" | "primary" | "candidate" -> true
     | _ -> false

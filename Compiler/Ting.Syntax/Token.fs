@@ -40,6 +40,8 @@ and TokenStringPart =
 let keywords =
     set
         [ "let"; "public"; "private"; "protected"; "internal"
+          "record"; "records"; "tuple"; "tuples"; "fn"; "class"
+          "primary"; "candidate"
           "where"; "in"; "then"; "else"
           "void"; "this"; "true"; "false" ]
 
