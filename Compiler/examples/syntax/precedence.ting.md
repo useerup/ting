@@ -35,6 +35,14 @@ a then b else c then d else e
 ```
 
 ```ting
+f = p => b contract C throws E
+```
+
+```ting-output
+(= f (throws (contract (=> p b) C) E))
+```
+
+```ting
 a -> b -> c
 ```
 
