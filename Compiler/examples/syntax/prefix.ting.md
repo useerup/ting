@@ -19,6 +19,38 @@ public protected internal Answer = 42
 ```
 
 ```ting
+float x => partial 1 / x
+```
+
+```ting-output
+(=> (apply float x) (partial (/ 1 x)))
+```
+
+```ting
+a = determ 0;1
+```
+
+```ting-output
+(= a (determ (; 0 1)))
+```
+
+```ting
+public f = float x => nondeterm x*1;x*2
+```
+
+```ting-output
+(public (= f (=> (apply float x) (nondeterm (; (* x 1) (* x 2))))))
+```
+
+```ting
+float x => total ((partial (1 / x)) ;; 0)
+```
+
+```ting-output
+(=> (apply float x) (total (;; (partial (/ 1 x)) 0)))
+```
+
+```ting
 !x : A & y
 ```
 

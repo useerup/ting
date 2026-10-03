@@ -41,7 +41,7 @@ let keywords =
     set
         [ "let"; "public"; "private"; "protected"; "internal"
           "record"; "records"; "tuple"; "tuples"; "fn"; "class"
-          "primary"; "candidate"
+          "primary"; "candidate"; "total"; "partial"; "determ"; "nondeterm"
           "where"; "in"; "then"; "else"
           "void"; "this"; "true"; "false" ]
 
