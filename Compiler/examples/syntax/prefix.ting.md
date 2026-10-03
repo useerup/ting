@@ -91,6 +91,14 @@ records(string Name, int Age)
 ```
 
 ```ting
+x ?? throw e
+```
+
+```ting-output
+(?? x (throw e))
+```
+
+```ting
 Writers = class string
 ```
 

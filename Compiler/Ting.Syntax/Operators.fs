@@ -35,6 +35,7 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
       [ ">>"; "<<"; "|>"; "<|" ], LeftAssoc, all Neutral
       [ "=>" ], RightAssoc, all LeftDeclarative
       [ "./"; "../" ], LeftAssoc, all LeftReferential
+      [ "catch"; "answer" ], LeftAssoc, all RightReferential
       [ "\\" ], LeftAssoc, all LeftDeclarative
       [ "|"; "||"; "|||" ], LeftAssoc, all Neutral
       [ "&"; "&&"; "&&&" ], LeftAssoc, all Neutral
@@ -75,7 +76,7 @@ let rightPower (info: InfixInfo) =
 let prefixOperandPower (text: string) =
     match text with
     | "let" | "public" | "private" | "protected" | "internal" -> 0
-    | "total" | "partial" | "determ" | "nondeterm" -> leftPower infixTable["|"]
+    | "total" | "partial" | "determ" | "nondeterm" | "throw" | "ask" -> leftPower infixTable["|"]
     | "!" -> leftPower infixTable[":"]
     | "fn" | "class" | "record" | "records" | "tuple" | "tuples" | "primary" | "candidate" -> leftPower infixTable["."]
     | _ -> invalidArg (nameof text) $"'{text}' is not a prefix operator"
@@ -83,6 +84,6 @@ let prefixOperandPower (text: string) =
 let isPrefixKeyword (word: string) =
     match word with
     | "let" | "public" | "private" | "protected" | "internal"
-    | "total" | "partial" | "determ" | "nondeterm"
+    | "total" | "partial" | "determ" | "nondeterm" | "throw" | "ask"
     | "fn" | "class" | "record" | "records" | "tuple" | "tuples" | "primary" | "candidate" -> true
     | _ -> false

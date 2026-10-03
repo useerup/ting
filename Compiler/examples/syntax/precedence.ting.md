@@ -75,6 +75,14 @@ r ./ s ../ v
 ```
 
 ```ting
+e catch h answer k
+```
+
+```ting-output
+(answer (catch e h) k)
+```
+
+```ting
 int x \ x != 0 \ x < 10
 ```
 

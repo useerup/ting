@@ -42,7 +42,8 @@ let keywords =
         [ "let"; "public"; "private"; "protected"; "internal"
           "record"; "records"; "tuple"; "tuples"; "fn"; "class"
           "primary"; "candidate"; "total"; "partial"; "determ"; "nondeterm"
-          "where"; "in"; "then"; "else"; "contract"; "asks"; "throws"
+          "throw"; "ask"
+          "where"; "in"; "then"; "else"; "contract"; "asks"; "throws"; "catch"; "answer"
           "void"; "this"; "true"; "false" ]
 
 /// Longest match is applied by trying longer symbols first.
