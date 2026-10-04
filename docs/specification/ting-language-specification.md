@@ -404,7 +404,7 @@ The two equalities observe these layers as follows:
 
 `primary` and `candidate` preserve the ambient binding context of their operands. In a declarative context, `primary a = primary b` can declare `a` and constrain it up to attribute erasure without constraining its attributes.
 
-An ordered pair's identity is determined only by its origin. This identity is used to identify a member in a set, not to compare all of its associated information. Structural equality also observes the associated `Result` information. Equality of functions and their underlying collections compares the results associated with each origin, including solution multiplicity, rather than merely comparing origins. See [Ordered Pairs](#ordered-pairs).
+The `Result` of an ordered pair is an attribute, so an ordered pair's identity is its origin: `(0 -> 1) == (0 -> 2)` holds because `primary` erases the `Result`, whereas `(0 -> 1) = (0 -> 2)` does not hold. Equality of functions is nevertheless extensional: it compares the results obtained by applying the functions at each origin, including solution multiplicity, so it observes the `Result` of each ordered pair. See [Ordered Pairs](#ordered-pairs).
 
 ## Sets
 
