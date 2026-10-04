@@ -862,7 +862,15 @@ For example, a generator that successively produces the natural numbers without 
 
 ## Axioms and solver rules
 
-TODO 
+### Propositions
+
+A proposition is an expression whose value is a `bool`, such as `x = 5`, `x : A` or `a < b`. How it is interpreted depends on its position.
+
+**Truth positions.** The left operand of `in`, the left operand of `then`, the right operand of `\`, the right operand of `where`, and the predicate of `?` require truth. In these positions a proposition is a goal: it constrains its variables and either succeeds or fails. `x = 5 in e` unifies `x` with `5`; no `false` alternative is produced. A goal that fails makes the enclosing expression undefined, exactly as if the proposition had evaluated to `false`. Within a truth position, `&` is conjunction of goals, `|` is disjunction of goals (each operand may admit different bindings), and `!` is negation of a goal.
+
+**Value positions.** Everywhere else a proposition denotes a `bool` value, with its classical meaning. Where its variables are not yet determined, it yields `true` together with the bindings that satisfy it, or `false` together with the constraint that it is not satisfied. With `x` free, `b = (x = 5)` therefore admits two alternatives: `b = true` with `x = 5`, and `b = false` with `x != 5`. Whether such an alternative can be executed is decided by mode analysis: a `false` alternative whose constraint can never be checked, because its variables never become bound, is a compilation error.
+
+TODO: further axioms and solver rules.
 
 ## Exceptions
 
