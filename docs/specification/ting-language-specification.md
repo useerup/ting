@@ -378,9 +378,9 @@ This denotes the same relation as `int x => x * 2`. In the such-that scope, `x` 
 ### Functions via fn ordered pairs
 
 - `fn` is a unary operator that converts a set or multiset of ordered pairs into a function.
-- Each pair `origin -> result` consists of the origin value or tuple extended with a public property named `Result`. The origin is an argument and `Result` supplies a result for that argument.
+- Each pair `origin -> result` consists of the origin value or tuple carrying the attribute `Result`. The origin is an argument and `Result` supplies a result for that argument.
 - `fn { p1 -> r1, p2 -> r2, ... }` is unary `fn` applied to a set literal of ordered pairs.
-- A set merges ordered pairs with the same origin, retaining their different results as alternatives at that origin. Applying the resulting function yields those alternatives.
+- A set keeps one ordered pair per origin: the first contribution in definition order. The cases of `fn { ... }` therefore take effect in order, so `fn { 0 -> 1, int n -> n * f (n - 1) }` yields `1` at `0`.
 - A multiset retains each ordered-pair contribution and its result. Several contributions with the same origin give multiple solutions at that argument, including repeated equal results.
 
 ## Values and Equality
@@ -515,11 +515,11 @@ Without `partial`, a body may still be inferred to have a smaller defined subset
 
 A function is backed by a set or multiset of ordered pairs `origin -> result`; see [Ordered Pairs](#ordered-pairs) for their structure and construction.
 
-Every function `F` has an `AsSet` property that denotes its underlying set or multiset of ordered pairs, retaining the associated results. A set coalesces contributions with the same origin and merges their result alternatives. A multiset retains each contribution separately (see `+` on functions), giving correspondingly many solutions at that origin. The `fn` operator is the inverse of `AsSet`: it converts a set or multiset of ordered pairs into a function. The operator `->` constructs such a pair by extending its left operand with the public property `Result` bound to its right operand.
+Every function `F` has an `AsSet` property that denotes its underlying set or multiset of ordered pairs, retaining the associated results. A set holds one ordered pair per origin: in a set definition the first contribution, after set union `|` the fused member whose `Result` permits the results of both operands. A multiset retains each contribution separately (see `+` on functions), giving correspondingly many solutions at that origin. The `fn` operator is the inverse of `AsSet`: it converts a set or multiset of ordered pairs into a function. The operator `->` constructs such a pair by attaching the attribute `Result`, bound to its right operand, to its left operand.
 
 For a function `F : A ^^ B`, each ordered pair has an origin in `A` and a `Result` in `B`. The origins of its successful pairs form its defined subset, and their `Result` values form its range. Neither the declared argument set nor the admitted domain can in general be reconstructed from successful pairs: they are part of the function's declaration and restrictions.
 
-If the underlying multiset contains several ordered pairs with the same origin, `F` is nondeterministic at that argument, yielding the `Result` of each contribution. Multiplicities are observable as solution multiplicity under backtracking, including when results agree. A set-backed function is also nondeterministic at an origin whose merged `Result` permits several alternatives. This does not require several distinct member identities at that origin.
+If the underlying multiset contains several ordered pairs with the same origin, `F` is nondeterministic at that argument, yielding the `Result` of each contribution. Multiplicities are observable as solution multiplicity under backtracking, including when results agree. A set-backed function is nondeterministic at an origin only where the `Result` of that member permits several alternatives, as after set union. This does not require several distinct member identities at that origin.
 
 Functions compare extensionally under `==`: at every origin they must permit the same results with the same solution multiplicities, subject to the ordinary attribute-erasure rules. Their underlying collections are compared with their associated results, not merely by origin membership. Thus `fn { 1 -> 2 }` and `fn { 1 -> 3 }` are not equal functions, although their pairs have the same origin identity.
 
@@ -1173,11 +1173,11 @@ Neutral. Constructs a class over the candidate set denoted by its operand. A cla
 
 #### `fn`
 
-Neutral. Converts a set or multiset of ordered pairs into a function. In `fn S`, each pair `origin -> result` in `S` supplies the value of its public `Result` property as a result for its origin. The pair is the origin value or tuple extended with that property, not a positional two-tuple. The resulting function's underlying collection is `S`; see [Ordered pairs and the underlying collection](#ordered-pairs-and-the-underlying-collection).
+Neutral. Converts a set or multiset of ordered pairs into a function. In `fn S`, each pair `origin -> result` in `S` supplies the value of its `Result` attribute as a result for its origin. The pair is the origin value or tuple carrying that attribute, not a positional two-tuple. The resulting function's underlying collection is `S`; see [Ordered pairs and the underlying collection](#ordered-pairs-and-the-underlying-collection).
 
-If `S` is a multiset containing several ordered pairs with the same origin, each occurrence contributes a solution, even when results agree. If `S` is a set, contributions with the same origin have been merged; the function yields all result alternatives associated with that origin. Distinct results therefore cause nondeterminism without requiring distinct pair identities. Equal origin/result contributions are not repeated by a set.
+If `S` is a multiset containing several ordered pairs with the same origin, each occurrence contributes a solution, even when results agree. If `S` is a set, it holds one member per origin, and the function yields that member's `Result`. In a set definition that member is the first contribution, so `fn { 0 -> 1, int n -> n * f (n - 1) }` yields `1` at `0`. After set union the member's `Result` may permit several alternatives.
 
-`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of ordered pairs. It introduces no additional ordered-dispatch semantics.
+`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of ordered pairs. Its cases take effect in order only because the set definition keeps the first contribution at each origin; `fn` adds no dispatch rule of its own.
 
 #### `internal`
 
