@@ -52,10 +52,10 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `contract` `asks` `throws`       | function abstraction, effect and exception contracts                        |
 | `->`                             | ordered pair construction                                                   |
 | `>>` `<<` `\|>` `<\|`            | composition and application                                                 |
+| `catch` `answer`                 | exception and effect handling                                               |
 | `=>`                             | lambda                                                                      |
 | `then` `else`                    | implication, alternative                                                    |
 | `./` `../`                       | left-referential expression scope, left-referential expression-member scope |
-| `catch` `answer`                 | exception and effect handling                                               |
 | `\`                              | such-that / restriction                                                     |
 | `\|` `\|\|` `\|\|\|`             | disjunction, guarded disjunction, mutually guarded disjunction              |
 | `&` `&&` `&&&`                   | conjunction, guarded conjunction, mutually guarded conjunction              |
@@ -71,7 +71,7 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `^`                              | exponentiation, set of functions, tuple power                               |
 | `.` `..`                         | property, member property                                                   |
 
-The alphabetic entries in the table are keyword binary infix operators. The binding power of `contract` makes `f = p => b contract C` group as `f = ((p => b) contract C)`. Because `then` and `else` bind more tightly than `=>`, a conditional can be a lambda body without parentheses: `int n => n < 0 then void else n * 2` groups as `int n => ((n < 0) then (void else (n * 2)))`. Because the ranges bind more tightly than `;`, `1...3 ; 5...9` is a choice between two ranges.
+The alphabetic entries in the table are keyword binary infix operators. The binding power of `contract` makes `f = p => b contract C` group as `f = ((p => b) contract C)`. Because `then` and `else` bind more tightly than `=>`, a conditional can be a lambda body without parentheses: `int n => n < 0 then void else n * 2` groups as `int n => ((n < 0) then (void else (n * 2)))`. Because the ranges bind more tightly than `;`, `1...3 ; 5...9` is a choice between two ranges. Because `catch` and `answer` bind less tightly than `=>`, a handler can be an unparenthesized lambda: `expr catch Exception ex => ex.Message` groups as `expr catch (Exception ex => ex.Message)`.
 
 #### Unary suffix
 
@@ -1060,9 +1060,9 @@ The mirror image of left-declarative. A local scope spanning the whole operator 
 
 Precedence is defined by the binary infix table under [Binary infix](#binary-infix). Because `\` binds more tightly than `=`, an equation used as a such-that predicate must be parenthesized: `int x \ (x = 42)`.
 
-`^`, `^^` and `<|` are right-associative: `2 ^ 3 ^ 2` denotes `2 ^ (3 ^ 2)` and `f <| g <| x` denotes `f (g x)`. `=` and `?=` are non-associative, so `a = b = c` is ill-formed. `|>`, `>>` and `<<` share a row with `<|` but are left-associative; operators of one row that associate differently cannot be combined without parentheses, so `x |> f <| y` is ill-formed.
+`=>`, `^`, `^^` and `<|` are right-associative: `x => y => x + y` denotes `x => (y => x + y)`, `2 ^ 3 ^ 2` denotes `2 ^ (3 ^ 2)` and `f <| g <| x` denotes `f (g x)`. `=` and `?=` are non-associative, so `a = b = c` is ill-formed. `|>`, `>>` and `<<` share a row with `<|` but are left-associative; operators of one row that associate differently cannot be combined without parentheses, so `x |> f <| y` is ill-formed.
 
-TODO: associativity of the remaining operators is not yet specified.
+The remaining operators associate as follows. `where`, `in`, `then` and `else` are right-associative, so `a then b else c then d else e` denotes `a then (b else (c then (d else e)))`. `contract`, `asks`, `throws`, `->`, `catch`, `answer`, `./`, `../`, `\`, the disjunction and conjunction rows, `?`, `??`, `;`, `;;`, `**`, `+`, `-`, `*`, `/`, `%`, `/%`, `.` and `..` are left-associative; for example `F contract C throws E` denotes `(F contract C) throws E` and `e catch h answer k` denotes `(e catch h) answer k`. Membership (`:` `::` `:::`), comparison (`<` `<=` `>=` `>` `==` `!=` `!:`) and range operators are non-associative, so `a < b < c` is ill-formed.
 
 ### Binary operators used as unary prefix operators
 

@@ -71,6 +71,24 @@ error (1,8-1,10): '|>' and '<|' do not associate; add parentheses
 ```
 
 ```ting
+e catch h answer k
+```
+
+```ting-output
+(answer (catch e h) k)
+```
+
+A handler can be an unparenthesized lambda.
+
+```ting
+expr catch Exception ex => "Error: " + ex.Message
+```
+
+```ting-output
+(catch expr (=> (apply Exception ex) (+ "Error: " (. ex Message))))
+```
+
+```ting
 x => y => x + y
 ```
 
@@ -102,14 +120,6 @@ r ./ s ../ v
 
 ```ting-output
 (../ (./ r s) v)
-```
-
-```ting
-e catch h answer k
-```
-
-```ting-output
-(answer (catch e h) k)
 ```
 
 ```ting

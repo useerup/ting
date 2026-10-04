@@ -32,10 +32,10 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
       [ "contract"; "asks"; "throws" ], LeftAssoc, (fun op -> if op = "contract" then LeftDeclarative else RightReferential)
       [ "->" ], LeftAssoc, all RightReferential
       [ ">>"; "<<"; "|>"; "<|" ], LeftAssoc, all Neutral
+      [ "catch"; "answer" ], LeftAssoc, all RightReferential
       [ "=>" ], RightAssoc, all LeftDeclarative
       [ "then"; "else" ], RightAssoc, (fun op -> if op = "then" then RightReferential else Neutral)
       [ "./"; "../" ], LeftAssoc, all LeftReferential
-      [ "catch"; "answer" ], LeftAssoc, all RightReferential
       [ "\\" ], LeftAssoc, all LeftDeclarative
       [ "|"; "||"; "|||" ], LeftAssoc, all Neutral
       [ "&"; "&&"; "&&&" ], LeftAssoc, all Neutral
