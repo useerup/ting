@@ -638,7 +638,7 @@ Tuples and records are product values, not collections. Their components are fie
 
 ### Products
 
-Tuples and records are the two extremes of a single product structure. A product value has zero or more *positional* fields, optionally followed by zero or more *named* fields. The positional and named fields of an ordinary product participate in its identity: two products are equal exactly where all of their fields agree. The public `Result` property attached by ordered-pair construction is not an additional identity-bearing field; an ordered pair retains its origin's identity. See [Ordered Pairs](#ordered-pairs).
+Tuples and records are the two extremes of a single product structure. A product value has zero or more *positional* fields, optionally followed by zero or more *named* fields. The positional and named fields of an ordinary product participate in its identity: two products are equal exactly where all of their fields agree. The `Result` attached by ordered-pair construction is an attribute, not a field; an ordered pair retains its origin's identity. See [Ordered Pairs](#ordered-pairs).
 
 - A **tuple** is a product with only positional fields.
 - A **record** is a product with only named fields.
@@ -692,9 +692,9 @@ The `this.` qualification is required for these references. An unqualified refer
 
 ### Ordered Pairs
 
-An **ordered pair** consists of an origin value or tuple extended with a public property named `Result`. The operator `->` constructs an ordered pair: `origin -> result` extends the origin with `Result` bound to the result. Only the origin determines the pair's identity; `Result` is associated information and does not change that identity.
+An **ordered pair** consists of an origin value or tuple carrying the attribute `Result`. The operator `->` constructs an ordered pair: `origin -> result` attaches `Result`, bound to the result, to the origin. Only the origin determines the pair's identity; because `Result` is an attribute, `(0 -> 1) == (0 -> 2)` holds while `(0 -> 1) = (0 -> 2)` does not.
 
-An ordered pair is not a positional two-tuple `(origin, result)`. For a tuple-valued origin, `(a, b) -> y` is the tuple `(a, b)` extended with the public property `Result = y`, not `((a, b), y)`.
+An ordered pair is not a positional two-tuple `(origin, result)`. For a tuple-valued origin, `(a, b) -> y` is the tuple `(a, b)` carrying the attribute `Result = y`, not `((a, b), y)`.
 
 The result is accessed by property selection:
 
@@ -796,7 +796,7 @@ Other relations can also leave several bindings possible. Non-membership `!:`, c
 
 Several operators construct functions whose applications may be nondeterministic. A single function value must not be confused with its alternative results:
 
-- **Ordered-pair conversion `fn`:** converts a set or multiset of ordered pairs into a function, interpreting each pair's origin as an argument and its public `Result` property as its permitted results. A set-backed function yields the merged result alternatives at an origin. A multiset-backed function retains every contribution as a solution, including repeated equal origin/result associations.
+- **Ordered-pair conversion `fn`:** converts a set or multiset of ordered pairs into a function, interpreting each pair's origin as an argument and its `Result` attribute as its permitted results. A set-backed function yields the `Result` of the member at an origin. A multiset-backed function retains every contribution as a solution, including repeated equal origin/result associations.
 - **Lambda `=>`:** the resulting function may yield alternatives when its body or the bindings satisfying its parameter pattern admit them. Constructing the function does not itself execute its body and yield those alternatives.
 - **Function union `|` and mutually guarded function union `|||`:** shared origins are identified and their result alternatives are merged. Different results at the same origin produce nondeterminism; agreeing results contribute one alternative. The mutually guarded form additionally handles undefinedness of the operands' definedness tests.
 - **Function addition `+`:** applying the combined function retains contributions from both operands. Even two deterministic functions produce two solutions at an argument where both are defined, including when their results agree.
@@ -1370,7 +1370,7 @@ Neutral. Subtracts the right operand from the left operand.
 
 #### `->`
 
-Right-referential. Constructs an ordered pair by extending the origin value or tuple on the left with a public property named `Result` bound to the right operand. The origin alone determines the pair's identity. See [Ordered Pairs](#ordered-pairs) for the resulting value's structure, property access, merging of results, and use with `fn`.
+Right-referential. Constructs an ordered pair by attaching the attribute `Result`, bound to the right operand, to the origin value or tuple on the left. The origin alone determines the pair's identity. See [Ordered Pairs](#ordered-pairs) for the resulting value's structure, attribute access, how sets combine pairs, and use with `fn`.
 
 #### `.`
 
@@ -1559,7 +1559,7 @@ The defined signatures are therefore `num*num`, `set*set` and `set*int`. There i
 
 Neutral. `^` with its operands reversed: `A ^^ B` denotes `B ^ A`. It is therefore defined for exactly the signatures `^` is defined for, and carries no meaning of its own.
 
-Its principal use is the set of functions from the left operand set to the right operand set, which is the reading that puts the domain first. `int ^^ string` is the set of functions from `int` to `string`, the same set as `string ^ int`. The underlying collection of a member `F : A ^^ B` consists of ordered pairs whose origins are members of `A` and whose public `Result` properties have values in `B`. `A` and `B` constrain the declared argument and result sets; `A ^^ B` includes both total and partial functions. A contract can require totality over the admitted domain by marking a lambda body `total`; see [Function contracts and separate compilation](#function-contracts-and-separate-compilation). Without that guarantee, potential undefinedness propagates to uses where it cannot be ruled out from a visible body.
+Its principal use is the set of functions from the left operand set to the right operand set, which is the reading that puts the domain first. `int ^^ string` is the set of functions from `int` to `string`, the same set as `string ^ int`. The underlying collection of a member `F : A ^^ B` consists of ordered pairs whose origins are members of `A` and whose `Result` attributes have values in `B`. `A` and `B` constrain the declared argument and result sets; `A ^^ B` includes both total and partial functions. A contract can require totality over the admitted domain by marking a lambda body `total`; see [Function contracts and separate compilation](#function-contracts-and-separate-compilation). Without that guarantee, potential undefinedness propagates to uses where it cannot be ruled out from a visible body.
 
 For the signature `int*set`, `3 ^^ string` denotes `string ^ 3`, the set of three-tuples of strings.
 
