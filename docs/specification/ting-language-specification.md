@@ -443,7 +443,7 @@ Each element expression contributes every value it can assume, not the expressio
 
 Member values in a set definition are ordered (see [Sets and multisets](#sets-and-multisets)): the element expressions in the order they are written, and within an element expression the values in the order it produces them. A member identity contributed more than once occurs once, at the position of its first contribution.
 
-For ordered pairs, member identity is determined by the origin alone. Contributions with the same origin merge their associated `Result` alternatives; later results are not discarded merely because the origin already occurs. Repeated equal results at that origin contribute one alternative. Thus `{ 1 -> 2, 1 -> 3 }` has one origin, `1`, whose `Result` is nondeterministically `2` or `3`. The set is a single value; accessing the merged result or applying `fn` to that origin exposes the alternatives.
+For ordered pairs, member identity is the origin alone, because `Result` is an attribute. A later contribution with an identity that already occurs is discarded together with its attributes: the member keeps the `Result` of its first contribution. Thus `{ 1 -> 2, 1 -> 3 }` has the single member `1 -> 2`. This is what makes the cases of `fn { ... }` take effect in order.
 
 If an element expression is *countably nondeterministic*, the values it contributes are *ordered*. If an element expression is *uncountably nondeterministic*, the values it contributes are *unordered*. The members of the set as a whole may therefore be only *partially ordered*: every value contributed by an earlier element expression still precedes every value contributed by a later one.
 
@@ -629,7 +629,7 @@ Tuples and records are not collections; see [Tuples and Records](#tuples-and-rec
 - List definitions can expand nondeterministic elements by backtracking.
 
 ### Sets and multisets
-- Sets contain one member per identity in definition order. Ordered pairs with the same origin merge their associated result alternatives.
+- Sets contain one member per identity in definition order. For ordered pairs the identity is the origin, and the member keeps the `Result` of its first contribution.
 - Multisets retain every contribution, including repeated origins and results, and can preserve generation order.
 
 ## Tuples and Records
@@ -704,7 +704,7 @@ The result is accessed by property selection:
 
 This expression yields `y`.
 
-When a set definition or set union combines ordered pairs with the same origin, it retains one member identity and merges the associated result alternatives. For example, `1 -> 2` and `1 -> 3` have the same identity; merging them makes `Result` at origin `1` nondeterministically `2` or `3`. Merging the same result again does not add another alternative. A multiset instead retains separate contributions and their solution multiplicities.
+A set definition that receives ordered pairs with the same origin keeps the first contribution and discards later ones, so `{ 1 -> 2, 1 -> 3 }` is `{ 1 -> 2 }`. Set union `|` instead fuses a member present in both operands: the fused member's `Result` permits the results of both, so `{ 1 -> 2 } | { 1 -> 3 }` has one member whose `Result` is nondeterministically `2` or `3`. Agreeing results contribute one alternative. A multiset retains separate contributions and their solution multiplicities.
 
 Origin-based identity does not make different associated results interchangeable. Comparing complete origin/result associations, or functions built from them, must still observe the results. In particular, a function returning `2` at origin `1` is not equal to one returning `3` there.
 
@@ -1356,7 +1356,7 @@ For set and multiset operands, addition: the collection that retains every contr
 
     {1, 2} + {2, 3}   =   {* 1, 2, 2, 3 *}
 
-The result is a multiset wherever the operands overlap: `#(A + B) = #A + #B` always holds. Unlike `|`, which coalesces common member identities and merges their associated results, `+` is not idempotent. The relation between `|` and `+` on sets mirrors the relation between the set definition `{ ... }` and the multiset definition `{* ... *}`: `|` merges contributions at each identity, while `+` keeps them separately. For ordered pairs, two contributions with the same origin are retained even when their results agree.
+The result is a multiset wherever the operands overlap: `#(A + B) = #A + #B` always holds. Unlike `|`, which coalesces common member identities and merges their associated results, `+` is not idempotent. The relation between `|` and `+` on sets mirrors the relation between the set definition `{ ... }` and the multiset definition `{* ... *}`: `|` keeps one member at each identity, while `+` keeps them separately. For ordered pairs, two contributions with the same origin are retained even when their results agree.
 
 For the signature `Funcs*Funcs^^Funcs`:
 
