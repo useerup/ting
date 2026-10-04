@@ -32,6 +32,8 @@ type private Parser(tokens: Token[]) =
     let isNegation (token: Token) =
         token.Kind = Symbol "-" && token.SpaceBefore && not token.SpaceAfter
 
+    let isProjection (token: Token) = token.Kind = Symbol "." || token.Kind = Symbol ".."
+
     let infixOf (token: Token) =
         match token.Kind with
         | Symbol text
@@ -66,13 +68,18 @@ type private Parser(tokens: Token[]) =
             | Some info when leftPower info >= minPower && not (isNegation token) ->
                 advance () |> ignore
                 let right = this.Expr(rightPower info)
+                let mixes (other: InfixInfo) =
+                    other.Row = info.Row && (info.Assoc = NonAssoc || other.Assoc <> info.Assoc)
+                match right with
+                | Infix(_, inner, _, _) when mixes (infixTable[inner.Text]) ->
+                    fail inner.Span $"'{info.Text}' and '{inner.Text}' do not associate; add parentheses"
+                | _ -> ()
                 left <- Infix(Span.between left.Span right.Span, operatorOf token info.Text, left, right)
-                if info.Assoc = NonAssoc then
-                    let next = peek ()
-                    match infixOf next with
-                    | Some nextInfo when nextInfo.Row = info.Row && not (isNegation next) ->
-                        fail next.Span $"'{info.Text}' and '{nextInfo.Text}' do not associate; add parentheses"
-                    | _ -> ()
+                let next = peek ()
+                match infixOf next with
+                | Some nextInfo when mixes nextInfo && not (isNegation next) ->
+                    fail next.Span $"'{info.Text}' and '{nextInfo.Text}' do not associate; add parentheses"
+                | _ -> ()
             | _ -> go <- false
         left
 
@@ -88,7 +95,7 @@ type private Parser(tokens: Token[]) =
             match infixOf token with
             | Some info ->
                 advance () |> ignore
-                let operand = this.Expr(rightPower info)
+                let operand = if isProjection token then this.Postfix() else this.Expr(rightPower info)
                 Section(Span.between token.Span operand.Span, operatorOf token info.Text, operand)
             | None -> unexpected token "an expression"
 
@@ -97,12 +104,22 @@ type private Parser(tokens: Token[]) =
         let operand = this.Expr(prefixOperandPower text)
         Prefix(Span.between token.Span operand.Span, operatorOf token text, operand)
 
-    /// Juxtaposition: an atom applied to following atoms, left-associative.
+    /// Juxtaposition: a postfix term applied to following postfix terms, left-associative.
     member this.Application() : Expr =
-        let mutable result = this.Atom()
+        let mutable result = this.Postfix()
         while startsAtom (peek ()) do
-            let argument = this.Atom()
+            let argument = this.Postfix()
             result <- Apply(Span.between result.Span argument.Span, result, argument)
+        result
+
+    /// An atom followed by `.`/`..` projections, which bind tighter than juxtaposition.
+    member this.Postfix() : Expr =
+        let mutable result = this.Atom()
+        while isProjection (peek ()) do
+            let token = advance ()
+            let property = this.Atom()
+            let text = if token.Kind = Symbol "." then "." else ".."
+            result <- Infix(Span.between result.Span property.Span, operatorOf token text, result, property)
         result
 
     member this.Atom() : Expr =
@@ -117,7 +134,7 @@ type private Parser(tokens: Token[]) =
         | Keyword "true" -> Bool(token.Span, true)
         | Keyword "false" -> Bool(token.Span, false)
         | Symbol "-" when isNegation token ->
-            let operand = this.Atom()
+            let operand = this.Postfix()
             Prefix(Span.between token.Span operand.Span, operatorOf token "-", operand)
         | Symbol "(" -> this.Parens token
         | Symbol "[" ->

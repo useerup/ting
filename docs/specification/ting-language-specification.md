@@ -290,7 +290,7 @@ Name binding walks the stack from the innermost frame outward, using the scopes 
 1. In a referential frame, a name that is proved to be always declared in that scope resolves the occurrence and ends the walk. The walk continues outward only if the name is proved to be never declared in that scope.
 2. If the walk reaches a declarative frame without being resolved by an earlier referential frame, the occurrence becomes a declaration. The same declaration identity is contributed to that frame and to following declarative frames only for as long as they remain adjacent in the walk.
 3. The first referential frame encountered after declaration has started is a barrier: declaration propagation stops there and does not resume in farther declarative frames.
-4. Contributing a name already present in a declarative frame adds a constraint to the existing binding; the declarations are unified rather than shadowing one another.
+4. Contributing a name already present in a declarative frame adds a constraint to the existing binding; the declarations are unified rather than shadowing one another. If the frames of the contiguous declarative segment already hold different declaration identities for the name, those identities are merged into one declaration that carries all of their constraints.
 5. If every frame is referential and none contains the name, the occurrence is unresolved and compilation fails.
 
 This makes declaration composition sensitive to the order and mode of individual scope frames. An inner referential frame can resolve a name before an outer declarative frame is reached, while a name absent from that inner frame may be declared by the outer one. Scope-introducing operators such as `./` and `../` first analyze the operand that defines the scope, then analyze the other operand under that scope; the binding walk is therefore performed after the relevant scope has been populated. When declaration starts, only the contiguous declarative segment participates in the same declaration identity; interleaved referential frames are hard boundaries.
@@ -300,6 +300,12 @@ Classification of an occurrence may be deferred during compile-time analysis. An
 Every identifier reference must be resolved at compile time. At each referential frame reached by the binding walk, the compiler must establish that the scope always declares the referenced name or that it never declares that name, under the constraints applicable at the occurrence. If it always declares the name, resolution uses that scope. If it never declares the name, the walk continues outward. A scope that may declare the name in some cases but not others is a compilation error for that occurrence. Inability to prove either always or never is also a compilation error; an unknown intermediate scope must not be skipped to select an outer declaration or to declare the name in an outer frame.
 
 Pending classification is an intermediate compiler state only. If analysis can make no further progress and a reference remains unresolved, compilation fails. No reference is deferred to runtime. This requirement concerns the declaration to which a name refers, not whether its bound value is known at compile time.
+
+### Anonymous identifier and freshness
+
+The identifier `_` is anonymous. Every occurrence denotes a distinct logical variable that is never referenced, so `(_, _)` matches any pair. `_` does not participate in the binding walk: it is not contributed to any frame, never published, and never harvested as a record field.
+
+Each application of a function introduces fresh logical variables for the declarations of its parameter pattern and body. Alternatives explored by backtracking likewise receive fresh variables, so bindings made while trying one alternative do not constrain another.
 
 ### Shadowing
 
@@ -323,7 +329,7 @@ This expression is a compilation error: the inner `in` declares `value` again, w
 
 ### Property resolution
 
-A declaration made through property access has a host. For example, `int.Zero = 0` declares `Zero` directly on `int`, whereas `int..Double = expression` declares `Double` on members of `int`. Hosted names are not ordinary lexical declarations: bare lexical lookup skips them, and property access finds them through a receiver matching their host.
+A declaration made through property access has a host. For example, `int.Zero = 0` declares `Zero` directly on `int`, whereas `int..Double = expression` declares `Double` on members of `int`. Hosted names are not ordinary lexical declarations: bare lexical lookup skips them, and property access finds them through a receiver matching their host. A hosted declaration is identified by its name together with its host: `int..Double` and `float..Double` are distinct declarations, and the receiver selects between them. Repeated declarations of the same name on the same host merge like other repeated declarations.
 
 In `receiver.property` and `receiver..property`, the receiver is referential. The property expression is interpreted against the receiver, not looked up as an ordinary lexical name. Resolution first seeks a field of the receiver's record structure, then a hosted property whose host matches the receiver. A direct host matches the receiver itself; a member host matches a set to which the receiver belongs.
 
@@ -583,6 +589,8 @@ TODO: describe an implicit promotion from set values to identity functions when 
 - Juxtaposition application (`f x`) is supported.
 
 In juxtaposition `f x`, the callee `f` is referential in every covering scope frame, while the argument `x` retains the ambient frame modes. Thus `float a` reads `float` and declares `a` when a declarative frame covers the argument. A callee cannot become a declaration by passing through an inner scope into an outer declarative frame.
+
+Juxtaposition is left-associative: `f x y` denotes `(f x) y`. The property operators `.` and `..` bind more tightly than juxtaposition, so `f a.b` denotes `f (a.b)` and `Console.WriteLine message` denotes `(Console.WriteLine) message`. Juxtaposition binds more tightly than every other infix operator.
 
 
 ## Collections
@@ -1052,7 +1060,9 @@ The mirror image of left-declarative. A local scope spanning the whole operator 
 
 Precedence is defined by the binary infix table under [Binary infix](#binary-infix). Because `\` binds more tightly than `=`, an equation used as a such-that predicate must be parenthesized: `int x \ (x = 42)`.
 
-TODO: associativity is not yet specified.
+`^`, `^^` and `<|` are right-associative: `2 ^ 3 ^ 2` denotes `2 ^ (3 ^ 2)` and `f <| g <| x` denotes `f (g x)`. `=` and `?=` are non-associative, so `a = b = c` is ill-formed. `|>`, `>>` and `<<` share a row with `<|` but are left-associative; operators of one row that associate differently cannot be combined without parentheses, so `x |> f <| y` is ill-formed.
+
+TODO: associativity of the remaining operators is not yet specified.
 
 ### Binary operators used as unary prefix operators
 
@@ -1118,7 +1128,7 @@ Nothing precedes the `-` in `(-1)`, so it is the binary operator and has no left
 
 The rule exists because a negative value has to be usable as a juxtaposed argument without taking the subtraction away from `n-1`.
 
-Negation binds more tightly than every infix operator, because `-x` is a term. In particular `-a.b` denotes `(-a).b` and `-a^b` denotes `(-a)^b`, in the same way that the juxtaposition in `f a.b` denotes `(f a).b`.
+Negation binds more tightly than every infix operator except `.` and `..`, because `-x` is a term. In particular `-a.b` denotes `-(a.b)` and `-a^b` denotes `(-a)^b`, in the same way that the juxtaposition in `f a.b` denotes `f (a.b)`.
 
 #### `ask`
 

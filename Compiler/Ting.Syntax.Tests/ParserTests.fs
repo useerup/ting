@@ -18,7 +18,7 @@ let private parsed (code: string) =
 [<InlineData("x + -1", "(+ x (negate 1))")>]
 [<InlineData("[1, -1]", "(list 1 (negate 1))")>]
 [<InlineData("( -1)", "(negate 1)")>]
-[<InlineData(" -a.b", "(. (negate a) b)")>]
+[<InlineData(" -a.b", "(negate (. a b))")>]
 [<InlineData(" -a^b", "(^ (negate a) b)")>]
 [<InlineData("x ? - 1", "(? x (section - 1))")>]
 let ``minus spacing`` (code: string, expected: string) = Assert.Equal(expected, parsed code)
@@ -29,9 +29,26 @@ let ``minus spacing`` (code: string, expected: string) = Assert.Equal(expected, 
 let ``minus without a left operand is rejected`` (code: string) =
     Assert.StartsWith("error:", parsed code)
 
-[<Fact>]
-let ``juxtaposition binds tighter than property access`` () =
-    Assert.Equal("(. (apply f a) b)", parsed "f a.b")
+[<Theory>]
+[<InlineData("f a.b", "(apply f (. a b))")>]
+[<InlineData("Console.WriteLine message", "(apply (. Console WriteLine) message)")>]
+[<InlineData("f a.b..c x", "(apply (apply f (.. (. a b) c)) x)")>]
+let ``property access binds tighter than juxtaposition`` (code: string, expected: string) =
+    Assert.Equal(expected, parsed code)
+
+[<Theory>]
+[<InlineData("2 ^ 3 ^ 2", "(^ 2 (^ 3 2))")>]
+[<InlineData("f <| g <| x", "(<| f (<| g x))")>]
+[<InlineData("x |> f |> g", "(|> (|> x f) g)")>]
+let ``associativity`` (code: string, expected: string) = Assert.Equal(expected, parsed code)
+
+[<Theory>]
+[<InlineData("a = b = c")>]
+[<InlineData("f ?= g = h")>]
+[<InlineData("x |> f <| y")>]
+[<InlineData("f <| g |> x")>]
+let ``operators that do not associate are rejected`` (code: string) =
+    Assert.StartsWith("error:", parsed code)
 
 [<Fact>]
 let ``spans cover the source text`` () =

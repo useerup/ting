@@ -28,7 +28,7 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
     let all b = fun (_: string) -> b
     [ [ "where" ], RightAssoc, all RightDeclarative
       [ "in" ], RightAssoc, all LeftDeclarative
-      [ "="; "?=" ], LeftAssoc, all RightReferential
+      [ "="; "?=" ], NonAssoc, all RightReferential
       [ "contract"; "asks"; "throws" ], LeftAssoc, (fun op -> if op = "contract" then LeftDeclarative else RightReferential)
       [ "->" ], LeftAssoc, all RightReferential
       [ ">>"; "<<"; "|>"; "<|" ], LeftAssoc, all Neutral
@@ -48,13 +48,19 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
       [ "**" ], LeftAssoc, all Neutral
       [ "+"; "-" ], LeftAssoc, all Neutral
       [ "*"; "/"; "%"; "/%" ], LeftAssoc, all Neutral
-      [ "^" ], LeftAssoc, all Neutral
+      [ "^" ], RightAssoc, all Neutral
       [ "."; ".." ], LeftAssoc, all PropertyAccess ]
+
+/// Operators whose associativity differs from their row; mixing them with the row's other operators is an error.
+let private assocOverrides = Map [ "<|", RightAssoc ]
 
 let infixTable: Map<string, InfixInfo> =
     rows
     |> List.mapi (fun index (ops, assoc, binding) ->
-        ops |> List.map (fun op -> op, { Text = op; Row = index + 1; Assoc = assoc; Binding = binding op }))
+        ops
+        |> List.map (fun op ->
+            let assoc = assocOverrides |> Map.tryFind op |> Option.defaultValue assoc
+            op, { Text = op; Row = index + 1; Assoc = assoc; Binding = binding op }))
     |> List.concat
     |> Map.ofList
 

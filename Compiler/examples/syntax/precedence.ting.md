@@ -18,12 +18,14 @@ x = 1 in y = 2 in x + y
 (in (= x 1) (in (= y 2) (+ x y)))
 ```
 
+`=` and `?=` do not associate.
+
 ```ting
 f ?= g = h
 ```
 
 ```ting-output
-(= (?= f g) h)
+error (1,8-1,9): '?=' and '=' do not associate; add parentheses
 ```
 
 ```ting
@@ -43,11 +45,29 @@ a -> b -> c
 ```
 
 ```ting
-x |> f >> g <| y
+x |> f >> g << h
 ```
 
 ```ting-output
-(<| (>> (|> x f) g) y)
+(<< (>> (|> x f) g) h)
+```
+
+`<|` is right-associative while the rest of its row is left-associative, so it cannot be mixed with them without parentheses.
+
+```ting
+f <| g <| x
+```
+
+```ting-output
+(<| f (<| g x))
+```
+
+```ting
+x |> f <| y
+```
+
+```ting-output
+error (1,8-1,10): '|>' and '<|' do not associate; add parentheses
 ```
 
 ```ting
@@ -190,14 +210,14 @@ a.b..c.d
 (. (.. (. a b) c) d)
 ```
 
-Juxtaposition binds tighter than every infix operator, including `.`.
+`.` and `..` bind tighter than juxtaposition, which binds tighter than every other infix operator.
 
 ```ting
 f a.b
 ```
 
 ```ting-output
-(. (apply f a) b)
+(apply f (. a b))
 ```
 
 ```ting
@@ -205,5 +225,5 @@ Console.WriteLine message
 ```
 
 ```ting-output
-(. Console (apply WriteLine message))
+(apply (. Console WriteLine) message)
 ```
