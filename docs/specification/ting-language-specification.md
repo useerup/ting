@@ -333,7 +333,7 @@ A declaration made through property access has a host. For example, `int.Zero = 
 
 In `receiver.property` and `receiver..property`, the receiver is referential. The property expression is interpreted against the receiver, not looked up as an ordinary lexical name. Resolution first seeks a field of the receiver's record structure, then a hosted property whose host matches the receiver. A direct host matches the receiver itself; a member host matches a set to which the receiver belongs.
 
-For an unqualified name, lexical lookup precedes implicit property lookup through a covering `this` binding. Implicit lookup interprets the name as a property of `this`. An undetermined receiver or intervening scope does not authorize a lexical fallback: property references may be deferred only during compile-time analysis and must resolve before compilation can succeed.
+For an unqualified name, implicit property lookup happens in the binding walk at the frame that binds `this`. When the walk reaches that frame without the name having resolved in a nearer frame, the name is looked up as a property of `this`, exactly as `this.name` would be: first a field of the record structure of `this`, then a hosted property whose host matches `this`. If `this` always has the property, the occurrence resolves to it; if it never has it, the walk continues outward; if it may have it for some values of `this` but not others, compilation fails. Names resolved in nearer frames therefore take precedence over properties of `this`, and properties of `this` take precedence over farther names and over declaration in a farther declarative frame. With nested `this` bindings, each frame that binds `this` is consulted as the walk passes it, the innermost first. For example, in `DateTime this => $"{Year}-{Month}"`, `Year` and `Month` resolve to properties hosted on `DateTime`. An undetermined receiver or intervening scope does not authorize a lexical fallback: property references may be deferred only during compile-time analysis and must resolve before compilation can succeed.
 
 The `this` binding supplied by a record does not provide implicit lookup of that record's fields within field expressions. References to those fields require `this.field`, even when no surrounding binding supplies the unqualified name (see [Records](#records)).
 
@@ -736,15 +736,15 @@ Function union `f | g` merges the results supplied by both functions at each sha
 
 The open-scope operators `./` and `../` do not introduce a `this` binding. Opening an expression scope or an expression member scope does not itself bind or rebind `this`.
 
-Documented contexts that bind `this` include:
-- `record`, `records`
-- `tuple`, `tuples`
+Contexts that bind `this`:
+- `record` and `records`: `this` is the record being defined, or for `records` each member record being described.
+- `tuple` and `tuples`: `this` is the tuple being defined, or for `tuples` each member tuple being described. Tuples have no named fields, so `this` refers to the whole tuple, as in `tuples(int a, int b \ this != (0, 0))`.
 - explicit lambda parameters named `this`
 - local binding such as `this = ... in ...`
 
-In a record field expression, the record supplies itself as `this`. References to its own fields require `this.field`; this record context does not make the fields available through unqualified references (see [Records](#records)).
+In a record field expression, the record supplies itself as `this`. References to its own fields require `this.field`; this record context does not make the fields available through unqualified references (see [Records](#records)). The same holds inside `records`, `tuple` and `tuples`: none of them provides implicit lookup.
 
-When `this` is in declarative position, members of its value/type are available in scope by unqualified names, except for the record-field context described above.
+When `this` is bound by a lambda parameter or a local declaration, its properties are available by unqualified names through implicit lookup, as specified under [Property resolution](#property-resolution): a bare name `n` means `this.n` unless a nearer frame resolves `n`.
 
 `this` may be redefined in a nested scope within the same local expression. A new declaration of `this` introduces a distinct binding that shadows the outer `this` within the nested scope; it does not add constraints to the outer binding. This is an exception to the prohibition on redeclaring ordinary local identifiers. References to `this` resolve to the nearest covering binding according to the scope walk and must resolve at compile time. Outside the nested scope, the outer binding remains in effect.
 
