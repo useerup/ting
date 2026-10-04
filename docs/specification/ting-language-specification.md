@@ -579,9 +579,24 @@ A call site to which the names are published may bind arguments by name in the n
 
 Names published this way are publication metadata attached to the declaration; tuple values remain purely positional, and application remains unification of the parameter pattern with the argument. Where no names are published, only positional application is available. Whether published names attach to the function value itself or to the binding through which the function is reached is not yet specified.
 
+### Implicit promotion
+
+When the compiler establishes that an argument can never be a member of the domain of the function it is passed to, it tries to promote the argument. Promotion is never applied to an argument that may fit as it is; where an overload accepts the argument unpromoted, that overload is used. If no promotion makes the argument fit, the application is undefined for that argument as usual.
+
+The promotions are:
+
+- **Integer widening.** A value of an integer set is promoted to an integer set with more bits that holds every value of the original set, for example `short` to `int`, `int` to `long`, and `byte` to `int`. Where several widenings would fit, the one with the fewest bits is chosen.
+- **Set to function.** A set is promoted to its identity function, as described below.
+
+The callee of an application is subject to the same rule: a callee that can never be a function is promoted.
+
 ### Sets as identity functions
 
-TODO: describe an implicit promotion from set values to identity functions when a function is expected.
+A set is not itself a function value: it is not a member of `Funcs`, so `int : int ^^ int` is `false`. Where a function is required and a set is supplied, the set is promoted to its identity function. Applied to an argument `a`, the identity function of `S` yields `a` if `a : S` and is undefined otherwise.
+
+This is what makes `int x` a pattern: the callee `int` is promoted, so with `x` free the application constrains `x : int` and yields `x`. The same promotion applies to the operands of composition, `{'0'...'9'} >> f`, to the operand of `class`, and to any set passed to a parameter that is applied.
+
+A class is a set, so applying a class is also restricted identity: `Meters m` accepts members of `Meters` and is undefined for other values, including members of its candidate set. Members of a class are created with `new`; see [Classes](#classes).
 
 ### Function composition and application
 - Composition operators include `>>` and `<<`.
@@ -591,6 +606,10 @@ TODO: describe an implicit promotion from set values to identity functions when 
 In juxtaposition `f x`, the callee `f` is referential in every covering scope frame, while the argument `x` retains the ambient frame modes. Thus `float a` reads `float` and declares `a` when a declarative frame covers the argument. A callee cannot become a declaration by passing through an inner scope into an outer declarative frame.
 
 Juxtaposition is left-associative: `f x y` denotes `(f x) y`. The property operators `.` and `..` bind more tightly than juxtaposition, so `f a.b` denotes `f (a.b)` and `Console.WriteLine message` denotes `(Console.WriteLine) message`. Juxtaposition binds more tightly than every other infix operator.
+
+Applying a lambda `p => b` to an argument `a` introduces fresh variables for the declarations of `p` and `b`, unifies the pattern with the argument as by `p ?= a`, and then evaluates `b`. If the pattern and the argument cannot be unified, the application is undefined. Each distinct way of unifying them gives a separate alternative. Because application is unification, a function may be applied with its result known and its argument unknown, subject to mode analysis.
+
+Application is curried, and a tuple is a single argument. `f(x, y)` applies `f` once to the tuple `(x, y)`, and `(int a, int b) => a + b` accepts one tuple, whereas `a => b => a + b` is applied as `f x y`. There is no implicit conversion between curried and tupled functions.
 
 
 ## Collections
