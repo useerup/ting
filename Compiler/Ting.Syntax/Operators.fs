@@ -29,11 +29,11 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
     [ [ "where" ], RightAssoc, all RightDeclarative
       [ "in" ], RightAssoc, all LeftDeclarative
       [ "="; "?=" ], LeftAssoc, all RightReferential
-      [ "then"; "else" ], RightAssoc, (fun op -> if op = "then" then RightReferential else Neutral)
       [ "contract"; "asks"; "throws" ], LeftAssoc, (fun op -> if op = "contract" then LeftDeclarative else RightReferential)
       [ "->" ], LeftAssoc, all RightReferential
       [ ">>"; "<<"; "|>"; "<|" ], LeftAssoc, all Neutral
       [ "=>" ], RightAssoc, all LeftDeclarative
+      [ "then"; "else" ], RightAssoc, (fun op -> if op = "then" then RightReferential else Neutral)
       [ "./"; "../" ], LeftAssoc, all LeftReferential
       [ "catch"; "answer" ], LeftAssoc, all RightReferential
       [ "\\" ], LeftAssoc, all LeftDeclarative
@@ -42,8 +42,8 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
       [ "?"; "??" ], LeftAssoc, all RightReferential
       [ ":"; "::"; ":::" ], NonAssoc, all RightReferential
       [ "<"; "<="; ">="; ">"; "=="; "!="; "!:" ], NonAssoc, all RightReferential
-      [ "..."; "...<"; "<..."; "<...<" ], NonAssoc, all Neutral
       [ ";"; ";;" ], LeftAssoc, all Neutral
+      [ "..."; "...<"; "<..."; "<...<" ], NonAssoc, all Neutral
       [ "^^" ], RightAssoc, all Neutral
       [ "**" ], LeftAssoc, all Neutral
       [ "+"; "-" ], LeftAssoc, all Neutral

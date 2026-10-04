@@ -49,11 +49,11 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `where`                          | right-declarative condition                                                 |
 | `in`                             | left-declarative conditional value                                          |
 | `=` `?=`                         | structural equality, unification                                            |
-| `then` `else`                    | implication, alternative                                                    |
 | `contract` `asks` `throws`       | function abstraction, effect and exception contracts                        |
 | `->`                             | ordered pair construction                                                   |
 | `>>` `<<` `\|>` `<\|`            | composition and application                                                 |
 | `=>`                             | lambda                                                                      |
+| `then` `else`                    | implication, alternative                                                    |
 | `./` `../`                       | left-referential expression scope, left-referential expression-member scope |
 | `catch` `answer`                 | exception and effect handling                                               |
 | `\`                              | such-that / restriction                                                     |
@@ -62,8 +62,8 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `?` `??`                         | restriction, alternative-on-undefined                                       |
 | `:` `::` `:::`                   | member-of, collection-of, sequence-of                                       |
 | `<` `<=` `>=` `>` `==` `!=` `!:` | comparison, attribute-blind equality, non-membership                        |
-| `...` `...<` `<...` `<...<`      | ranges                                                                      |
 | `;` `;;`                         | choice, alternative-on-undefined                                            |
+| `...` `...<` `<...` `<...<`      | ranges                                                                      |
 | `^^`                             | reversed exponentiation, set of functions                                   |
 | `**`                             | non-fusing product                                                          |
 | `+` `-`                          | addition, subtraction                                                       |
@@ -71,7 +71,7 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `^`                              | exponentiation, set of functions, tuple power                               |
 | `.` `..`                         | property, member property                                                   |
 
-The alphabetic entries in the table are keyword binary infix operators. The binding power of `contract` makes `f = p => b contract C` group as `f = ((p => b) contract C)`.
+The alphabetic entries in the table are keyword binary infix operators. The binding power of `contract` makes `f = p => b contract C` group as `f = ((p => b) contract C)`. Because `then` and `else` bind more tightly than `=>`, a conditional can be a lambda body without parentheses: `int n => n < 0 then void else n * 2` groups as `int n => ((n < 0) then (void else (n * 2)))`. Because the ranges bind more tightly than `;`, `1...3 ; 5...9` is a choice between two ranges.
 
 #### Unary suffix
 
@@ -359,13 +359,13 @@ The following forms introduce declarative scopes:
 
 For example:
 
-    (int x => x * 2 + k) \ k = 42
+    (int x => x * 2 + k) \ (k = 42)
 
 In the parameter pattern, `x` is contributed to both the lambda scope and the enclosing such-that scope, since both are declarative there. The application callee `int` is referential and therefore cannot become a declaration. In the body, the lambda frame is referential. The body occurrence of `x` resolves there, but `k` is absent, so the walk continues to the still-declarative such-that frame and declares `k`. On the right of `\`, that frame is referential and both names can be used as constraints.
 
 The ability of an enclosing declarative scope to collect declarations from a nested function is intentional:
 
-    (int x => c) \ c = x * 2
+    (int x => c) \ (c = x * 2)
 
 This denotes the same relation as `int x => x * 2`. In the such-that scope, `x` and `c` are nondeterministic logical variables ranging together over the ordered pairs of the function. The predicate constrains the relationship between each accepted argument and its result.
 
@@ -1050,7 +1050,9 @@ The mirror image of left-declarative. A local scope spanning the whole operator 
 
 ### Operator Precedence and Associativity
 
-TODO: precedence and associativity are intentionally left unspecified in this draft and will be defined later.
+Precedence is defined by the binary infix table under [Binary infix](#binary-infix). Because `\` binds more tightly than `=`, an equation used as a such-that predicate must be parenthesized: `int x \ (x = 42)`.
+
+TODO: associativity is not yet specified.
 
 ### Binary operators used as unary prefix operators
 

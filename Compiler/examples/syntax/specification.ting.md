@@ -1,6 +1,6 @@
 # Specification examples
 
-Expressions taken from the language specification. Under the specification's precedence table, three of them group differently from what their surrounding text intends: `\ k = 42` and `\ c = x * 2` group as `(... \ k) = 42`, and `int n => n < 0 then void else n * 2` groups as `(int n => n < 0) then ...` (specification issue SYN-01).
+Expressions taken from the language specification.
 
 ```ting
 ((value = 1) & (value = 1)) in value
@@ -35,19 +35,19 @@ this = 1 in (this = 2 in this)
 ```
 
 ```ting
-(int x => x * 2 + k) \ k = 42
+(int x => x * 2 + k) \ (k = 42)
 ```
 
 ```ting-output
-(= (\ (=> (apply int x) (+ (* x 2) k)) k) 42)
+(\ (=> (apply int x) (+ (* x 2) k)) (= k 42))
 ```
 
 ```ting
-(int x => c) \ c = x * 2
+(int x => c) \ (c = x * 2)
 ```
 
 ```ting-output
-(= (\ (=> (apply int x) c) c) (* x 2))
+(\ (=> (apply int x) c) (= c (* x 2)))
 ```
 
 ```ting
@@ -145,7 +145,7 @@ let F = int n => n < 0 then void else n * 2
 ```
 
 ```ting-output
-(let (= F (then (=> (apply int n) (< n 0)) (else void (* n 2)))))
+(let (= F (=> (apply int n) (then (< n 0) (else void (* n 2))))))
 ```
 
 ```ting

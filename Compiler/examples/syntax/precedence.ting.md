@@ -27,14 +27,6 @@ f ?= g = h
 ```
 
 ```ting
-a then b else c then d else e
-```
-
-```ting-output
-(then a (else b (then c (else d e))))
-```
-
-```ting
 f = p => b contract C throws E
 ```
 
@@ -64,6 +56,24 @@ x => y => x + y
 
 ```ting-output
 (=> x (=> y (+ x y)))
+```
+
+```ting
+a then b else c then d else e
+```
+
+```ting-output
+(then a (else b (then c (else d e))))
+```
+
+A conditional can be a lambda body without parentheses.
+
+```ting
+int n => n < 0 then void else n * 2
+```
+
+```ting-output
+(=> (apply int n) (then (< n 0) (else void (* n 2))))
 ```
 
 ```ting
@@ -130,22 +140,22 @@ a < b < c
 error (1,7-1,8): '<' and '<' do not associate; add parentheses
 ```
 
-The specification lists the ranges below `;`, so `;` binds tighter and the next expression reads as `1 ... (3 ; 5) <...< 9`.
-
-```ting
-1 ... 3 ;  5 <...< 9
-```
-
-```ting-output
-error (1,14-1,19): '...' and '<...<' do not associate; add parentheses
-```
-
 ```ting
 0 ; 1 ;; 2
 ```
 
 ```ting-output
 (;; (; 0 1) 2)
+```
+
+The ranges bind tighter than `;`, so this is a choice between two ranges.
+
+```ting
+1 ... 3 ;  5 <...< 9
+```
+
+```ting-output
+(; (... 1 3) (<...< 5 9))
 ```
 
 ```ting
