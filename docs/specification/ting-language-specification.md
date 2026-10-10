@@ -380,7 +380,8 @@ This denotes the same relation as `int x => x * 2`. In the such-that scope, `x` 
 - `fn` is a unary operator that converts a set or multiset of ordered pairs into a function.
 - Each pair `origin -> result` consists of the origin value or tuple carrying the attribute `Result`. The origin is an argument and `Result` supplies a result for that argument.
 - `fn { p1 -> r1, p2 -> r2, ... }` is unary `fn` applied to a set literal of ordered pairs.
-- A set keeps one ordered pair per origin: the first contribution in definition order. The cases of `fn { ... }` therefore take effect in order, so `fn { 0 -> 1, int n -> n * f (n - 1) }` yields `1` at `0`.
+- A set keeps one ordered pair per origin: the first contribution in definition order. The cases of `fn { ... }` therefore take effect in order, so `fn { 0 -> 1, let int n -> n * f (n - 1) }` yields `1` at `0`.
+- `->` is right-referential, so its left operand declares only where a declarative frame covers it. A case whose pattern introduces variables is written with `let`, as in `let int n -> ...` above; without it `n` would be a reference.
 - A multiset retains each ordered-pair contribution and its result. Several contributions with the same origin give multiple solutions at that argument, including repeated equal results.
 
 ## Values and Equality
@@ -1175,9 +1176,9 @@ Neutral. Constructs a class over the candidate set denoted by its operand. A cla
 
 Neutral. Converts a set or multiset of ordered pairs into a function. In `fn S`, each pair `origin -> result` in `S` supplies the value of its `Result` attribute as a result for its origin. The pair is the origin value or tuple carrying that attribute, not a positional two-tuple. The resulting function's underlying collection is `S`; see [Ordered pairs and the underlying collection](#ordered-pairs-and-the-underlying-collection).
 
-If `S` is a multiset containing several ordered pairs with the same origin, each occurrence contributes a solution, even when results agree. If `S` is a set, it holds one member per origin, and the function yields that member's `Result`. In a set definition that member is the first contribution, so `fn { 0 -> 1, int n -> n * f (n - 1) }` yields `1` at `0`. After set union the member's `Result` may permit several alternatives.
+If `S` is a multiset containing several ordered pairs with the same origin, each occurrence contributes a solution, even when results agree. If `S` is a set, it holds one member per origin, and the function yields that member's `Result`. In a set definition that member is the first contribution, so `fn { 0 -> 1, let int n -> n * f (n - 1) }` yields `1` at `0`. After set union the member's `Result` may permit several alternatives.
 
-`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of ordered pairs. Its cases take effect in order only because the set definition keeps the first contribution at each origin; `fn` adds no dispatch rule of its own.
+`fn { p1 -> r1, p2 -> r2, ... }` is ordinary unary `fn` applied to a set literal of ordered pairs. Its cases take effect in order only because the set definition keeps the first contribution at each origin; `fn` adds no dispatch rule of its own. Because `->` is right-referential, a case whose pattern introduces variables needs a declarative frame, normally an explicit `let`: `let int n -> n * 2`.
 
 #### `internal`
 
@@ -1531,7 +1532,7 @@ Right-referential, and binds as tightly as `=`. Declaration by unification: the 
 
 Declarations contributed by the left operand are available when the now-referential scope frames are searched on the right, so recursive bindings can be written with `?=`. Its distinction from `=` is semantic: failed unification is undefined rather than the boolean value `false`.
 
-    let f ?= fn{ 0 -> 1, int n -> n * f (n - 1) } in f 3
+    let f ?= fn{ 0 -> 1, let int n -> n * f (n - 1) } in f 3
 
 #### `??`
 

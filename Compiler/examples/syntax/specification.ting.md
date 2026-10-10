@@ -120,7 +120,7 @@ Sum(1 @ b = 2)
 ```
 
 ```ting
-let f ?= fn{ 0 -> 1, int n -> n * f (n - 1) } in f 3
+let f ?= fn{ 0 -> 1, let int n -> n * f (n - 1) } in f 3
 ```
 
 ```ting-output
@@ -128,7 +128,8 @@ let f ?= fn{ 0 -> 1, int n -> n * f (n - 1) } in f 3
   (in
     (?=
       f
-      (fn (set (-> 0 1) (-> (apply int n) (* n (apply f (- n 1)))))))
+      (fn
+        (set (-> 0 1) (let (-> (apply int n) (* n (apply f (- n 1))))))))
     (apply f 3)))
 ```
 
