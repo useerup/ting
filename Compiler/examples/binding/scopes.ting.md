@@ -31,6 +31,58 @@ Identifiers:
   1,13 y: declares #1
 ```
 
+`all` is left-declarative: the condition declares the quantified names and the requirement refers to them.
+
+```ting
+x : int all x > 0
+```
+
+```ting-output
+Declarations:
+  #1 x: local (all at 1,9)
+Identifiers:
+  1,1 x: declares #1
+  1,5 int: references builtin
+  1,13 x: references #1
+```
+
+Nested quantifiers each get their own frame, and the inner requirement sees both names.
+
+```ting
+x : int all y : int all x < y
+```
+
+```ting-output
+Declarations:
+  #1 x: local (all at 1,9)
+  #2 y: local (all at 1,21)
+Identifiers:
+  1,1 x: declares #1
+  1,5 int: references builtin
+  1,13 y: declares #2
+  1,17 int: references builtin
+  1,25 x: references #1
+  1,29 y: references #2
+```
+
+On the right of `=` the quantified name stays local to the `all` frame.
+
+```ting
+let b = (x : int all x > 0) in b
+```
+
+```ting-output
+Declarations:
+  #1 b: local (in at 1,29; let at 1,1)
+  #2 x: local (all at 1,18)
+Identifiers:
+  1,5 b: declares #1
+  1,10 x: declares #2
+  1,14 int: references builtin
+  1,22 x: references #2
+  1,32 b: references #1
+```
+
 The callee of an application is referential, the argument is ambient.
 
 ```ting

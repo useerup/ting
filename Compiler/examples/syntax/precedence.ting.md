@@ -122,6 +122,42 @@ r ./ s ../ v
 (../ (./ r s) v)
 ```
 
+`all` binds less tightly than `\`, `|` and `&`, and is right-associative, so nested quantifiers need no parentheses.
+
+```ting
+x : EvenInts all x % 2 == 0
+```
+
+```ting-output
+(all (: x EvenInts) (== (% x 2) 0))
+```
+
+```ting
+x : A & x > 0 all y : B all x < y | y == 0
+```
+
+```ting-output
+(all (& (: x A) (> x 0)) (all (: y B) (| (< x y) (== y 0))))
+```
+
+```ting
+int x \ x > 0 all x >= 1
+```
+
+```ting-output
+(all (\ (apply int x) (> x 0)) (>= x 1))
+```
+
+`then` binds less tightly than `all`.
+
+```ting
+x : S all p x then a else b
+```
+
+```ting-output
+(then (all (: x S) (apply p x)) (else a b))
+```
+
 ```ting
 int x \ x != 0 \ x < 10
 ```

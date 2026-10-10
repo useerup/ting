@@ -43,7 +43,7 @@ let keywords =
           "record"; "records"; "tuple"; "tuples"; "fn"; "class"
           "primary"; "candidate"; "total"; "partial"; "determ"; "nondeterm"
           "throw"; "ask"
-          "where"; "in"; "then"; "else"; "contract"; "asks"; "throws"; "catch"; "answer"
+          "where"; "in"; "then"; "else"; "contract"; "asks"; "throws"; "catch"; "answer"; "all"
           "void"; "this"; "true"; "false" ]
 
 /// Longest match is applied by trying longer symbols first.
