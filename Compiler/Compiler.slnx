@@ -1,5 +1,7 @@
 <Solution>
   <Project Path="Ting.Ast/Ting.Ast.fsproj" />
+  <Project Path="Ting.Binding.Tests/Ting.Binding.Tests.fsproj" />
+  <Project Path="Ting.Binding/Ting.Binding.fsproj" />
   <Project Path="Ting.Parser/Ting.Parser.fsproj" />
   <Project Path="Compiler/Compiler.fsproj" />
   <Project Path="Ting.Syntax.Tests/Ting.Syntax.Tests.fsproj" />
