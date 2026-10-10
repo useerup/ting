@@ -56,6 +56,7 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `=>`                             | lambda                                                                      |
 | `then` `else`                    | implication, alternative                                                    |
 | `./` `../`                       | left-referential expression scope, left-referential expression-member scope |
+| `all`                            | left-declarative universal quantification                                   |
 | `\`                              | such-that / restriction                                                     |
 | `\|` `\|\|` `\|\|\|`             | disjunction, guarded disjunction, mutually guarded disjunction              |
 | `&` `&&` `&&&`                   | conjunction, guarded conjunction, mutually guarded conjunction              |
@@ -71,7 +72,7 @@ Listed in order of increasing binding power. Tokens on the same row bind equally
 | `^`                              | exponentiation, set of functions, tuple power                               |
 | `.` `..`                         | property, member property                                                   |
 
-The alphabetic entries in the table are keyword binary infix operators. The binding power of `contract` makes `f = p => b contract C` group as `f = ((p => b) contract C)`. Because `then` and `else` bind more tightly than `=>`, a conditional can be a lambda body without parentheses: `int n => n < 0 then void else n * 2` groups as `int n => ((n < 0) then (void else (n * 2)))`. Because the ranges bind more tightly than `;`, `1...3 ; 5...9` is a choice between two ranges. Because `catch` and `answer` bind less tightly than `=>`, a handler can be an unparenthesized lambda: `expr catch Exception ex => ex.Message` groups as `expr catch (Exception ex => ex.Message)`.
+The alphabetic entries in the table are keyword binary infix operators. The binding power of `contract` makes `f = p => b contract C` group as `f = ((p => b) contract C)`. Because `then` and `else` bind more tightly than `=>`, a conditional can be a lambda body without parentheses: `int n => n < 0 then void else n * 2` groups as `int n => ((n < 0) then (void else (n * 2)))`. Because the ranges bind more tightly than `;`, `1...3 ; 5...9` is a choice between two ranges. Because `catch` and `answer` bind less tightly than `=>`, a handler can be an unparenthesized lambda: `expr catch Exception ex => ex.Message` groups as `expr catch (Exception ex => ex.Message)`. Because `all` binds less tightly than `\`, `|` and `&` and more tightly than `then`, `x : S & x > 0 all x % 2 == 0 | x > 5` groups as `(x : S & x > 0) all (x % 2 == 0 | x > 5)`.
 
 #### Unary suffix
 
@@ -344,7 +345,7 @@ The following forms introduce declarative scopes:
 - Visibility scopes: `public`, `private`, `protected`, `internal`
 - Aggregate scopes: `record`, `records`, and the named section of a product
 - Local binder: `let`
-- Left-declarative operators: conditional value `in`, lambda `=>`, such-that `\`, contract `contract`
+- Left-declarative operators: conditional value `in`, lambda `=>`, such-that `\`, universal quantification `all`, contract `contract`
 - Right-declarative operator: `where`
 
 `let` introduces a local scope that is declarative throughout its operand. A left-declarative or right-declarative operator instead introduces a mixed-mode local scope as described under [Declarative and referential operators](#declarative-and-referential-operators).
@@ -886,7 +887,9 @@ For example, a generator that successively produces the natural numbers without 
 
 A proposition is an expression whose value is a `bool`, such as `x = 5`, `x : A` or `a < b`. How it is interpreted depends on its position.
 
-**Truth positions.** The left operand of `in`, the left operand of `then`, the right operand of `\`, the right operand of `where`, and the predicate of `?` require truth. In these positions a proposition is a goal: it constrains its variables and either succeeds or fails. `x = 5 in e` unifies `x` with `5`; no `false` alternative is produced. A goal that fails makes the enclosing expression undefined, exactly as if the proposition had evaluated to `false`. Within a truth position, `&` is conjunction of goals, `|` is disjunction of goals (each operand may admit different bindings), and `!` is negation of a goal.
+**Truth positions.** The left operand of `in`, the left operand of `then`, the right operand of `\`, the right operand of `where`, both operands of `all`, and the predicate of `?` require truth. In these positions a proposition is a goal: it constrains its variables and either succeeds or fails. `x = 5 in e` unifies `x` with `5`; no `false` alternative is produced. A goal that fails makes the enclosing expression undefined, exactly as if the proposition had evaluated to `false`. Within a truth position, `&` is conjunction of goals, `|` is disjunction of goals (each operand may admit different bindings), and `!` is negation of a goal.
+
+**Quantification.** A name declared by a goal is existentially quantified: the goal succeeds for each binding of the name that satisfies it, so `x : EvenInts & x > 10 in x` yields every even integer greater than 10. Universal quantification is written with [`all`](#all): `x : EvenInts all x % 2 == 0` holds when every binding of `x` that satisfies `x : EvenInts` also satisfies `x % 2 == 0`. The two are duals: `L all R` is `false` exactly when some solution of `L` does not satisfy `R`.
 
 **Value positions.** Everywhere else a proposition denotes a `bool` value, with its classical meaning. Where its variables are not yet determined, it yields `true` together with the bindings that satisfy it, or `false` together with the constraint that it is not satisfied. With `x` free, `b = (x = 5)` therefore admits two alternatives: `b = true` with `x = 5`, and `b = false` with `x != 5`. Whether such an alternative can be executed is decided by mode analysis: a `false` alternative whose constraint can never be checked, because its variables never become bound, is a compilation error.
 
@@ -1090,7 +1093,7 @@ Precedence is defined by the binary infix table under [Binary infix](#binary-inf
 
 `=>`, `^`, `^^` and `<|` are right-associative: `x => y => x + y` denotes `x => (y => x + y)`, `2 ^ 3 ^ 2` denotes `2 ^ (3 ^ 2)` and `f <| g <| x` denotes `f (g x)`. `=` and `?=` are non-associative, so `a = b = c` is ill-formed. `|>`, `>>` and `<<` share a row with `<|` but are left-associative; operators of one row that associate differently cannot be combined without parentheses, so `x |> f <| y` is ill-formed.
 
-The remaining operators associate as follows. `where`, `in`, `then` and `else` are right-associative, so `a then b else c then d else e` denotes `a then (b else (c then (d else e)))`. `contract`, `asks`, `throws`, `->`, `catch`, `answer`, `./`, `../`, `\`, the disjunction and conjunction rows, `?`, `??`, `;`, `;;`, `**`, `+`, `-`, `*`, `/`, `%`, `/%`, `.` and `..` are left-associative; for example `F contract C throws E` denotes `(F contract C) throws E` and `e catch h answer k` denotes `(e catch h) answer k`. Membership (`:` `::` `:::`), comparison (`<` `<=` `>=` `>` `==` `!=` `!:`) and range operators are non-associative, so `a < b < c` is ill-formed.
+The remaining operators associate as follows. `where`, `in`, `all`, `then` and `else` are right-associative, so `a then b else c then d else e` denotes `a then (b else (c then (d else e)))` and `x : A all y : B all x < y` denotes `x : A all (y : B all x < y)`. `contract`, `asks`, `throws`, `->`, `catch`, `answer`, `./`, `../`, `\`, the disjunction and conjunction rows, `?`, `??`, `;`, `;;`, `**`, `+`, `-`, `*`, `/`, `%`, `/%`, `.` and `..` are left-associative; for example `F contract C throws E` denotes `(F contract C) throws E` and `e catch h answer k` denotes `(e catch h) answer k`. Membership (`:` `::` `:::`), comparison (`<` `<=` `>=` `>` `==` `!=` `!:`) and range operators are non-associative, so `a < b < c` is ill-formed.
 
 ### Binary operators used as unary prefix operators
 
@@ -1665,6 +1668,18 @@ For the signature `Funcs*Funcs^^Funcs`:
 
 Denotes the mutually guarded counterpart of `|` on functions. When both operands supply an origin, their result alternatives are merged as for `|`; this is not the left-biased fallback of `||`. The guard applies to both definedness tests: where one operand's definedness at `x` is undecidable but the other operand is defined at `x`, the result is the defined operand's result.
 
+
+#### `all`
+
+Left-declarative. Universal quantification. `condition all requirement` is `true` when the requirement holds for every solution of the condition, and `false` when some solution of the condition does not satisfy it. The new frame is declarative over the left operand and referential over the right operand, so the names declared by the condition are the quantified variables and the requirement refers to them. Inherited frames retain their modes, as for `=>`.
+
+    x : EvenInts all x % 2 == 0
+
+With `EvenInts` the set of even integers, this is `true`: every binding of `x` that satisfies `x : EvenInts` also satisfies `x % 2 == 0`.
+
+Both operands are truth positions (see [Propositions](#propositions)). The nondeterminism of the left operand is unwound: each of its solutions, with the bindings it makes, is a case that the right operand must satisfy. A case in which the right operand is `false` or undefined makes the expression `false`. A condition without solutions makes the expression `true`. The names declared by the left operand and the bindings made by the right operand are local to the expression; the expression itself only yields its `bool` value. A name of an enclosing scope that occurs in either operand is not quantified and is constrained as in any other proposition.
+
+The value can be computed by enumerating the solutions of the condition when that enumeration is finite (see [Enumerable finite nondeterminism](#enumerable-finite-nondeterminism)). Otherwise the compiler must establish the value by proof. If the compiler can neither enumerate the condition to exhaustion nor prove or refute the statement, the expression is a compilation error.
 
 #### `answer`
 
