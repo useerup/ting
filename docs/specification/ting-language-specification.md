@@ -779,11 +779,20 @@ Undefinedness is not a value and is never added to the result set. Evaluation ei
 
 Potential undefinedness propagates to a consuming expression unless it is handled or the compiler can prove that the expression being consumed is defined under the applicable constraints. Set definitions handle undefined element expressions by collecting no contribution from them; see [Set definitions](#set-definitions).
 
-The unary prefix keyword predicate `total` can be applied to any expression. `total expression` requires that expression to yield at least one value under the applicable constraints. It preserves the expression's values and does not produce a boolean or require determinism. The compiler must establish the guarantee from those constraints and any available contracts; otherwise the expression is a compilation error. `total` does not narrow the admitted bindings, catch undefinedness, or supply a missing value.
+The unary prefix keyword predicate `total` can be applied to any expression. `total expression` is a claim by the programmer that the expression yields at least one value in every possible context. It preserves the expression's values and does not produce a boolean or require determinism. The compiler accepts the claim unless it can prove that the expression is undefined in some possible context; then the expression is a compilation error. Where the compiler can neither prove nor refute the claim, it inserts a check: if the expression is nonetheless undefined at runtime, the undefinedness is caught at that point and a `TotalityViolationException` is thrown in its place. A claim the compiler can prove needs no check. `total` does not narrow the admitted bindings or supply a missing value.
 
-For example, `total (1 + 2)` yields `3`, whereas `total void` is a compilation error. `total (0;1)` is valid because totality permits several alternative values.
+A claim that the compiler accepted without proof and that turns out false at runtime throws a `ClaimViolationException`. It derives directly from `Exception`: it is not a specialization of `UndefinedException` and is never converted to one. Constructs that observe definedness, such as `;;`, `?`, `;`, the guarded logical operators and set definitions, do not handle it. It propagates like any other exception and is handled only by a `catch` whose handler is defined for it. Each kind of claim has its own subtype, so a handler can catch one kind or all of them:
 
-The unary prefix keyword predicate `partial` can likewise be applied to any expression to indicate that the expression may be undefined, without changing its admitted values or successful results. It tells the compiler not to derive a more precise definedness condition by inspecting the marked expression. A consumer must conservatively allow the marked expression to be undefined.
+| Exception                        | Thrown when                                                                                    |
+| -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `TotalityViolationException`     | an expression claimed `total`, directly or through a contract, is undefined                    |
+| `DeterminismViolationException`  | an expression claimed deterministic by `determ`, or by default when exported, yields a second alternative |
+
+Both derive from `ClaimViolationException` and carry the source location and kind of the violated claim.
+
+For example, `total (1 + 2)` yields `3`, whereas `total void` is a compilation error because `void` is provably undefined. `total (0;1)` is valid because totality permits several alternative values.
+
+The unary prefix keyword predicate `partial` can likewise be applied to any expression. It is a claim that the expression may be undefined, without changing its admitted values or successful results. If the compiler can prove that the expression is defined in every possible context, it issues a warning; otherwise the claim is accepted. Either way, consumers must conservatively allow the marked expression to be undefined: the compiler does not use a more precise definedness condition derived by inspecting the marked expression.
 
 `partial` is comparable to an unspecified throws clause: it records that undefinedness may escape from the marked expression without describing the condition that causes it. It neither catches undefinedness nor turns it into a value. Neither `total` nor `partial` filters a set of functions: they describe the definedness of the operand expression, not of applications of function values it produces. Function-body guarantees and their use in contracts are described under [Partial functions](#partial-functions).
 
@@ -820,7 +829,7 @@ An expression that consumes a nondeterministic value becomes nondeterministic it
 
 Set definitions handle the nondeterminism arising from their member list by collecting the alternative values as members of the resulting set. This nondeterminism does not propagate to the set definition itself. See [Set definitions](#set-definitions).
 
-The unary prefix operator `determ` requires its operand expression to be deterministic under the applicable constraints. The compiler must prove this requirement; failure to prove determinism is a compilation error, even if nondeterminism has not been proved either. The operator does not select a result or discard alternatives.
+The unary prefix operator `determ` is a claim that its operand expression is deterministic in every possible context. The compiler accepts the claim unless it can prove that the operand may yield several alternatives in some possible context; then the expression is a compilation error. Where the compiler can neither prove nor refute the claim, it inserts a check: if the operand yields a second alternative at runtime, a `DeterminismViolationException` is thrown (see [Partiality](#partiality)). The operator does not select a result or discard alternatives.
 
 ```ting
 a = determ 0;1
@@ -834,15 +843,15 @@ a = determ {0;1}
 
 This is valid because the set definition collects the nondeterministic alternatives. The value of `a` is the single deterministic set `{0, 1}`.
 
-The unary prefix operator `nondeterm` permits its operand expression to be nondeterministic without requiring it. A deterministic operand is valid. The operator does not add alternatives or change the expression's successful results.
+The unary prefix operator `nondeterm` is a claim that its operand expression may be nondeterministic. A deterministic operand is valid, but if the compiler can prove that the operand is deterministic in every possible context, it issues a warning. The operator does not add alternatives or change the expression's successful results.
 
 ```ting
 nondeterm 42
 ```
 
-This is valid and yields the single value `42`.
+This is valid and yields the single value `42`, with a warning that the operand is provably deterministic.
 
-An expression exported from a module is required to be *deterministic* unless possible nondeterminism is explicitly permitted using `nondeterm`. This requirement includes the bodies of exported functions. If the compiler cannot prove that the expression is deterministic, it treats the expression as potentially nondeterministic and requires this explicit marker.
+An expression exported from a module is required to be *deterministic* unless possible nondeterminism is explicitly permitted using `nondeterm`. This requirement includes the bodies of exported functions. Without the marker, determinism is claimed as if by `determ`: if the compiler can prove that the expression may be nondeterministic in a context its contract admits, the marker is required; otherwise determinism is accepted and checked at runtime.
 
 ```ting
 f = float x => x*1;x*2
