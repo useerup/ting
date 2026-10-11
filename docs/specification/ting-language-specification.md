@@ -525,6 +525,8 @@ If the underlying multiset contains several ordered pairs with the same origin, 
 
 Functions compare extensionally under `==`: at every origin they must permit the same results with the same solution multiplicities, subject to the ordinary attribute-erasure rules. Their underlying collections are compared with their associated results, not merely by origin membership. Thus `fn { 1 -> 2 }` and `fn { 1 -> 3 }` are not equal functions, although their pairs have the same origin identity.
 
+The compiler has to prove or disprove the equality of two functions only when both are bound (see [Binding status and implementation modes](#binding-status-and-implementation-modes)). Where one side is free, the equation is satisfied by binding it. In `f = int x => x * 2` with `f` otherwise unbound, `f` is bound to the lambda: the equality is assumed rather than proved.
+
 ### Function contracts and separate compilation
 
 A function contract is a set of admissible function values. Attaching a contract to an implementation has the form:
@@ -887,7 +889,7 @@ For example, a generator that successively produces the natural numbers without 
 
 A proposition is an expression whose value is a `bool`, such as `x = 5`, `x : A` or `a < b`. How it is interpreted depends on its position.
 
-**Truth positions.** The left operand of `in`, the left operand of `then`, the right operand of `\`, the right operand of `where`, both operands of `all`, and the predicate of `?` require truth. In these positions a proposition is a goal: it constrains its variables and either succeeds or fails. `x = 5 in e` unifies `x` with `5`; no `false` alternative is produced. A goal that fails makes the enclosing expression undefined, exactly as if the proposition had evaluated to `false`. Within a truth position, `&` is conjunction of goals, `|` is disjunction of goals (each operand may admit different bindings), and `!` is negation of a goal.
+**Truth positions.** The left operand of `in`, the left operand of `then`, the right operand of `\`, the right operand of `where`, both operands of `all`, and the predicate of `?` require truth. In these positions a proposition is a goal: it constrains its variables and either succeeds or fails. `x = 5 in e` unifies `x` with `5`; no `false` alternative is produced. A goal that fails makes the enclosing expression undefined, exactly as if the proposition had evaluated to `false`. Within a truth position, `&` is conjunction of goals, `|` is disjunction of goals (each operand may admit different bindings), and `!` is negation of a goal. These operators stay strict in truth positions: an operand that is undefined, as opposed to `false`, makes the whole proposition undefined even where the other operand would decide it, so `(x = 1) | (1 / 0 = 0)` has no solutions. Only the guarded operators tolerate an undefined operand: `&&` and `||` an undefined right operand when the left operand decides the result, and the double-guarded `&&&` and `|||` an undefined operand on either side when the other operand decides it.
 
 **Quantification.** A name declared by a goal is existentially quantified: the goal succeeds for each binding of the name that satisfies it, so `x : EvenInts & x > 10 in x` yields every even integer greater than 10. Universal quantification is written with [`all`](#all): `x : EvenInts all x % 2 == 0` holds when every binding of `x` that satisfies `x : EvenInts` also satisfies `x % 2 == 0`. The two are duals: `L all R` is `false` exactly when some solution of `L` does not satisfy `R`.
 
@@ -1109,7 +1111,7 @@ A unary prefix operator is written before its single operand. The operators list
 
 #### `!`
 
-Neutral. Logical negation.
+Neutral. Logical negation. Strict: the negation of an undefined operand is undefined.
 
 For the signature `bool^^bool`:
 
@@ -1261,7 +1263,7 @@ Neutral. The remainder of dividing the left operand by the right operand.
 
 #### `&`
 
-Neutral. Strict conjunction.
+Neutral. Strict conjunction. It behaves like an eagerly evaluated conjunction: Ting has no short-circuit evaluation, so `false & e` is undefined when `e` is undefined. `&&` is the conjunction that tolerates an undefined right operand.
 
 A non-guarded operator always evaluates both of its operands, so its table lists every combination of `true`, `false` and *undefined*. *undefined* is not a third truth value: it is the row for an operand that yields no value at all (see [`void`](#void)), and a result of *undefined* means the expression yields no value either. The table of a guarded operator uses one further operand value:
 
@@ -1320,7 +1322,7 @@ Denotes the guarded counterpart of `&` on functions. The guard applies to the de
 
 #### `&&&`
 
-Neutral. Mutually guarded conjunction. 
+Neutral. Mutually guarded conjunction. It is double-guarded: it swallows the undefinedness of either operand as long as the other operand is `false`.
 
 For the signature `bool*bool^^bool`:
 
@@ -1330,9 +1332,10 @@ For the signature `bool*bool^^bool`:
 | *ignored*   | `false`     | `false`     |
 | `true`      | `true`      | `true`      |
 | `true`      | *undefined* | *undefined* |
-| *undefined* | *ignored*   | *undefined* |
+| *undefined* | `true`      | *undefined* |
+| *undefined* | *undefined* | *undefined* |
 
-The guard applies on both sides: if either operand evaluates to `false` the result is `false`, and undefinedness of the other operand is caught. If both operands evaluate to `true` the result is `true`. Otherwise the result is undefined.
+The guard applies on both sides: if either operand evaluates to `false` the result is `false`, and undefinedness of the other operand is caught. If both operands evaluate to `true` the result is `true`. The result is undefined only when one operand is undefined and the other is `true`, or both are undefined.
 
 For the signature `set*set^^set`:
 
@@ -1571,7 +1574,7 @@ Because the signatures are those of `^` reversed, they are `num*num`, `set*set` 
 
 #### `|`
 
-Neutral. Strict disjunction.
+Neutral. Strict disjunction. It behaves like an eagerly evaluated disjunction: `true | e` is undefined when `e` is undefined. `||` is the disjunction that tolerates an undefined right operand.
 
 For the signature `bool*bool^^bool`:
 
@@ -1641,7 +1644,7 @@ With `F` and `G` from the example under `|`, `(F || G) 2` yields only `20`, whil
 
 #### `|||`
 
-Neutral. Mutually guarded disjunction. 
+Neutral. Mutually guarded disjunction. It is double-guarded: it swallows the undefinedness of either operand as long as the other operand is `true`.
 
 For the signature `bool*bool^^bool`:
 
@@ -1654,7 +1657,7 @@ For the signature `bool*bool^^bool`:
 | *undefined* | `false`     | *undefined* |
 | *undefined* | *undefined* | *undefined* |
 
-The guard applies on both sides: if either operand evaluates to `true` the result is `true`, and undefinedness of the other operand is caught. If both operands evaluate to `false` the result is `false`. Otherwise the result is undefined.
+The guard applies on both sides: if either operand evaluates to `true` the result is `true`, and undefinedness of the other operand is caught. If both operands evaluate to `false` the result is `false`. The result is undefined only when one operand is undefined and the other is `false`, or both are undefined.
 
 For the signature `set*set^^set`:
 
