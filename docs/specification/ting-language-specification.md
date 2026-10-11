@@ -499,11 +499,11 @@ When an operation's definedness condition is known, the admitted domain can be n
 
 Zero is not admitted by this function. The argument restriction lets the compiler establish that division returns a result for every admitted argument. The function would also be inferred total without the marker; `total` makes that requirement explicit.
 
-Without that restriction, the same requirement fails:
+Without that restriction, the claim can be refuted:
 
-    float x => total (1 / x)
+    (float x => total (1 / x)) 0
 
-This is a compilation error because zero is admitted and division is undefined there. `total` does not remove zero from the admitted domain.
+This is a compilation error because the compiler can prove that zero reaches the function and that division is undefined there. `total` does not remove zero from the admitted domain. Where the compiler can neither prove nor refute that zero reaches the function, the claim is accepted and checked at runtime, as specified under [Partiality](#partiality).
 
 The admitted domain may instead remain broad while the body is marked `partial`:
 
@@ -550,7 +550,7 @@ Contracts are sets rather than individual functions so ordinary set operators co
         float x => 1 / x
         contract (float ^^ float) & NonZeroArg & Forward
 
-`!= 0` is the binary `!=` operator used in prefix position, and therefore denotes the predicate `value => value != 0`. The restriction `x ? != 0` admits every value satisfying that predicate; by itself it is not restricted to numbers. `float ^^ float` separately states the visible argument and result sets. The `total _` body in `NonZeroArg` requires a result for every admitted argument without prescribing a particular result. Here `total` applies to the lambda's body expression, not to the surrounding set. Contract membership requires the implementation to satisfy that body-totality guarantee, which consumers can then rely on without inspecting the implementation.
+`!= 0` is the binary `!=` operator used in prefix position, and therefore denotes the predicate `value => value != 0`. The restriction `x ? != 0` admits every value satisfying that predicate; by itself it is not restricted to numbers. `float ^^ float` separately states the visible argument and result sets. The `total _` body in `NonZeroArg` requires a result for every admitted argument without prescribing a particular result. Here `total` applies to the lambda's body expression, not to the surrounding set. Contract membership requires the implementation to satisfy that body-totality guarantee, which consumers can then rely on without inspecting the implementation. Where the compiler cannot prove the guarantee, it is accepted and checked like any `total` claim, so consumers never observe undefinedness from it.
 
 The contract is deliberately allowed to reveal less than the compiler can infer from the implementation. A complete opaque contract must explicitly state every fact on which a consumer may rely, including argument and result sets, admitted-domain restrictions, supported binding modes, and any totality guarantee. Without a guarantee that the body is total, the consumer must conservatively allow the function to be undefined at an admitted argument even where the hidden implementation is known to be total in its defining compilation unit.
 
