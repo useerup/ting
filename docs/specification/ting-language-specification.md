@@ -1201,7 +1201,7 @@ Introduces a local scope spanning its operand. The new frame is declarative thro
 
 #### `partial`
 
-Unary prefix keyword predicate. Marks any expression as potentially undefined without changing its admitted values or successful results. The operand is ambient. The compiler does not inspect through the marker to infer a narrower definedness condition; it conservatively assumes that the expression may transfer to the undefined continuation for any admitted bindings. `partial` neither catches undefinedness nor turns it into a value. See [Partiality](#partiality).
+Unary prefix keyword predicate. A claim that any expression may be undefined, without changing its admitted values or successful results. The operand is ambient. Consumers conservatively assume that the expression may transfer to the undefined continuation for any admitted bindings; the compiler does not use a narrower definedness condition inferred from inside the marker. If it can prove that the expression is defined in every possible context, it issues a warning. `partial` neither catches undefinedness nor turns it into a value. See [Partiality](#partiality).
 
 #### `primary`
 
@@ -1237,7 +1237,7 @@ Unary prefix semantic form. The operand is ambient. `throw exception` raises the
 
 #### `total`
 
-Unary prefix keyword predicate. Requires any expression to yield at least one value under the applicable constraints, preserving its values and nondeterminism. The operand is ambient. The compiler must establish the guarantee or report a compilation error. `total` neither handles undefinedness nor narrows admitted bindings, and it is not a filter over function sets. See [Partiality](#partiality) for the expression rule and [Partial functions](#partial-functions) for its consequences when applied to a lambda body.
+Unary prefix keyword predicate. A claim that any expression yields at least one value in every possible context, preserving its values and nondeterminism. The operand is ambient. The claim is a compilation error if the compiler can prove it false. If the compiler can neither prove nor refute it, the claim is accepted and checked at runtime, and a violation throws `TotalityViolationException`. `total` neither handles undefinedness nor narrows admitted bindings, and it is not a filter over function sets. See [Partiality](#partiality) for the expression rule and [Partial functions](#partial-functions) for its consequences when applied to a lambda body.
 
 #### `tuple`
 
