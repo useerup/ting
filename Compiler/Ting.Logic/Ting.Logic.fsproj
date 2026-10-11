@@ -9,6 +9,8 @@
     <Compile Include="Formula.fs" />
     <Compile Include="Normal.fs" />
     <Compile Include="Unify.fs" />
+    <Compile Include="Ordering.fs" />
+    <Compile Include="Paramodulation.fs" />
     <Compile Include="Resolution.fs" />
   </ItemGroup>
 

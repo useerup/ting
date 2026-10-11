@@ -1,4 +1,4 @@
-/// Given-clause resolution with factoring, subsumption and replacement (Harrison, section 3.11).
+/// Given-clause resolution with factoring, subsumption and replacement (Harrison, section 3.11), plus paramodulation for equality.
 module Ting.Logic.Resolution
 
 open Ting.Logic.Formula
@@ -32,9 +32,10 @@ let rec private allSubsets (xs: 'a list) : 'a list list =
         s @ (s |> List.map (fun t -> x :: t))
 
 /// Resolvents on literal p of cl1, factoring both sides by resolving several literals at once.
+/// Only maximal literals are resolved upon (ordered resolution).
 let private resolvents (cl1: Clause) (cl2: Clause) (p: Formula) (acc: Clause list) =
-    let ps2 = cl2 |> Set.filter (unifiable (negate p)) |> Set.toList
-    if ps2.IsEmpty then
+    let ps2 = cl2 |> Set.filter (fun q -> unifiable (negate p) q && Ordering.isMaximal cl2 q) |> Set.toList
+    if ps2.IsEmpty || not (Ordering.isMaximal cl1 p) then
         acc
     else
         let ps1 = cl1 |> Set.filter (fun q -> q <> p && unifiable p q) |> Set.toList
@@ -51,6 +52,13 @@ let private resolveClauses (cl1: Clause) (cl2: Clause) =
     let c1 = rename "x" cl1
     let c2 = rename "y" cl2
     Set.foldBack (fun p acc -> resolvents c1 c2 p acc) c1 []
+
+let private resolveAndParamodulate (cl1: Clause) (cl2: Clause) =
+    let c1 = rename "x" cl1
+    let c2 = rename "y" cl2
+    Set.foldBack (fun p acc -> resolvents c1 c2 p acc) c1 []
+    @ Paramodulation.paramodulate c1 c2
+    @ Paramodulation.paramodulate c2 c1
 
 let private subsumes (cl1: Clause) (cl2: Clause) =
     let targets = Set.toList cl2
@@ -100,7 +108,13 @@ let private select (steps: int) (unused: Clause list) =
         let i = unused |> List.mapi (fun i c -> weight c, i) |> List.min |> snd
         unused[i], List.removeAt i unused
 
-let private resolutionLoop (limit: int) (clauses: Clause list) =
+let private resolutionLoop
+    (unary: Clause -> Clause list)
+    (infer: Clause -> Clause -> Clause list)
+    (simplify: Clause list -> Clause -> Clause option)
+    (limit: int)
+    (clauses: Clause list)
+    =
     let rec loop used unused steps =
         match unused with
         | [] -> NotValid
@@ -108,13 +122,19 @@ let private resolutionLoop (limit: int) (clauses: Clause list) =
         | _ ->
             let cl, rest = select steps unused
             let used' = if List.contains cl used then used else cl :: used
-            let news = used' |> List.collect (resolveClauses cl)
+            let news = unary cl @ List.collect (infer cl) used' |> List.choose (simplify used')
             if news |> List.exists Set.isEmpty then Proved
             else loop used' (List.foldBack (incorporate used') news rest) (steps + 1)
     loop [] clauses 0
 
 /// Refutes a formula's clause form; Proved means the formula is unsatisfiable.
-let refute (limit: int) (fm: Formula) = resolutionLoop limit (simpcnf (specialize (pnf fm)))
+let refute (limit: int) (fm: Formula) =
+    let clauses = simpcnf (specialize (pnf fm))
+    if Paramodulation.usesEquality fm then
+        let simplify used = Paramodulation.simplify (Paramodulation.rewriteRules used)
+        resolutionLoop Paramodulation.equalityFactors resolveAndParamodulate simplify limit (Paramodulation.reflexivity :: clauses)
+    else
+        resolutionLoop (fun _ -> []) resolveClauses (fun _ cl -> Some cl) limit clauses
 
 /// Proves validity by refuting each disjunct of the Skolemized negation.
 let prove (limit: int) (fm: Formula) : Outcome =
