@@ -479,7 +479,7 @@ Functions map argument values to result values. A function permits, at each argu
 
 ### Partial functions
 
-Partiality is a property of expressions, including function bodies and applications; see [Partiality and Nondeterminism](#partiality-and-nondeterminism). For a function, totality is measured over its admitted domain.
+Partiality is a property of expressions, including function bodies and applications; see [Partiality and Nondeterminism](#partiality-and-nondeterminism). For a function, totality is measured over the admitted arguments that can actually be passed to it; see [Possible contexts](#possible-contexts).
 
 Three sets must be distinguished for a function:
 
@@ -487,7 +487,7 @@ Three sets must be distinguished for a function:
 2. Its **admitted domain**, which refines the declared argument set with restrictions in the parameter pattern.
 3. Its **defined subset**, the admitted arguments for which evaluation actually returns at least one result.
 
-A function is **total** where its defined subset equals its admitted domain. It is **partial** where an admitted argument may produce no result. Membership in `A ^^ B` states the declared argument and result sets but says nothing about totality: `A ^^ B` contains both total and partial functions.
+A function is **total** where its defined subset includes every admitted argument that can be passed to it. It is **partial** where such an argument may produce no result. Membership in `A ^^ B` states the declared argument and result sets but says nothing about totality: `A ^^ B` contains both total and partial functions.
 
 Function partiality follows from ordinary expression partiality: if the body expression is partial under the function's admitted arguments, the function is partial. Undefinedness handled within the body need not make the body as a whole partial. An expression can always produce a function value even though applying that function to some admitted arguments yields no result.
 
