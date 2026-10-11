@@ -771,6 +771,12 @@ Partiality and nondeterminism are independent properties of expressions. Partial
 | Total   | Exactly one value | One or more alternative values  |
 | Partial | Zero or one value | Zero or more alternative values |
 
+### Possible contexts
+
+When the compiler proves or refutes a property of an expression, it considers only the contexts in which the expression can actually be evaluated: the bindings that can reach it under the constraints of the program. A context that can never occur neither supports nor refutes a property. This is a general principle of the language, not a rule of particular operators. For example, `x => x * 2` is total if `*` is defined for every argument that can ever be passed to the function, even though `*` is not defined for every value.
+
+Within a compilation unit the compiler can follow where values flow. Across a separate-compilation boundary it cannot, so for an exported expression the possible contexts are those admitted by its contract (see [Function contracts and separate compilation](#function-contracts-and-separate-compilation)).
+
 ### Partiality
 
 An expression is **partial** when it may be undefined, yielding no value. An expression is **total** when it yields at least one value for every admitted evaluation.
