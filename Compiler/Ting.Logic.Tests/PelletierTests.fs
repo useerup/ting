@@ -1,4 +1,4 @@
-/// Pelletier's problems 1-46 without equality (p38 omitted), from "Seventy-Five Problems for Testing Automatic Theorem Provers" (1986).
+/// Pelletier's problems 1-46 (p38 omitted) and 55, without equality, from "Seventy-Five Problems for Testing Automatic Theorem Provers" (1986).
 module PelletierTests
 
 open Xunit
@@ -125,7 +125,17 @@ let private problems =
           * (exists [ x ] (P(x) * ~~G(x))
              ^=> exists [ x ] (P(x) * ~~G(x) * forall [ y ] (P(y) * ~~G(y) ^=> J(x, y))))
           * forall [ x; y ] (P(x) * P(y) * H(x, y) ^=> ~~J(y, x))
-          ^=> forall [ x ] (P(x) ^=> G(x)) ]
+          ^=> forall [ x ] (P(x) ^=> G(x))
+          "p55",
+          lives(agatha) * lives(butler) * lives(charles)
+          * (killed(agatha, agatha) + killed(butler, agatha) + killed(charles, agatha))
+          * forall [ x; y ] (killed(x, y) ^=> hates(x, y) * ~~richer(x, y))
+          * forall [ x ] (hates(agatha, x) ^=> ~~hates(charles, x))
+          * (hates(agatha, agatha) * hates(agatha, charles))
+          * forall [ x ] (lives(x) * ~~richer(x, agatha) ^=> hates(butler, x))
+          * forall [ x ] (hates(agatha, x) ^=> hates(butler, x))
+          * forall [ x ] (~~hates(x, agatha) + ~~hates(x, butler) + ~~hates(x, charles))
+          ^=> killed(agatha, agatha) * ~~killed(butler, agatha) * ~~killed(charles, agatha) ]
 
 let problemNames: obj[] list = problems |> Map.keys |> Seq.map (fun n -> [| box n |]) |> List.ofSeq
 

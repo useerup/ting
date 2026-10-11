@@ -22,6 +22,7 @@
     <Compile Include="Dsl.fs" />
     <Compile Include="FormulaTests.fs" />
     <Compile Include="PelletierTests.fs" />
+    <Compile Include="EqualityTests.fs" />
   </ItemGroup>
 
 </Project>
