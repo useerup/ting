@@ -351,10 +351,14 @@ The following forms introduce declarative scopes:
 `let` introduces a local scope that is declarative throughout its operand. A left-declarative or right-declarative operator instead introduces a mixed-mode local scope as described under [Declarative and referential operators](#declarative-and-referential-operators).
 
 ### Local binding
-- Canonical form: `pattern = expr in body`.
+- Canonical form: `pattern = expr in body`. Because `in` binds less tightly than `=`, this groups as `(pattern = expr) in body`.
 - `in` introduces a local scope spanning both operands. Its new frame is declarative over the left operand and referential over the right operand, just as for `=>`. Inherited frames retain their modes.
 - `let` is not required to declare the pattern in this form. An explicit `let` introduces an additional scope that is declarative throughout its operand.
-- Recursive and unification-style examples use `?=`.
+- The right operand of `=` is referential, and declarations are settled before references are resolved, so `expr` can refer to the names the pattern declares. A recursive definition therefore needs neither `let` nor `?=`:
+
+      f = fn{ 0 -> 1, let int n -> n * f (n - 1) } in f 3
+
+  The inner `let` is needed for a different reason: it makes the pattern of the second case declarative (see [Functions via fn ordered pairs](#functions-via-fn-ordered-pairs)).
 
 ### Lambda
 
@@ -1536,9 +1540,7 @@ Right-referential. Restriction. `left ? predicate` restricts `left` to the value
 
 Right-referential, and binds as tightly as `=`. Declaration by unification: the left operand is unified with the right rather than asserted equal to it, and where the two cannot be unified the expression is *undefined* rather than `false`.
 
-Declarations contributed by the left operand are available when the now-referential scope frames are searched on the right, so recursive bindings can be written with `?=`. Its distinction from `=` is semantic: failed unification is undefined rather than the boolean value `false`.
-
-    let f ?= fn{ 0 -> 1, let int n -> n * f (n - 1) } in f 3
+As for `=`, declarations contributed by the left operand are available when the now-referential scope frames are searched on the right; recursive definitions do not require `?=` (see [Local binding](#local-binding)). The distinction from `=` is semantic: failed unification is undefined rather than the boolean value `false`.
 
 #### `??`
 
