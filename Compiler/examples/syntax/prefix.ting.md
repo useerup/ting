@@ -3,11 +3,11 @@
 Operand extents are provisional (specification issue SYN-01).
 
 ```ting
-let f = x => x in f 1
+let int x \ x > 0
 ```
 
 ```ting-output
-(let (in (= f (=> x x)) (apply f 1)))
+(let (\ (apply int x) (> x 0)))
 ```
 
 ```ting

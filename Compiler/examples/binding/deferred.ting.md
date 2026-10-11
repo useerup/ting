@@ -3,58 +3,58 @@
 Properties are resolved against their receiver, not lexically.
 
 ```ting
-let p = record(Name = "Bob") in p.Name
+p = record(Name = "Bob") in p.Name
 ```
 
 ```ting-output
 Declarations:
-  #1 p: local (in at 1,30; let at 1,1)
-  #2 this: this (record at 1,9)
-  #3 Name: field (record at 1,9)
+  #1 p: local (in at 1,26)
+  #2 this: this (record at 1,5)
+  #3 Name: field (record at 1,5)
 Identifiers:
-  1,5 p: declares #1
-  1,16 Name: declares #3
-  1,33 p: references #1
-  1,35 Name: deferred: property
+  1,1 p: declares #1
+  1,12 Name: declares #3
+  1,29 p: references #1
+  1,31 Name: deferred: property
 ```
 
 A property declared through property access is hosted on its receiver.
 
 ```ting
-let int..Double = x => x * 2 in 21.Double
+int..Double = x => x * 2 in 21.Double
 ```
 
 ```ting-output
 Declarations:
-  #1 Double: hosted on members of int (in at 1,30; let at 1,1)
-  #2 x: local (=> at 1,21)
+  #1 Double: hosted on members of int (in at 1,26)
+  #2 x: local (=> at 1,17)
 Identifiers:
-  1,5 int: references builtin
-  1,10 Double: declares #1
-  1,19 x: declares #2
-  1,24 x: references #2
-  1,36 Double: deferred: property
+  1,1 int: references builtin
+  1,6 Double: declares #1
+  1,15 x: declares #2
+  1,20 x: references #2
+  1,32 Double: deferred: property
 ```
 
 Inside a lambda whose parameter is `this`, a name not found closer may be a property of `this`.
 
 ```ting
-let int..Double = x => x * 2 in int this => Double
+int..Double = x => x * 2 in int this => Double
 ```
 
 ```ting-output
 Declarations:
-  #1 Double: hosted on members of int (in at 1,30; let at 1,1)
-  #2 x: local (=> at 1,21)
-  #3 this: this (=> at 1,42)
+  #1 Double: hosted on members of int (in at 1,26)
+  #2 x: local (=> at 1,17)
+  #3 this: this (=> at 1,38)
 Identifiers:
-  1,5 int: references builtin
-  1,10 Double: declares #1
-  1,19 x: declares #2
-  1,24 x: references #2
-  1,33 int: references builtin
-  1,37 this: declares #3
-  1,45 Double: deferred: implicit this of => at 1,42
+  1,1 int: references builtin
+  1,6 Double: declares #1
+  1,15 x: declares #2
+  1,20 x: references #2
+  1,29 int: references builtin
+  1,33 this: declares #3
+  1,41 Double: deferred: implicit this of => at 1,38
 ```
 
 `./` and `../` expose names that are only known once their left operand is analyzed.
@@ -91,32 +91,32 @@ Identifiers:
 Interpolated identifiers are compared after their replacement blocks are evaluated.
 
 ```ting
-let n = 1 in $`Name{n}`
+n = 1 in $`Name{n}`
 ```
 
 ```ting-output
 Declarations:
-  #1 n: local (in at 1,11; let at 1,1)
+  #1 n: local (in at 1,7)
 Identifiers:
-  1,5 n: declares #1
-  1,14 Name{}: deferred: interpolated name
-  1,21 n: references #1
+  1,1 n: declares #1
+  1,10 Name{}: deferred: interpolated name
+  1,17 n: references #1
 ```
 
 Sections of `.` denote property access.
 
 ```ting
-let people = {} in people |> map .Name
+people = {} in people |> map .Name
 ```
 
 ```ting-output
 Declarations:
-  #1 people: local (in at 1,17; let at 1,1)
+  #1 people: local (in at 1,13)
 Identifiers:
-  1,5 people: declares #1
-  1,20 people: references #1
-  1,30 map: unresolved
-  1,35 Name: deferred: property
+  1,1 people: declares #1
+  1,16 people: references #1
+  1,26 map: unresolved
+  1,31 Name: deferred: property
 Errors:
-  (1,30-1,33): unresolved name 'map'
+  (1,26-1,29): unresolved name 'map'
 ```
