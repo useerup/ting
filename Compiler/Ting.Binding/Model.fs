@@ -19,7 +19,7 @@ type FrameKind =
     | Let
     /// `public`, `private`, `protected`, `internal`.
     | Publish of string
-    /// Introduced by a declarative operator: `=>`, `\`, `in`, `where`, `all`, `contract`.
+    /// Introduced by a declarative operator: `=>`, `in`, `where`, `all`, `contract`.
     | Local of string
     /// `record`, `records` and the named section of a product: declarations become fields.
     | Fields of string

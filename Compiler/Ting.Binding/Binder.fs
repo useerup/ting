@@ -61,12 +61,6 @@ type private Binder() =
 
     let kindOf (f: FrameId) = frames[f].Kind
 
-    let isBarrier (f: FrameId) =
-        match kindOf f with
-        | Fields _
-        | TupleScope _ -> true
-        | _ -> false
-
     let newFrame (kind: FrameKind) (at: Position) (stack: (FrameId * Mode) list) =
         let id = frames.Count
         let parent = match stack with (p, _) :: _ -> Some p | [] -> None
@@ -91,11 +85,9 @@ type private Binder() =
         let d = decls[id]
         decls[id] <- { d with Frames = d.Frames @ frameIds |> List.distinct }
 
-    /// The frames that receive a declaration starting at the head of the stack.
+    /// The frame that receives a declaration: only the innermost declarative frame of the walk.
     let segment (stack: (FrameId * Mode) list) =
         match stack with
-        | (f, Declarative) :: rest when not (isBarrier f) ->
-            f :: (rest |> List.takeWhile (fun (g, m) -> m = Declarative && not (isBarrier g)) |> List.map fst)
         | (f, Declarative) :: _ -> [ f ]
         | _ -> []
 
