@@ -289,12 +289,11 @@ Ting has no separate declaration syntax. Whether an identifier occurrence declar
 Name binding walks the stack from the innermost frame outward, using the scopes that have already been introduced by surrounding operators and declarations:
 
 1. In a referential frame, a name that is proved to be always declared in that scope resolves the occurrence and ends the walk. The walk continues outward only if the name is proved to be never declared in that scope.
-2. If the walk reaches a declarative frame without being resolved by an earlier referential frame, the occurrence becomes a declaration. The same declaration identity is contributed to that frame and to following declarative frames only for as long as they remain adjacent in the walk.
-3. The first referential frame encountered after declaration has started is a barrier: declaration propagation stops there and does not resume in farther declarative frames.
-4. Contributing a name already present in a declarative frame adds a constraint to the existing binding; the declarations are unified rather than shadowing one another. If the frames of the contiguous declarative segment already hold different declaration identities for the name, those identities are merged into one declaration that carries all of their constraints.
-5. If every frame is referential and none contains the name, the occurrence is unresolved and compilation fails.
+2. If the walk reaches a declarative frame without being resolved by an earlier referential frame, the occurrence becomes a declaration in that frame, and only in that frame. A declaration is never contributed to frames farther out.
+3. Contributing a name already present in that frame adds a constraint to the existing binding; the declarations are unified rather than shadowing one another.
+4. If every frame is referential and none contains the name, the occurrence is unresolved and compilation fails.
 
-This makes declaration composition sensitive to the order and mode of individual scope frames. An inner referential frame can resolve a name before an outer declarative frame is reached, while a name absent from that inner frame may be declared by the outer one. Scope-introducing operators such as `./` and `../` first analyze the operand that defines the scope, then analyze the other operand under that scope; the binding walk is therefore performed after the relevant scope has been populated. When declaration starts, only the contiguous declarative segment participates in the same declaration identity; interleaved referential frames are hard boundaries.
+This makes declaration composition sensitive to the order and mode of individual scope frames. An inner referential frame can resolve a name before an outer declarative frame is reached, while a name absent from that inner frame may be declared by the outer one. Scope-introducing operators such as `./` and `../` first analyze the operand that defines the scope, then analyze the other operand under that scope; the binding walk is therefore performed after the relevant scope has been populated. Every declaration belongs to exactly one frame, which is its binder.
 
 Classification of an occurrence may be deferred during compile-time analysis. An occurrence whose stack begins with a declarative frame declares immediately; every other occurrence stays undecided until the scopes its walk crosses are sufficiently determined. Declarations are settled first, to a fixpoint, and references are resolved only afterwards, so no reference resolves before every reachable declaration has been recorded. An expression scope (`./`) exposes names from its defining operand itself; for a record, these are its fields. An expression member scope (`../`) instead exposes fields of the set's members as functions from those members to field values. Determining whether either scope provides a particular name may require logical resolution of its defining expression.
 
@@ -306,7 +305,7 @@ Pending classification is an intermediate compiler state only. If analysis can m
 
 The identifier `_` is anonymous. Every occurrence denotes a distinct logical variable that is never referenced, so `(_, _)` matches any pair. `_` does not participate in the binding walk: it is not contributed to any frame, never published, and never harvested as a record field.
 
-Each application of a function introduces fresh logical variables for the declarations of its parameter pattern and body. Alternatives explored by backtracking likewise receive fresh variables, so bindings made while trying one alternative do not constrain another.
+Each instance of a frame has its own fresh logical variables: each application of a function for the declarations of its lambda frame and of frames inside its body, and each case of an `all` for the names its condition declares. Alternatives explored by backtracking likewise receive fresh variables, so bindings made while trying one alternative do not constrain another. Names that an expression refers to in enclosing frames are not renewed: in `k : int in (int x => x + k)` every application of the function shares the one `k`.
 
 ### Shadowing
 
@@ -345,7 +344,7 @@ The following forms introduce declarative scopes:
 - Visibility scopes: `public`, `private`, `protected`, `internal`
 - Aggregate scopes: `record`, `records`, and the named section of a product
 - Local binder: `let`
-- Left-declarative operators: conditional value `in`, lambda `=>`, such-that `\`, universal quantification `all`, contract `contract`
+- Left-declarative operators: conditional value `in`, lambda `=>`, universal quantification `all`, contract `contract`
 - Right-declarative operator: `where`
 
 `let` introduces a local scope that is declarative throughout its operand. A left-declarative or right-declarative operator instead introduces a mixed-mode local scope as described under [Declarative and referential operators](#declarative-and-referential-operators).
@@ -370,15 +369,15 @@ The following forms introduce declarative scopes:
 
 For example:
 
-    (int x => x * 2 + k) \ (k = 42)
+    let (int x => x * 2 + k) \ (k = 42)
 
-In the parameter pattern, `x` is contributed to both the lambda scope and the enclosing such-that scope, since both are declarative there. The application callee `int` is referential and therefore cannot become a declaration. In the body, the lambda frame is referential. The body occurrence of `x` resolves there, but `k` is absent, so the walk continues to the still-declarative such-that frame and declares `k`. On the right of `\`, that frame is referential and both names can be used as constraints.
+In the parameter pattern, `x` is declared in the lambda frame, the innermost declarative frame. The application callee `int` is referential and therefore cannot become a declaration. In the body, the lambda frame is referential. The body occurrence of `x` resolves there, but `k` is absent, so the walk continues outward. `\` introduces no frame, so the walk reaches the frame of `let`, which is declarative, and declares `k` there. The right operand of `\` is referential and refers to that `k`, which every application of the function shares.
 
-The ability of an enclosing declarative scope to collect declarations from a nested function is intentional:
+A lambda's parameters are declared only in its own frame, so they are not visible outside the lambda:
 
-    (int x => c) \ (c = x * 2)
+    let (int x => c) \ (c = x * 2)
 
-This denotes the same relation as `int x => x * 2`. In the such-that scope, `x` and `c` are nondeterministic logical variables ranging together over the ordered pairs of the function. The predicate constrains the relationship between each accepted argument and its result.
+This is a compilation error. `c` is declared in the frame of `let`, but `x` on the right of `\` does not resolve. The intended function is written `int x => x * 2`.
 
 ### Functions via fn ordered pairs
 
@@ -537,7 +536,7 @@ A function contract is a set of admissible function values. Attaching a contract
 
     implementation contract ContractSet
 
-`contract` is left-declarative. It introduces one local scope spanning both operands; that frame is declarative over the implementation and referential over the contract. Inherited scope frames retain their modes. Declarations collected from a function inside the implementation, including its argument and result variables, are therefore available to an inline contract expression.
+`contract` is left-declarative. It introduces one local scope spanning both operands; that frame is declarative over the implementation and referential over the contract. Inherited scope frames retain their modes. The parameters of a lambda in the implementation are declared in the lambda's own frame and are not visible to the contract; a contract describes arguments and results through its own patterns, as in the examples below.
 
 The implementation must be a member of `ContractSet`. While compiling the defining compilation unit, the compiler may inspect the implementation and use its full symbolic relation. Across a separate-compilation boundary, the compiled implementation remains callable, but its body is opaque: consumers may use only constraints entailed by the contract set. Facts inferred from the hidden body do not cross the boundary.
 
@@ -815,7 +814,7 @@ The following operators can give rise to nondeterminism. Whether they do so depe
 - **Membership `:`:** when a member is not otherwise fixed, membership in a set can admit several alternative bindings for it. Testing membership of an already fixed value does not itself choose a member. Membership alone does not supply an enumeration procedure; unconstrained membership in `int` is unenumerable.
 - **Disjunction `|`:** a proposition can be satisfied through either operand or both, potentially admitting different bindings. This is distinct from applying boolean disjunction to two fixed booleans, which produces one boolean result. The function overload combines alternative results as described below; the set overload produces a union set, not a choice of its members.
 
-Other relations can also leave several bindings possible. Non-membership `!:`, collection membership `::` and `:::`, comparisons, equality `=` and `==`, inequality `!=`, and unification `?=` constrain their operands without necessarily determining a unique binding. A relation tested on fixed operands is not nondeterministic merely because it could admit other bindings in a declarative context. The such-that operator `\` exposes the values satisfying its predicate; for example, `int x \ x != 0` still admits many alternatives. Restriction `?`, conjunction, and the conditions of `in` and `where` can narrow alternatives without necessarily reducing them to one. None of these constraints alone implies that the compiler can enumerate all solutions.
+Other relations can also leave several bindings possible. Non-membership `!:`, collection membership `::` and `:::`, comparisons, equality `=` and `==`, inequality `!=`, and unification `?=` constrain their operands without necessarily determining a unique binding. A relation tested on fixed operands is not nondeterministic merely because it could admit other bindings in a declarative context. The such-that operator `\` exposes the values satisfying its predicate; for example, `let int x \ x != 0` still admits many alternatives. Restriction `?`, conjunction, and the conditions of `in` and `where` can narrow alternatives without necessarily reducing them to one. None of these constraints alone implies that the compiler can enumerate all solutions.
 
 Several operators construct functions whose applications may be nondeterministic. A single function value must not be confused with its alternative results:
 
@@ -1110,7 +1109,7 @@ The mirror image of left-declarative. A local scope spanning the whole operator 
 
 ### Operator Precedence and Associativity
 
-Precedence is defined by the binary infix table under [Binary infix](#binary-infix). Because `\` binds more tightly than `=`, an equation used as a such-that predicate must be parenthesized: `int x \ (x = 42)`.
+Precedence is defined by the binary infix table under [Binary infix](#binary-infix). Because `\` binds more tightly than `=`, an equation used as a such-that predicate must be parenthesized: `let int x \ (x = 42)`.
 
 `=>`, `^`, `^^` and `<|` are right-associative: `x => y => x + y` denotes `x => (y => x + y)`, `2 ^ 3 ^ 2` denotes `2 ^ (3 ^ 2)` and `f <| g <| x` denotes `f (g x)`. `=` and `?=` are non-associative, so `a = b = c` is ill-formed. `|>`, `>>` and `<<` share a row with `<|` but are left-associative; operators of one row that associate differently cannot be combined without parentheses, so `x |> f <| y` is ill-formed.
 
@@ -1142,7 +1141,7 @@ For the signature `bool^^bool`:
 
 For the signature `set^^set`:
 
-    !A = { x \ !(x : A) }
+    !A = { let x \ !(x : A) }
 
 Denotes the complement of `A`: the set whose members are exactly the values that are not members of `A`. Membership in the result is undefined for a value whose membership in `A` is undefined.
 
@@ -1209,6 +1208,8 @@ If `S` is a multiset containing several ordered pairs with the same origin, each
 As `public`, with internal access.
 
 Publishing operators nest. A name declared under two overlapping publishing contexts is unified, so `protected internal int Answer` declares one `Answer` that is both protected and internal.
+
+TODO: under the rule that a declaration belongs only to the innermost declarative frame, overlapping publishing contexts and the publication of local declarations need new semantics (see [Declarations and Binding](#declarations-and-binding)).
 
 #### `let`
 
@@ -1305,7 +1306,7 @@ Both operands are evaluated: the result is `true` where both operands are `true`
 
 For the signature `set*set^^set`:
 
-    A & B = { x \ x : A & x : B }
+    A & B = { let x \ x : A & x : B }
 
 Denotes the intersection of `A` and `B`: the set whose members are exactly the values that are members of both `A` and `B`. Both membership tests apply, so membership in the result is undefined for a value whose membership in either operand is undefined.
 
@@ -1331,7 +1332,7 @@ If the left operand evaluates to `false` the result is `false`, and the right op
 
 For the signature `set*set^^set`:
 
-    A && B = { x \ x : A && x : B }
+    A && B = { let x \ x : A && x : B }
 
 Denotes the guarded intersection of `A` and `B`. A value that is not a member of `A` is not a member of the result, even where its membership in `B` is undefined. For a member of `A`, membership in the result is its membership in `B`. This is the intersection to use where the right operand's membership is only defined for members of the left operand.
 
@@ -1358,7 +1359,7 @@ The guard applies on both sides: if either operand evaluates to `false` the resu
 
 For the signature `set*set^^set`:
 
-    A &&& B = { x \ x : A &&& x : B }
+    A &&& B = { let x \ x : A &&& x : B }
 
 Denotes the mutually guarded intersection of `A` and `B`. A value that is not a member of either operand is not a member of the result, even where its membership in the other operand is undefined. A value that is a member of both operands is a member of the result. Otherwise membership in the result is undefined.
 
@@ -1422,12 +1423,12 @@ The left operand must be a set. The right operand is always declarative.
 
 The range operators are neutral. A range is an ordered, nondeterministic expression that can assume any value between its left and right bounds. Where a range provably contains one value, it is deterministic. The angle bracket on either side excludes the bound on that side:
 
-| Operator    | Lower bound | Upper bound | Equivalent restriction |
-| ----------- | ----------- | ----------- | ---------------------- |
-| `a ... b`   | included    | included    | `x \ x >= a & x <= b`  |
-| `a ...< b`  | included    | excluded    | `x \ x >= a & x < b`   |
-| `a <... b`  | excluded    | included    | `x \ x > a & x <= b`   |
-| `a <...< b` | excluded    | excluded    | `x \ x > a & x < b`    |
+| Operator    | Lower bound | Upper bound | Equivalent restriction     |
+| ----------- | ----------- | ----------- | -------------------------- |
+| `a ... b`   | included    | included    | `let x \ x >= a & x <= b`  |
+| `a ...< b`  | included    | excluded    | `let x \ x >= a & x < b`   |
+| `a <... b`  | excluded    | included    | `let x \ x > a & x <= b`   |
+| `a <...< b` | excluded    | excluded    | `let x \ x > a & x < b`    |
 
 #### `../`
 
@@ -1563,7 +1564,9 @@ Right-referential. TODO: its semantics are not yet specified.
 
 #### `\`
 
-Left-declarative. Such-that. Introduces a local scope spanning the expression; the left operand declares into it and the right operand is a proposition over the names declared. The value is the value of the left operand for those values that satisfy the right operand. `int x \ x != 0` denotes an `int` that is not zero.
+Right-referential. Such-that. The right operand is a proposition over the names the left operand declares. Like `?` and `->`, `\` introduces no scope: its left operand is ambient, so its names are declared in the innermost declarative frame covering the expression, and over its right operand every declarative frame is referential, so the proposition refers to them. The value is the value of the left operand for those values that satisfy the right operand.
+
+In a pattern, `\` restricts the pattern in place: in `(int x \ x > 0) => x * 2` the name `x` is declared in the lambda frame and is visible both to the restriction and to the body. Where no declarative frame covers the expression, such as at the top level, on the right of `=`, in a lambda body or in a set definition, the names need one, normally an explicit `let`: `let int x \ x != 0` denotes an `int` that is not zero, and `{ let int x \ x % 2 == 0 }` is the set of even integers.
 
 #### `^`
 
@@ -1611,7 +1614,7 @@ Both operands are evaluated: the result is `true` where either operand is `true`
 
 For the signature `set*set^^set`:
 
-    A | B = { x \ x : A | x : B }
+    A | B = { let x \ x : A | x : B }
 
 Denotes the union of `A` and `B`: the set whose members are exactly the values that are members of either operand. Both membership tests apply, so membership in the result is undefined for a value whose membership in either operand is undefined.
 
@@ -1647,7 +1650,7 @@ If the left operand evaluates to `true` the result is `true`, and the right oper
 
 For the signature `set*set^^set`:
 
-    A || B = { x \ x : A || x : B }
+    A || B = { let x \ x : A || x : B }
 
 Denotes the guarded union of `A` and `B`. A member of `A` is a member of the result, even where its membership in `B` is undefined. For a value that is not a member of `A`, membership in the result is its membership in `B`. This is the union to use where the right operand's membership is only defined for non-members of the left operand.
 
@@ -1678,7 +1681,7 @@ The guard applies on both sides: if either operand evaluates to `true` the resul
 
 For the signature `set*set^^set`:
 
-    A ||| B = { x \ x : A ||| x : B }
+    A ||| B = { let x \ x : A ||| x : B }
 
 Denotes the mutually guarded union of `A` and `B`. A value that is a member of either operand is a member of the result, even where its membership in the other operand is undefined. A value that is a non-member of both operands is not a member of the result. Otherwise membership in the result is undefined.
 
@@ -1715,7 +1718,7 @@ Right-referential binary infix operator. In `expression catch handler`, the righ
 
 #### `contract`
 
-Left-declarative. `implementation contract ContractSet` requires the implementation to be a member of the function set denoted by the right operand. The new contract frame is declarative over the implementation and referential over the contract expression, so the contract can refer to argument and result declarations collected from a nested function. The value is the implementation paired with its opaque external description; see [Function contracts and separate compilation](#function-contracts-and-separate-compilation).
+Left-declarative. `implementation contract ContractSet` requires the implementation to be a member of the function set denoted by the right operand. The new contract frame is declarative over the implementation and referential over the contract expression. The value is the implementation paired with its opaque external description; see [Function contracts and separate compilation](#function-contracts-and-separate-compilation).
 
 #### `else`
 
@@ -1723,7 +1726,7 @@ Neutral. Constructs an alternative from its two operands, for use as the right o
 
 #### `in`
 
-Left-declarative. Introduces a local scope spanning both operands, with a new frame that is declarative over the left operand and referential over the right operand. Inherited scope frames retain their modes, just as for `=>`. Thus `pattern = expr in body` declares the pattern without requiring `let`.
+Left-declarative. Introduces a local scope spanning both operands, with a new frame that is declarative over the left operand and referential over the right operand. Inherited scope frames retain their modes, just as for `=>`. Thus `pattern = expr in body` declares the pattern without requiring `let`, and the pattern's names stay local to the expression: in `public a = 42 in Answer = a` only `Answer`, which the body declares in the frame of `public`, is published.
 
 The left operand is a proposition and the right operand is any expression. The value of the expression is the value of the right operand, provided the left operand evaluates to `true`. If the left operand evaluates to `false` or is undefined, the expression is undefined.
 
