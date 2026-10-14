@@ -268,9 +268,9 @@ recursive subexpression, like in this anonymous definition of the factorial func
 
 ### The `in` operator
 
-Accepts a proposition as its left operand and any expression as its right operand. The value is that of the right operand, provided that the lefty operand evaluatess to `true`. If the left operand evaluates to `false` or is undefined, then the value of the `in` expression is undefined.
+Accepts a proposition as its left operand and any expression as its right operand. The value is that of the right operand, provided that the left operand evaluates to `true`. If the left operand evaluates to `false` or is undefined, then the value of the `in` expression is undefined.
 
-The `in` operator is *right-referential*, which means that when it appears in a declarative scope, then the left operand is *declarative* and the right operand is *referential* in that scope.
+The `in` operator is *left-declarative*: it introduces a local scope which is *declarative* in its left operand and *referential* in its right operand. Names declared on the left are local to the `in` expression, so in `public a = 42 in Answer = a` only `Answer` is published.
 
 ## Logical operators
 
@@ -528,12 +528,12 @@ A range inherently ordered and nondeterministic. However, if the range provably 
 
 These infix binary operators accept a lower bound and an upper bound, respectively. The 4 operators differ in whether the bounds are included in or excluded from the range.
 
-| Expression  | Equivalent to         |
-| ----------- | --------------------- |
-| `a ... b`   | `x \ x >= a & x <= b` |
-| `a <... b`  | `x \ x > a & x <= b`  |
-| `a ...< b`  | `x \ x >= a & x < b`  |
-| `a <...< b` | `x \ x > a & x < b`   |
+| Expression  | Equivalent to             |
+| ----------- | ------------------------- |
+| `a ... b`   | `let x \ x >= a & x <= b` |
+| `a <... b`  | `let x \ x > a & x <= b`  |
+| `a ...< b`  | `let x \ x >= a & x < b`  |
+| `a <...< b` | `let x \ x > a & x < b`   |
 
 
 #### Ranges and set/list definitions
@@ -572,14 +572,14 @@ List literals evaluate the range left-to-right, emitting every value the range c
 
 ### The `\` "such that" operator
 
-The `\` operator is *declarative* and *right-referential* meaning that it introduces a new local scope which is declarative in its left operand and referential in its right operand.
+The `\` operator is *right-referential*, like `->` and `?`: its left operand is ambient and its right operand is referential. It introduces no scope of its own, so the names its left operand declares belong to the innermost declarative frame covering the expression. Where no declarative frame covers it, write `let`.
 
 A *such-that* expression evaluates to the value of the left operator, provided that the right operator is satisfied (evaluates to `true`) for the value.
 
-    int x \ x != 0      // A value that is not equal to 0
+    let int x \ x != 0      // A value that is not equal to 0
 
 The operator is frequently used in combination with set- and list definitions.
 
-    { int x \ x != 0 } 
+    { let int x \ x != 0 } 
 
-This example reads as "the set of `int` members such that the `int` member is greater than zero".
+This example reads as "the set of `int` members such that the `int` member is not zero".

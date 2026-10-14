@@ -17,6 +17,22 @@ Identifiers:
   1,15 f: references #1
 ```
 
+The names on the left of `in` stay local, so under `public` only the body's declarations are published.
+
+```ting
+public a = 42 in Answer = a
+```
+
+```ting-output
+Declarations:
+  #1 a: local (in at 1,15)
+  #2 Answer: published (public at 1,1)
+Identifiers:
+  1,8 a: declares #1
+  1,18 Answer: declares #2
+  1,27 a: references #1
+```
+
 `where` is right-declarative.
 
 ```ting
@@ -81,6 +97,111 @@ Identifiers:
   1,10 int: references builtin
   1,18 x: references #2
   1,28 b: references #1
+```
+
+A quantified name belongs only to the `all` frame, even under `let`.
+
+```ting
+let x : int all x > 0
+```
+
+```ting-output
+Declarations:
+  #1 x: local (all at 1,13)
+Identifiers:
+  1,5 x: declares #1
+  1,9 int: references builtin
+  1,17 x: references #1
+```
+
+`\` is right-referential and introduces no frame: a restricted pattern declares its names in the enclosing declarative frame.
+
+```ting
+(int x \ x > 0) => x * 2
+```
+
+```ting-output
+Declarations:
+  #1 x: local (=> at 1,17)
+Identifiers:
+  1,2 int: references builtin
+  1,6 x: declares #1
+  1,10 x: references #1
+  1,20 x: references #1
+```
+
+```ting
+let int n \ n > 0 -> n * 2
+```
+
+```ting-output
+Declarations:
+  #1 n: local (let at 1,1)
+Identifiers:
+  1,5 int: references builtin
+  1,9 n: declares #1
+  1,13 n: references #1
+  1,22 n: references #1
+```
+
+```ting
+int x \ x > 0 all x >= 1
+```
+
+```ting-output
+Declarations:
+  #1 x: local (all at 1,15)
+Identifiers:
+  1,1 int: references builtin
+  1,5 x: declares #1
+  1,9 x: references #1
+  1,19 x: references #1
+```
+
+Without an enclosing declarative frame, `\` needs `let`.
+
+```ting
+int x \ x != 0
+```
+
+```ting-output
+Identifiers:
+  1,1 int: references builtin
+  1,5 x: unresolved
+  1,9 x: unresolved
+Errors:
+  (1,5-1,6): unresolved name 'x'
+  (1,9-1,10): unresolved name 'x'
+```
+
+```ting
+{ let int x \ x % 2 == 0 }
+```
+
+```ting-output
+Declarations:
+  #1 x: local (let at 1,3)
+Identifiers:
+  1,7 int: references builtin
+  1,11 x: declares #1
+  1,15 x: references #1
+```
+
+Each declaration belongs to the innermost declarative frame, so sibling scopes do not share a name.
+
+```ting
+let (x = 1 in x) & (x = 2 in x)
+```
+
+```ting-output
+Declarations:
+  #1 x: local (in at 1,12)
+  #2 x: local (in at 1,27)
+Identifiers:
+  1,6 x: declares #1
+  1,15 x: references #1
+  1,21 x: declares #2
+  1,30 x: references #2
 ```
 
 The callee of an application is referential, the argument is ambient.

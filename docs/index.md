@@ -5,7 +5,7 @@ Ting is a logic programming language with a strong first-order flavor. It is not
 You can think of Ting as unifying constraint logic programming with functional and object-oriented programming. Constraint programming means you describe bounds and relations, then let the compiler and libraries search for values that satisfy them. A simple example is printing the solutions to a quadratic equation:
 
     import Math.Polynomials
-    float x \ 2*x^2 + 10*x - 48 == 0
+    let float x \ 2*x^2 + 10*x - 48 == 0
 
 When run, this program will output 
 
@@ -18,7 +18,7 @@ Constraint programming is not limited to algebraic equations. A browser layout e
 
 How does Ting solve a quadratic equation? As the line `import Math.Polynomials` suggests, the solver behavior comes from libraries. The compiler itself provides the core machinery: variable binding, truth-valued constraints, nondeterministic search, and evaluation rules. A library such as `Math.Polynomials` contributes domain-specific axioms, for example:
 
-    (bound float a, bound float b, bound float c, free float x) \ a*x^2 + b*x + c == 0  axiom
+    let (bound float a, bound float b, bound float c, free float x) \ a*x^2 + b*x + c == 0  axiom
         let 
             d = b^2-4*a*c
         in 
@@ -38,7 +38,7 @@ There is more going on in the example above.
 Now consider a program that compiles to a function for solving quadratic equations at runtime:
 
     import Math.Polynomials
-    [float a, float b, float c] => float x \ a*x^2 + b*x + c == 0
+    [float a, float b, float c] => let float x \ a*x^2 + b*x + c == 0
 
 This time the program is a function that maps a list of three `float` values to a quadratic constraint using those values as coefficients.
 
@@ -57,7 +57,7 @@ Nondeterministic expressions are often used inside set constructors, where the c
 
     Values = { 0...9 }
 
-    Even = { int n \ n % 2 == 0 }
+    Even = { let int n \ n % 2 == 0 }
 
 
 
@@ -74,7 +74,7 @@ The generating function is a nondeterministic, recursive function.
 
 The following is a small program which calculates a value by solving an equation:
 
-    float x \ x - 10 == 0
+    let float x \ x - 10 == 0
 
 It reads as *a float value `x` *such that*  `x - 10 == 0`*. The compiler will solve `x` for that equation. To do this it draws on the arithmetic library though which it can discover that `x - 10 == 0` where `x` is not bound can be solved by rewriting into `x == 0 + 10`. 
 
@@ -113,7 +113,7 @@ In Ting there is no formal types; not because Ting does not have types but rathe
 
 Some sets are like structural types: They include as elements all values that meet a certain criteria. An example of this would be the set of all even `int`s:
 
-    { int x \ x % 2 == 0 }
+    { let int x \ x % 2 == 0 }
 
 This is effectively a *refinement type*. The compiler will not *materialize* the set (enumerate all the members) unless necessary. If you only use the set to test for asking whether a given object is a member, only the membership test is required.
 
@@ -152,7 +152,7 @@ An important concept in Ting is that of *definedness*. Some expressions may not 
 
 This will
 
-    float x \ 4*x^2 - 10*x - 50 == 0
+    let float x \ 4*x^2 - 10*x - 50 == 0
 
 This reads as "a float value `x` *such that* `4*x^2 - 10*x - 50 == 0` is satisfied". Because `x` is the value of the program, the compiler will attempt to solve the quadratic equation. In fact, given that this code has no side-effects, it will calculate the solution at compile time, erase the quadratic equation and simply generate code to output the solutions.
 
@@ -160,7 +160,7 @@ This reads as "a float value `x` *such that* `4*x^2 - 10*x - 50 == 0` is satisfi
 
 This is a program which will accept the coefficients from the command line:
     
-    (float a, float b, float c) => partial nondeterm float x \ a*x^2 + b*x + c == 0
+    (float a, float b, float c) => partial nondeterm let float x \ a*x^2 + b*x + c == 0
 
 In this case the compiler will generate
 

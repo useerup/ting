@@ -2,7 +2,7 @@
 
 Ting has no dedicated declaration syntax. Identifiers are declared inline, by appearing in a declarative scope.
 
-    let a = 21 in a * 2     // expression value is 42
+    a = 21 in a * 2     // expression value is 42
 
 If you know other languages with "let bindings", this may look familiar. In Ting, though, the important part is not the surface form. The important part is scope.
 
@@ -13,8 +13,7 @@ When one or more declarative scopes cover an expression, the expression is said 
 Whether an identifier is being declared or referenced depends entirely on the scope in which it appears.
 
 So in the above example this is what goes on: 
-- `let` introduces a new local scope (covers only the `let` expression itself) and makes its operand *declarative*
-- `in` splits this declarative expression into a declarative left side `a = 21` and a referential right side `a * 2`.
+- `in` introduces a new local scope covering the expression. The scope is *declarative* in its left side `a = 21` and *referential* in its right side `a * 2`.
 - `=` further splits the declarative left side from `in` into a declarative left side `a` and a referential right side `21`.
 
 So the expression declares a variable `a` *locally within the expression*, binds it to the value `21` and the entire expression is then the value `a * 2`, i.e. `42`.
@@ -31,19 +30,19 @@ Scopes can be nested. When resolving an identifier the innermost scope is search
 
 The expression
 
-    let x = 5 in 2*x^2 + 5*x - 10 
+    x = 5 in 2*x^2 + 5*x - 10 
 
 contains both declarative and referential sub-expressions:
 
-- `let` creates a new declarative scope spanning `x = 5 in 2*x^2 + 5*x - 10`.
+- `in` creates a new local scope spanning `x = 5 in 2*x^2 + 5*x - 10`, declarative on its left side and referential on its right side.
 - `x` to the left of `=` is *declarative* — it is being declared here.
 - The `x`'s after `in` are *referential* — they reference the `x` declared above.
 
-`let` is a local scope operator. It often appears together with `in`, but it does not require `in`.
+`let` is a separate local scope operator. `in` does not need it, because `in` introduces its own scope. `let` is used where no other operator supplies a declarative scope, for example `let int x \ x != 0`.
 
-`in` is a separate operator. It is right-referential, so when it appears in a declarative scope the left side stays declarative and the right side becomes referential.
+`in` is left-declarative: the names declared on its left side are local to the `in` expression. In `public a = 42 in Answer = a`, `a` stays local and only `Answer`, which the right side declares in the scope of `public`, is published.
 
-`in` is still useful in purely referential positions, because constrains the value of the right operand to those that satisfy the left operand proposition. `x>0 in x` means that the value of this expression (which is just `x`) is only defined if x is greater than zero.
+`in` also constrains the value of the right operand to those that satisfy the left operand proposition. `0 < x in x` is only defined where `x` is greater than zero. On the left, `x` is on the referential side of `<`, so it refers to the surrounding `x` rather than declaring a new one.
 
     let int a = x * 2 & a = y * 3
 
@@ -67,13 +66,16 @@ The following unary operators establish a new declarative scope over their opera
 
 ### Local declarative operators
 
-The following binary operators establish a new declarative local scope over both operands. Because these operators are also right-referential, the scope is only declarative for the left operand:
+The following binary operators establish a new local scope over both operands. The scope is declarative for the left operand and referential for the right operand:
 
 | Operator | Description |
 |---|---|
-| `let` | Local scope introducer |
+| `in` | Conditional value |
 | `=>` | Lambda function |
-| `\` | Such that |
+| `all` | Universal quantification |
+| `contract` | Function contract |
+
+`where` is the mirror image: its scope is referential for the left operand and declarative for the right operand. The unary `let` establishes a local scope that is declarative throughout its operand.
 
 
 ### Right-referential operators
@@ -83,8 +85,9 @@ Some operators, when appearing in a declarative scope, keep the declarative scop
 | Operator | Description |
 |---|---|
 | `=` |  |
+| `?=` |  |
 | `==` |  |
-| `!==` |  |
+| `!=` |  |
 | `<` |  |
 | `<=` |  |
 | `>` |  |
@@ -92,19 +95,21 @@ Some operators, when appearing in a declarative scope, keep the declarative scop
 | `:` |  |
 | `::` |  |
 | `:::` |  |
-| `in` |  |
+| `\` | Such that |
+| `?` | Restriction |
+| `->` | Ordered pair |
 
-
+A right-referential operator introduces no scope of its own: the names its left operand declares belong to the innermost declarative scope covering it.
 
 This is why `public y = x * 2` works as expected: `public` establishes a declarative scope; `=` keeps that declarative scope for `y` (which is declared) but switches to referential for `x * 2` (where `x` must already be known).
 
-The same rule explains why `let x = 5 in x + 2` works: `let` opens the local declarative scope, `x = 5` declares `x`, and `in` makes the right-hand expression referential with respect to that binding.
+The same rule explains why `x = 5 in x + 2` works: `in` opens a local scope, `x = 5` declares `x` on its declarative left side, and the right side refers to that binding.
 
 ### Operator reference
 
 #### `let`
 
-`let` creates a new declarative local scope. Bindings introduced by `let` are not visible outside the expression. It is often paired with `in`, but it does not have to be:
+`let` creates a new declarative local scope. Bindings introduced by `let` are not visible outside the expression. Combined with `in` it adds a second scope around the one `in` already introduces:
 
     let answer = 42 in $"The answer is {answer}"    // "The answer is 42"
 
@@ -130,14 +135,14 @@ These visibility modifiers declare identifiers in the enclosing module or record
 
 #### `in`
 
-`in` is a right-referential operator. It is typically combined with `let` to scope bindings over the right-hand expression, but it is not part of `let` itself:
+`in` is a left-declarative operator. It introduces a local scope that is declarative over its left operand and referential over its right operand, so it needs no `let`:
 
-    let f = (0=>1) || (x=>x*f(x-1))
+    f = (0=>1) || (x=>x*f(x-1))
     in  f 5    // 120  (5!)
 
 The Fibonacci sequence as a lazy list:
 
-    [ let f = (a,b) => a ; f(b,a+b) in f(0,1) ]
+    [ f = (a,b) => a ; f(b,a+b) in f(0,1) ]
 
 #### `=>` — lambda
 
@@ -159,10 +164,10 @@ Parameter patterns may include type constraints and guards:
 
 #### `\` — such that
 
-`\` (read *such that*) constrains a value by a predicate. The left operand is declarative and the right operand is a referential predicate over those names. In other words the operator creates a new local scope and is right-referential within that scope:
+`\` (read *such that*) constrains a value by a predicate. It is right-referential, like `->` and `?`: the left operand is ambient and the right operand is a referential predicate over the names the left operand declares. `\` introduces no scope of its own, so those names are declared in the innermost declarative frame; in a set definition that is normally an explicit `let`:
 
-    { int n \ n > 0 }           // the set of positive integers
-    { int n \ n % 2 == 0 }      // the set of even integers
+    { let int n \ n > 0 }           // the set of positive integers
+    { let int n \ n % 2 == 0 }      // the set of even integers
 
 
 #### `record` and `records`
@@ -202,13 +207,9 @@ Because `this` is in the declarative parameter position of the lambda and its ty
 
 The following is a record with a field `Answer` which is bound to the value 42:
 
-    record(Answer:int) \ Answer=42
+    record(Answer : int \ (this.Answer = 42))
 
-Here there are 2 scopes in play:
-1. The `\` operator introduces a local scope which is declarative in its left hand operand (`record(Answer:int)`).
-2. The `record` operator introduces a *record scope* covering the field expression (`(Answer:int)`).
-
-The identifier `Answer` occurs within a scope stack where both these scopes are declarative. Thus it declares Answer in both scopes and unifies the values.
+`\` introduces no scope of its own. `Answer` is declared in the record scope, the innermost declarative frame, so it becomes a field. Inside a record, fields are referred to through `this`, so the restriction on the right of `\` is written `this.Answer = 42`.
 
 
 The following function parses a string:

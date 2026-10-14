@@ -37,7 +37,7 @@ let private rows: (string list * Associativity * (string -> BindingClass)) list 
       [ "then"; "else" ], RightAssoc, (fun op -> if op = "then" then RightReferential else Neutral)
       [ "./"; "../" ], LeftAssoc, all LeftReferential
       [ "all" ], RightAssoc, all LeftDeclarative
-      [ "\\" ], LeftAssoc, all LeftDeclarative
+      [ "\\" ], LeftAssoc, all RightReferential
       [ "|"; "||"; "|||" ], LeftAssoc, all Neutral
       [ "&"; "&&"; "&&&" ], LeftAssoc, all Neutral
       [ "?"; "??" ], LeftAssoc, all RightReferential

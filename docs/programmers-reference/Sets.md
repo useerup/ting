@@ -68,13 +68,13 @@ Examples:
 
     { 1, 2, 3 }                         // Extensional
 
-    { x \ x:int && x >= 0 }             // Intensional
+    { let x \ x:int && x >= 0 }         // Intensional
 
     { 1, "abc", Math.Pi, {39, 42} }     // Heterogenous set of an integer, string, double and a set
 
 Each expression in the list may itself be [nondeterministic](Nondeterminism.md). The set definition expands ("unwinds") those possibilities to include every resulting value, which is why the construct works equally well for both *extensional* and *intensional* style definitions familiar from mathematics.
 
-    { x \ IsOrbitingSun(x) }
+    { let x \ IsOrbitingSun(x) }
 
     IsOrbitingSun = Mercury;Venus;Earth;Mars;Jupiter;Saturn;Uranus;Neptune --> true
 

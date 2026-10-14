@@ -10,13 +10,13 @@ Ting is a logic programming language whose types are sets. One relational core c
 A few tiny examples show the shape of the language. A set can be written directly as a refinement:
 
 ```ting
-Even = { int x \ x % 2 == 0 }
+Even = { let int x \ x % 2 == 0 }
 ```
 
 A dependent type can describe values that depend on another value:
 
 ```ting
-DivisibleBy = int d => { int n \ n % d == 0 }
+DivisibleBy = int d => { let int n \ n % d == 0 }
 ```
 
 A function can be defined only for some arguments, and simply produce no result for the rest:
@@ -91,16 +91,16 @@ Ting's wager is that one mechanism does all three. If types are sets, then "an i
 **The idea.** A type in Ting *is* a set, and a set is an ordinary value. `int` is the set of 32-bit integers. Sets are built with the same operators as everything else.
 
 ```ting
-public Even = { int x \ x % 2 == 0 }
+public Even = { let int x \ x % 2 == 0 }
 ```
 
-`\` is *such-that*. It declares `x` over `int` on its left and constrains it on the right. `Even` is the set of even integers - and it is a value, which can be passed to a function, returned from one, or stored.
+`\` is *such-that*. `x` is declared over `int` on its left, in the frame of `let`, and constrained on its right. `Even` is the set of even integers - and it is a value, which can be passed to a function, returned from one, or stored.
 
 The same construction covers what other languages need distinct features for:
 
 ```ting
 public (
-    NonZero = int x \ x != 0,
+    NonZero = let int x \ x != 0,
     Colour = { "red", "green", "blue" },
     Rank = class (1 ... 8),
     Person = records(string Name, int Age)
@@ -112,11 +112,11 @@ A refinement type, an enumeration, a nominal type over a bounded range, and a re
 Membership is an ordinary operator, and sets compose:
 
 ```ting
-let Even = { int x \ x % 2 == 0 } in 4 : Even
+let Even = { let int x \ x % 2 == 0 } in 4 : Even
 ```
 
 ```ting
-let Person = records(string Name, int Age) in { Person p \ p.Age >= 18 }
+let Person = records(string Name, int Age) in { let Person p \ p.Age >= 18 }
 ```
 
 The second is the set of adults, derived from the set of persons by the same `\` used to derive `Even` from `int`. There is no separate subtyping feature: it is set restriction.
@@ -170,7 +170,7 @@ That expression assumes `1` until backtracking forces it to assume `2`, and so o
 This is what makes `\` work. Look again at:
 
 ```ting
-public NonZero = int x \ x != 0
+public NonZero = let int x \ x != 0
 ```
 
 `int` on the left is nondeterministic over every 32-bit integer; the right operand filters it. Set construction is where nondeterminism gets *collected* rather than propagated: a set definition gathers everything its element expressions can assume, so an unbounded choice inside a set becomes one ordinary set value outside it. That is Ting's answer to the problem the cut was invented for - you contain nondeterminism by collecting it, not by cutting the search tree.
@@ -184,10 +184,10 @@ Undefinedness and choice interact deliberately: `;` disregards an undefined oper
 The three sections above are not three features. They are one mechanism described three times, and this is the example that shows it:
 
 ```ting
-float x \ 2*x^2 + 10*x - 48 == 0
+let float x \ 2*x^2 + 10*x - 48 == 0
 ```
 
-Read it as a **set**: `x` is declared over `float` and restricted by the proposition on the right. It is the set of reals satisfying the equation, exactly the same construction as `int x \ x % 2 == 0`, with a harder predicate.
+Read it as a **set**: `x` is declared over `float` and restricted by the proposition on the right. It is the set of reals satisfying the equation, exactly the same construction as `let int x \ x % 2 == 0`, with a harder predicate.
 
 Read it as **definedness**: it is a partial description. For most coefficients there is no real root, and where there is none the expression yields nothing at all. It does not fail, throw, or return an empty wrapper.
 
@@ -198,7 +198,7 @@ You did not write a solver, and you did not write three versions of the constrai
 The same expression becomes a function by abstracting the coefficients:
 
 ```ting
-public Solve = (float a, float b, float c) => float x \ a*x^2 + b*x + c == 0
+public Solve = (float a, float b, float c) => let float x \ a*x^2 + b*x + c == 0
 ```
 
 **Design sketch.** Both compile as far as name resolution today. Actually producing `3` and `-8` needs the solver, which does not exist. The intended design is that the compiler supplies the machinery - binding, truth-valued constraints, nondeterministic search - while domain knowledge such as the quadratic formula arrives from libraries as axioms. See [`index.md`](index.md) for how that is meant to work.

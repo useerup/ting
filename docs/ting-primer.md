@@ -20,8 +20,8 @@ Ting has a number of built-in sets. Examples of built-in sets are:
 
 ## Refinement types
 
-    DivisibleBy3 = { int n \ n > 0 &&  n % 3 == 0 }     // { 3, 6, 9, ... }
-    DivisibleBy5 = { int n \ n > 0 &&  n % 5 == 0 }     // { 5, 10, 15, ... }
+    DivisibleBy3 = { let int n \ n > 0 &&  n % 3 == 0 }     // { 3, 6, 9, ... }
+    DivisibleBy5 = { let int n \ n > 0 &&  n % 5 == 0 }     // { 5, 10, 15, ... }
 
 ## Set arithmetic
 
@@ -41,7 +41,7 @@ This is a set of records with fields `Value` and `Divisor`. Only records
 
 
 
-    DivisibleBy = int d => { int n \ n % d == 0 }
+    DivisibleBy = int d => { let int n \ n % d == 0 }
 
 
 
@@ -106,7 +106,7 @@ A set is defined through a *set definition*. Like in math, a set is defined usin
 
     { 1, 2, 3 }             // Simple list-form set definition
 
-    { float x \ x >= 0 }    // Set Non-negative floating point numbers
+    { let float x \ x >= 0 }    // Set Non-negative floating point numbers
 
     { '0'...'9' }           // Set of digits
 

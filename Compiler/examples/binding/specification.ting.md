@@ -49,38 +49,42 @@ Identifiers:
   1,26 this: references #2
 ```
 
-The such-that scope collects the lambda's declarations; `k` is declared there because the lambda frame is referential in the body.
+`\` introduces no frame. `x` is declared only in the lambda frame; `k` passes the lambda frame, which is referential in the body, and is declared in the frame of `let`.
 
 ```ting
-(int x => x * 2 + k) \ (k = 42)
+let (int x => x * 2 + k) \ (k = 42)
 ```
 
 ```ting-output
 Declarations:
-  #1 x: local (=> at 1,8; \ at 1,22)
-  #2 k: local (\ at 1,22)
+  #1 x: local (=> at 1,12)
+  #2 k: local (let at 1,1)
 Identifiers:
-  1,2 int: references builtin
-  1,6 x: declares #1
-  1,11 x: references #1
-  1,19 k: declares #2
-  1,25 k: references #2
+  1,6 int: references builtin
+  1,10 x: declares #1
+  1,15 x: references #1
+  1,23 k: declares #2
+  1,29 k: references #2
 ```
 
+A lambda's parameter is not visible outside the lambda, so `x` on the right of `\` is unresolved.
+
 ```ting
-(int x => c) \ (c = x * 2)
+let (int x => c) \ (c = x * 2)
 ```
 
 ```ting-output
 Declarations:
-  #1 x: local (=> at 1,8; \ at 1,14)
-  #2 c: local (\ at 1,14)
+  #1 x: local (=> at 1,12)
+  #2 c: local (let at 1,1)
 Identifiers:
-  1,2 int: references builtin
-  1,6 x: declares #1
-  1,11 c: declares #2
-  1,17 c: references #2
-  1,21 x: references #1
+  1,6 int: references builtin
+  1,10 x: declares #1
+  1,15 c: declares #2
+  1,21 c: references #2
+  1,25 x: unresolved
+Errors:
+  (1,25-1,26): unresolved name 'x'
 ```
 
 Record fields are separate from surrounding locals.
@@ -155,7 +159,7 @@ public protected internal Answer = 42
 
 ```ting-output
 Declarations:
-  #1 Answer: published (internal at 1,18; protected at 1,8; public at 1,1)
+  #1 Answer: published (internal at 1,18)
 Identifiers:
   1,27 Answer: declares #1
 ```

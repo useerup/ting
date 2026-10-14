@@ -15,7 +15,7 @@ Ting is a logic programming language whose types are sets. One relational core c
 They are one mechanism, and this is where that shows:
 
 ```ting
-{ float x \ 2*x^2 + 10*x - 48 == 0 }
+{ let float x \ 2*x^2 + 10*x - 48 == 0 }
 ```
 
 That is simultaneously a set (the reals satisfying the equation), a partial description (the member expression is undefined when there is no real root), and a search (the values `x` can assume, `3` and `-8`). The constraint is written once and serves as the type, the definedness condition and the algorithm.
