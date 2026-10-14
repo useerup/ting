@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ting.Syntax\Ting.Syntax.fsproj" />
+    <ProjectReference Include="..\Ting.Binding\Ting.Binding.fsproj" />
+    <ProjectReference Include="..\Ting.Logic\Ting.Logic.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Translate.fs" />
+  </ItemGroup>
+
+</Project>

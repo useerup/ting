@@ -116,18 +116,31 @@ let negate (lit: Formula) =
 /// The set quantifiers range over when printed; a placeholder until the specification names a universe (SET-01).
 let universe = "any"
 
-let private comparisons = set [ "<"; "<="; ">"; ">=" ]
+let private comparisons = set [ "<"; "<="; ">"; ">="; ":" ]
 
 let private paren (b: bool) (s: string) = if b then "(" + s + ")" else s
 
-let rec private showTerm (argument: bool) (t: Term) =
+/// Binding power of the arithmetic operators printed infix; `^` is right-associative.
+let private arithmetic = Map [ "+", 1; "-", 1; "*", 2; "/", 2; "%", 2; "^", 3 ]
+
+// Term binding power, loosest first: `+ -` 1, `* / %` 2, `^` 3, juxtaposition 5, negation 6, atoms 7.
+let rec private showTerm (prec: int) (t: Term) =
     match t with
     | Var x
     | Fn(x, []) -> x
-    | Fn(f, [ a ]) -> paren argument (f + " " + showTerm true a)
-    | Fn(f, args) -> paren argument (f + "(" + (args |> List.map (showTerm false) |> String.concat ", ") + ")")
+    | Fn("()", args) ->
+        // A leading `-` right after `(` would be subtraction, so it gets a space.
+        let items = args |> List.map (showTerm 0) |> List.map (fun s -> if s.StartsWith "-" then " " + s else s)
+        "(" + String.concat ", " items + ")"
+    | Fn("-", [ a ]) -> paren (prec > 6) ("-" + showTerm 7 a)
+    | Fn(op, [ a; b ]) when arithmetic.ContainsKey op ->
+        let p = arithmetic[op]
+        let left, right = if op = "^" then p + 1, p else p, p + 1
+        paren (prec > p) (showTerm left a + " " + op + " " + showTerm right b)
+    | Fn(f, [ a ]) -> paren (prec > 5) (f + " " + showTerm 6 a)
+    | Fn(f, args) -> paren (prec > 5) (f + "(" + (args |> List.map (showTerm 0) |> String.concat ", ") + ")")
 
-let termToString (t: Term) = showTerm false t
+let termToString (t: Term) = showTerm 0 t
 
 // Binding power, loosest first: `=` 0, `all` 1, `|` 2, `&` 3, `!` 4, comparisons 5, juxtaposition 6.
 let rec private show (prec: int) (fm: Formula) =
@@ -137,7 +150,7 @@ let rec private show (prec: int) (fm: Formula) =
     | Atom("=", [ a; b ]) -> paren (prec > 0) (termToString a + " = " + termToString b)
     | Atom(p, [ a; b ]) when comparisons.Contains p -> paren (prec > 5) (termToString a + " " + p + " " + termToString b)
     | Atom(p, args) -> termToString (Fn(p, args))
-    | Not p -> "!" + show 5 p
+    | Not p -> "!" + show 6 p
     | And(Exists _ as p, q) -> paren (prec > 3) (paren true (show 0 p) + " & " + show 3 q)
     | And(p, q) -> paren (prec > 3) (show 3 p + " & " + show 3 q)
     | Or(p, q) -> paren (prec > 2) (show 2 p + " | " + show 2 q)

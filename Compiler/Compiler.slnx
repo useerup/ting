@@ -2,6 +2,8 @@
   <Project Path="Ting.Ast/Ting.Ast.fsproj" />
   <Project Path="Ting.Binding.Tests/Ting.Binding.Tests.fsproj" />
   <Project Path="Ting.Binding/Ting.Binding.fsproj" />
+  <Project Path="Ting.Core.Tests/Ting.Core.Tests.fsproj" />
+  <Project Path="Ting.Core/Ting.Core.fsproj" />
   <Project Path="Ting.Logic.Tests/Ting.Logic.Tests.fsproj" />
   <Project Path="Ting.Logic/Ting.Logic.fsproj" />
   <Project Path="Ting.Parser/Ting.Parser.fsproj" />
