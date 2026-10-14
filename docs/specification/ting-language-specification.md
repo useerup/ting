@@ -277,6 +277,20 @@ Format specifiers
 - Numeric literals include integer and floating forms.
 - Numeric literals are unsigned. A leading `-` is never part of the literal; it is the negation operator applied to it. This is what keeps `n-1` a subtraction rather than `n` applied to the literal `-1`.
 - Numeric separators are supported (example in syntax docs).
+- A numeric literal is a member of exactly one numeric set, chosen by its form and suffix. A literal whose value is outside that set is an error.
+
+| Form                         | Set       | Example  |
+| ---------------------------- | --------- | -------- |
+| digits                       | `int`     | `42`     |
+| digits `u`                   | `uint`    | `42u`    |
+| digits `s`                   | `short`   | `42s`    |
+| digits `us`                  | `ushort`  | `42us`   |
+| digits `L`                   | `long`    | `42L`    |
+| digits `UL`                  | `ulong`   | `42UL`   |
+| digits `.` digits            | `float`   | `42.0`   |
+| digits [`.` digits] `f`      | `float`   | `42f`    |
+| digits [`.` digits] `d`      | `double`  | `42.0d`  |
+| digits [`.` digits] `m`      | `decimal` | `42.0m`  |
 
 ### Whitespace and indentation
 - Grammar-shift operators can use indentation-sensitive forms.
@@ -419,6 +433,8 @@ Ting models types as sets.
 - `byte`, `sbyte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`
 - `float`, `double`, `decimal`
 - `char`, `string`, `bool`
+
+The numeric sets are classes (see [Classes](#classes)). Every numeric value is a member of exactly one numeric set, as in C#: `42` is an `int`, `42s` a `short` and `42.0m` a `decimal`. Values of different numeric sets are never equal, even where they denote the same number, so `42 = 42s` is `false`. A value of one numeric set reaches another only by conversion; see [Implicit promotion](#implicit-promotion).
 
 ### Unit
 
