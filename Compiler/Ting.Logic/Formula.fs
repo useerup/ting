@@ -123,15 +123,32 @@ let private paren (b: bool) (s: string) = if b then "(" + s + ")" else s
 /// Binding power of the operators printed infix in terms; `^` is right-associative.
 let private arithmetic = Map [ "->", 0; "+", 1; "-", 1; "*", 2; "/", 2; "%", 2; "^", 3 ]
 
+/// The constructor of products with `positional` positional fields followed by the named fields `names`.
+let productName (positional: int) (names: string list) = "(" + string positional + "@" + String.concat "," names + ")"
+
+let (|ProductName|_|) (name: string) =
+    if name.StartsWith "(" && name.EndsWith ")" && name.Contains "@" then
+        let inner = name.Substring(1, name.Length - 2)
+        let at = inner.IndexOf '@'
+        match System.Int32.TryParse(inner.Substring(0, at)) with
+        | true, k -> Some(k, inner.Substring(at + 1).Split ',' |> List.ofArray)
+        | _ -> None
+    else
+        None
+
+// A leading `-` right after `(` would be subtraction, so it gets a space.
+let private spaced (s: string) = if s.StartsWith "-" then " " + s else s
+
 // Term binding power, loosest first: `->` 0, `+ -` 1, `* / %` 2, `^` 3, juxtaposition 5, negation 6, atoms 7.
 let rec private showTerm (prec: int) (t: Term) =
     match t with
     | Var x
     | Fn(x, []) -> x
-    | Fn("()", args) ->
-        // A leading `-` right after `(` would be subtraction, so it gets a space.
-        let items = args |> List.map (showTerm 0) |> List.map (fun s -> if s.StartsWith "-" then " " + s else s)
-        "(" + String.concat ", " items + ")"
+    | Fn("()", args) -> "(" + (args |> List.map (showTerm 0 >> spaced) |> String.concat ", ") + ")"
+    | Fn(ProductName(k, names), args) when args.Length = k + names.Length ->
+        let positional = args |> List.take k |> List.map (showTerm 0 >> spaced) |> String.concat ", "
+        let named = List.map2 (fun n a -> n + " = " + showTerm 0 a) names (List.skip k args) |> String.concat ", "
+        "(" + (if k > 0 then positional + " @ " else "@ ") + named + ")"
     | Fn("-", [ a ]) -> paren (prec > 6) ("-" + showTerm 7 a)
     | Fn(op, [ a; b ]) when arithmetic.ContainsKey op ->
         let p = arithmetic[op]

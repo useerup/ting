@@ -55,6 +55,18 @@ let rec private isPair (e: Expr) =
     | Infix(_, op, _, _) -> op.Text = "->"
     | _ -> false
 
+/// The field declarations of a `record` or `records` operand, as the binder reads them.
+let private recordItems (operand: Expr) =
+    match operand with
+    | Tuple(_, items) -> items
+    | Group(_, item) -> [ item ]
+    | item -> [ item ]
+
+let rec private strip (e: Expr) =
+    match e with
+    | Group(_, inner) -> strip inner
+    | _ -> e
+
 let private tTrue = Fn("true", [])
 let private tFalse = Fn("false", [])
 
@@ -87,14 +99,19 @@ let private disj (fms: Formula list) =
         | [] -> False
         | fs -> List.reduceBack (fun p q -> Or(p, q)) fs
 
-/// Ordered pairs and tuples, whose values are equal exactly when their components are.
-let private injective = set [ "->"; "()" ]
+/// Ordered pairs, tuples and products, whose values are equal exactly when their components are.
+let private injective (f: string) =
+    match f with
+    | "->"
+    | "()"
+    | ProductName _ -> true
+    | _ -> false
 
 let rec private eq (a: Term) (b: Term) =
     match a, b with
     | _ when a = b -> True
     | _ when distinctLiterals a b -> False
-    | Fn(f, xs), Fn(g, ys) when f = g && injective.Contains f && xs.Length = ys.Length -> conj (List.map2 eq xs ys)
+    | Fn(f, xs), Fn(g, ys) when f = g && injective f && xs.Length = ys.Length -> conj (List.map2 eq xs ys)
     | _ -> Atom("=", [ a; b ])
 
 let private quantify (make: string * Formula -> Formula) (names: string list) (body: Formula) =
@@ -113,7 +130,7 @@ let private relation (op: string) (a: Term) (b: Term) =
     | "!=" -> neg (eq a b)
     | "!:" -> neg (Atom(":", [ a; b ]))
     // Attributes are not modelled yet, so `==` and `?=` compare like `=`.
-    | "==" | "?=" -> eq a b
+    | "=" | "==" | "?=" -> eq a b
     | _ -> Atom(op, [ a; b ])
 
 let private frameKind (kind: FrameKind) =
@@ -142,6 +159,10 @@ type private Translator(bound: Bound) =
     /// Terms of lambdas and set definitions, so each gets its axioms once.
     let terms = Dictionary<Span, Term>()
     let constructors = HashSet<string * int>()
+    /// Named fields of the constructors used: arity, and each field with its argument index.
+    let fieldsOf = Dictionary<string, int * (string * int) list>()
+    /// Properties selected where the receiver's constructor is not known.
+    let properties = HashSet<string>()
     let mutable counter = 0
     let mutable lambdas = 0
     let mutable sets = 0
@@ -170,7 +191,57 @@ type private Translator(bound: Bound) =
                   Exact = false }
         Fn(name, args)
 
-    let pair (origin: Term) (result: Term) = constructor "->" [ origin; result ]
+    let pair (origin: Term) (result: Term) =
+        fieldsOf["->"] <- (2, [ "Result", 1 ])
+        constructor "->" [ origin; result ]
+
+    let product (positional: Term list) (named: (string * Term) list) =
+        match named with
+        | [] -> constructor "()" positional
+        | _ ->
+            let named = named |> List.sortWith (fun (a, _) (b, _) -> System.String.CompareOrdinal(a, b))
+            let name = productName positional.Length (List.map fst named)
+            let args = positional @ List.map snd named
+            fieldsOf[name] <- (args.Length, named |> List.mapi (fun i (n, _) -> n, positional.Length + i))
+            constructor name args
+
+    /// The field `name` of a value built by a known constructor.
+    let fieldOf (t: Term) (name: string) =
+        match t with
+        | Fn(c, args) ->
+            match fieldsOf.TryGetValue c with
+            | true, (_, fields) -> fields |> List.tryFind (fst >> (=) name) |> Option.map (fun (_, i) -> args[i])
+            | _ -> None
+        | Var _ -> None
+
+    let select (t: Term) (name: string) (v: Term) =
+        match fieldOf t name with
+        | Some x -> eq v x
+        | None ->
+            properties.Add name |> ignore
+            Atom("." + name, [ t; v ])
+
+    /// For each selected property, its value on every constructor that has it as a field.
+    let fieldAxioms () =
+        [ for KeyValue(c, (arity, fields)) in fieldsOf do
+              for name, i in fields do
+                  if properties.Contains name then
+                      let xs = [ for j in 1 .. arity -> $"x{j}" ]
+                      { Vars = xs @ [ "v" ]
+                        Head = Atom("." + name, [ Fn(c, List.map Var xs); Var "v" ])
+                        Body = Atom("=", [ Var "v"; Var xs[i] ])
+                        Exact = true } ]
+
+    /// A set term over the variables it captures: `element` is a member exactly when `body` holds for some `members`.
+    let defineSet (span: Span) (members: string list) (element: Term) (body: Formula) =
+        sets <- sets + 1
+        let captured = Set.difference (fv body) (set members) |> Set.toList
+        let term = Fn($"set{sets}", List.map Var captured)
+        terms[span] <- term
+        addAxiom (captured @ members) (Atom(":", [ element; term ])) body
+        let a, r = fresh (), fresh ()
+        addAxiom (captured @ [ a; r ]) (Atom("app", [ term; Var a; Var r ])) (conj [ Atom(":", [ Var a; term ]); eq (Var r) (Var a) ])
+        term
 
     /// An existential over a fresh variable, eliminated when a conjunct defines the variable.
     let someFresh (x: string) (body: Formula) =
@@ -194,7 +265,8 @@ type private Translator(bound: Bound) =
     let varName (d: Decl) = $"{d.Name}_{d.Id}"
 
     let unsupported (span: Span) (what: string) =
-        diagnostics.Add { Message = $"not yet supported: {what}"; Span = span }
+        let d = { Message = $"not yet supported: {what}"; Span = span }
+        if not (diagnostics.Contains d) then diagnostics.Add d
         Atom("unsupported", [])
 
     /// The variables bound by the frame an operator introduces.
@@ -211,16 +283,23 @@ type private Translator(bound: Bound) =
         | _ -> []
 
     member _.Diagnostics = List.ofSeq diagnostics
-    member _.Axioms = List.ofSeq axioms
+    member _.Axioms = List.ofSeq axioms @ fieldAxioms ()
     member _.Literals = List.ofSeq literals
 
-    member _.Name(span: Span, name: string) : Term option =
-        match bindings.TryGetValue span with
-        | true, (Declares id | References id) -> Some(if id < 0 then Fn(name, []) else Var(varName decls[id]))
-        | true, Unresolved -> Some(Fn(name, []))
-        | true, Deferred _ ->
+    /// The term an occurrence's binding stands for.
+    member _.Term(span: Span, name: string, binding: Binding) : Term option =
+        match binding with
+        | Declares id
+        | References id -> Some(if id < 0 then Fn(name, []) else Var(varName decls[id]))
+        | Unresolved -> Some(Fn(name, []))
+        | Deferred _ ->
             unsupported span $"'{name}' needs semantic analysis" |> ignore
             Some(Fn(name, []))
+        | _ -> None
+
+    member this.Name(span: Span, name: string) : Term option =
+        match bindings.TryGetValue span with
+        | true, binding -> this.Term(span, name, binding)
         | _ -> None
 
     member this.IsProposition(e: Expr) =
@@ -253,6 +332,20 @@ type private Translator(bound: Bound) =
         | Prefix(_, op, a) when op.Text = "fn" -> this.Functional a |> Option.map (fun (cs, t) -> cs, this.Fn t)
         | Infix(span, op, p, b) when op.Text = "=>" -> Some([], this.Lambda(span, op, p, b))
         | Set(span, items) -> Some([], this.SetDefinition(span, items))
+        | Prefix(span, op, a) when op.Text = "records" -> Some([], this.Records(span, op, a))
+        | Prefix(span, op, a) when op.Text = "tuples" -> Some([], this.Tuples(span, op, a))
+        | Prefix(_, op, a) when op.Text = "record" ->
+            this.SimpleFields("record", op.Span.Start, recordItems a) |> Option.map (fun (cs, fields) -> cs, product [] fields)
+        | Product(span, positional, fusion, named) ->
+            let parts = this.Positional(positional, fusion) |> Option.map (List.map this.Functional)
+            (match parts with
+             | Some parts when List.forall Option.isSome parts ->
+                 let parts = List.map Option.get parts
+                 this.SimpleFields("product", span.Start, named)
+                 |> Option.map (fun (cs, fields) -> List.collect fst parts @ cs, product (List.map snd parts) fields)
+             | _ -> None)
+        | Infix(_, op, receiver, Identifier(span, name)) when op.Text = "." && this.IsProperty span ->
+            this.Functional receiver |> Option.bind (fun (cs, t) -> fieldOf t name |> Option.map (fun x -> cs, x))
         | Infix(_, op, a, b) when op.Text = "->" ->
             (match this.Functional a, this.Functional b with
              | Some(ca, ta), Some(cb, tb) -> Some(ca @ cb, pair ta tb)
@@ -292,34 +385,112 @@ type private Translator(bound: Bound) =
         match terms.TryGetValue span with
         | true, t -> t
         | _ ->
-            sets <- sets + 1
-            let name = $"set{sets}"
             // The members of a set of ordered pairs are stated on the pair, so the prover need not take members apart.
-            let member', membership =
-                if not items.IsEmpty && List.forall isPair items then
-                    let o, r = fresh (), fresh ()
-                    let alternatives =
-                        items
-                        |> List.mapi (fun i item ->
-                            let earlier =
-                                items
-                                |> List.take i
-                                |> List.map (fun e ->
-                                    let r' = fresh ()
-                                    neg (someFresh r' (this.Value e (pair (Var o) (Var r')))))
-                            conj (this.Value item (pair (Var o) (Var r)) :: earlier))
-                    [ o; r ], (pair (Var o) (Var r), disj alternatives)
-                else
-                    let y = fresh ()
-                    [ y ], (Var y, disj (items |> List.map (fun item -> this.Value item (Var y))))
-            let element, body = membership
-            let captured = Set.difference (fv body) (set member') |> Set.toList
-            let term = Fn(name, List.map Var captured)
-            terms[span] <- term
-            addAxiom (captured @ member') (Atom(":", [ element; term ])) body
-            let a, r = fresh (), fresh ()
-            addAxiom (captured @ [ a; r ]) (Atom("app", [ term; Var a; Var r ])) (conj [ Atom(":", [ Var a; term ]); eq (Var r) (Var a) ])
-            term
+            if not items.IsEmpty && List.forall isPair items then
+                let o, r = fresh (), fresh ()
+                let alternatives =
+                    items
+                    |> List.mapi (fun i item ->
+                        let earlier =
+                            items
+                            |> List.take i
+                            |> List.map (fun e ->
+                                let r' = fresh ()
+                                neg (someFresh r' (this.Value e (pair (Var o) (Var r')))))
+                        conj (this.Value item (pair (Var o) (Var r)) :: earlier))
+                defineSet span [ o; r ] (pair (Var o) (Var r)) (disj alternatives)
+            else
+                let y = fresh ()
+                defineSet span [ y ] (Var y) (disj (items |> List.map (fun item -> this.Value item (Var y))))
+
+    /// `records E`: the set of the records `record E` describes.
+    member this.Records(span: Span, op: Operator, operand: Expr) : Term =
+        match terms.TryGetValue span with
+        | true, t -> t
+        | _ ->
+            let y = fresh ()
+            defineSet span [ y ] (Var y) (this.Harvest("records", op.Span.Start, recordItems operand, [], Var y))
+
+    /// `tuples E`: the set of the values of `E`, each of which is `this` while `E` describes it.
+    member this.Tuples(span: Span, op: Operator, operand: Expr) : Term =
+        match terms.TryGetValue span with
+        | true, t -> t
+        | _ ->
+            let y = fresh ()
+            let at = op.Span.Start
+            let body = conj (this.Self("tuples", at, Var y) @ [ this.Value operand (Var y) ])
+            defineSet span [ y ] (Var y) (exists (declaredIn "tuples" at) body)
+
+    member _.FieldsIn(kind: string, at: Position) =
+        let frame = frames[struct (at.Offset, kind)]
+        bound.Decls |> List.filter (fun d -> d.Kind = Field && List.contains frame d.Frames)
+
+    /// `this` bound by the frame is the value being defined.
+    member _.Self(kind: string, at: Position, value: Term) =
+        let frame = frames[struct (at.Offset, kind)]
+        bound.Decls
+        |> List.filter (fun d -> d.Kind = ThisBinding && List.contains frame d.Frames)
+        |> List.map (fun d -> eq (Var(varName d)) value)
+
+    /// The fields that become positional: a single positional value is fused one level deep unless `@@` is used.
+    member _.Positional(items: Expr list, fusion: Fusion) : Expr list option =
+        match fusion, items with
+        | Fusing, [ single ] ->
+            (match strip single with
+             | Tuple(_, parts) -> Some parts
+             | Number _
+             | Bool _
+             | String _ -> Some [ single ]
+             | _ -> None)
+        | NonFusing, _ :: _ :: _ -> Some [ Tuple(items.Head.Span, items) ]
+        | _ -> Some items
+
+    /// A field declaration of a record or a product's named section. Its truth value is discarded, but it must hold.
+    member this.Item(item: Expr) : Formula =
+        match item with
+        | Identifier(span, name) ->
+            (match bindings.TryGetValue span with
+             | true, FieldShorthand(field, value) ->
+                 match this.Term(span, name, value) with
+                 | Some t -> eq (Var(varName decls[field])) t
+                 | None -> unsupported span $"field shorthand '{name}'"
+             | _ -> this.Defined item)
+        | _ when this.IsProposition item -> this.Goal item
+        | _ -> this.Defined item
+
+    /// The value of a record or product: its fields are the names its named section declares.
+    member this.Harvest(kind: string, at: Position, items: Expr list, positional: Term list, v: Term) : Formula =
+        let term = product positional [ for d in this.FieldsIn(kind, at) -> d.Name, Var(varName d) ]
+        exists (declaredIn kind at) (conj ([ eq v term ] @ this.Self(kind, at, term) @ List.map this.Item items))
+
+    /// Some (conditions, fields) when every field is given by an equation with a functional right side or by shorthand.
+    member this.SimpleFields(kind: string, at: Position, items: Expr list) : (Formula list * (string * Term) list) option =
+        let fields = this.FieldsIn(kind, at) |> List.map (fun d -> d.Id) |> List.sort
+        let local = declaredIn kind at |> set
+        let entry (item: Expr) =
+            match item with
+            | Identifier(span, name) ->
+                (match bindings.TryGetValue span with
+                 | true, FieldShorthand(field, value) -> this.Term(span, name, value) |> Option.map (fun t -> field, [], t)
+                 | _ -> None)
+            | Infix(_, op, Identifier(span, _), rhs) when op.Text = "=" ->
+                (match bindings.TryGetValue span with
+                 | true, Declares id when List.contains id fields -> this.Functional rhs |> Option.map (fun (cs, t) -> id, cs, t)
+                 | _ -> None)
+            | _ -> None
+        let entries = items |> List.map entry
+        if List.forall Option.isSome entries then
+            let entries = List.map Option.get entries
+            let free = entries |> List.map (fun (_, cs, t) -> Set.unionMany (fvt t :: List.map fv cs)) |> Set.unionMany
+            if Set.isEmpty (Set.intersect free local) && (entries |> List.map (fun (id, _, _) -> id) |> List.sort) = fields then
+                Some(entries |> List.collect (fun (_, cs, _) -> cs), entries |> List.map (fun (id, _, t) -> decls[id].Name, t))
+            else None
+        else None
+
+    member _.IsProperty(span: Span) =
+        match bindings.TryGetValue span with
+        | true, Deferred PropertyName -> true
+        | _ -> false
 
     /// Definedness conditions of an arithmetic operator on its right operand.
     member _.Guard(op: string, divisor: Term) =
@@ -348,6 +519,17 @@ type private Translator(bound: Bound) =
             | Tuple(_, items) -> this.Operands items (fun ts -> eq v (constructor "()" ts))
             | Infix(_, op, a, b) when op.Text = "->" -> this.Operands [ a; b ] (fun ts -> eq v (pair ts[0] ts[1]))
             | Prefix(_, op, a) when op.Text = "fn" -> this.Operand a (fun t -> eq v (this.Fn t))
+            | Prefix(_, op, a) when op.Text = "record" -> this.Harvest("record", op.Span.Start, recordItems a, [], v)
+            | Prefix(_, op, a) when op.Text = "tuple" ->
+                let at = op.Span.Start
+                exists (declaredIn "tuple" at) (conj (this.Self("tuple", at, v) @ [ this.Value a v ]))
+            | Product(span, positional, fusion, named) ->
+                (match this.Positional(positional, fusion) with
+                 | Some ps -> this.Operands ps (fun ts -> this.Harvest("product", span.Start, named, ts, v))
+                 | None -> unsupported span "fusion of a positional value whose structure is not known")
+            | Infix(_, op, receiver, Identifier(span, name)) when op.Text = "." && this.IsProperty span ->
+                this.Operand receiver (fun t -> select t name v)
+            | Infix(_, op, _, _) when op.Text = "." -> unsupported e.Span "hosted property declaration"
             | Prefix(_, op, a) when op.Text = "-" -> this.Operand a (fun t -> eq v (Fn("-", [ t ])))
             | Prefix(_, op, a) when op.Text = "let" -> exists (declaredIn "let" op.Span.Start) (this.Value a v)
             | Prefix(_, op, a) when claims.Contains op.Text -> this.Value a v

@@ -52,3 +52,15 @@ let ``the first contribution at an origin wins`` () =
 [<Fact>]
 let ``a later contribution at the same origin is ignored`` () =
     Assert.Equal(Resolution.Proved, holds "f = fn { 0 -> 1, 0 -> 2 } in f 0" (Not(Atom("=", [ value; num 2 ]))))
+
+[<Fact>]
+let ``selecting a field of a bound record`` () =
+    Assert.Equal(Resolution.Proved, holds "p = (@ Name = \"Bob\", Age = 42) in p.Age" (Atom("=", [ value; num 42 ])))
+
+[<Fact>]
+let ``a record field refers to another through this`` () =
+    Assert.Equal(Resolution.Proved, holds "(record(a = 1, b = this.a + 1)).b" (Atom("=", [ value; Fn("+", [ num 1; num 1 ]) ])))
+
+[<Fact>]
+let ``a lambda selects a field of its argument`` () =
+    Assert.Equal(Resolution.Proved, holds "f = (p => p.Name) in f (@ Name = \"Bob\")" (Atom("=", [ value; Fn("\"Bob\"", []) ])))
