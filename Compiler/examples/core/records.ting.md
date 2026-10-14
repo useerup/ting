@@ -115,7 +115,7 @@ Axioms:
 ```
 
 ```ting
-(record(a = 1, b = this.a + 1)).b
+record(a = 1, b = this.a + 1).b
 ```
 
 ```ting-output

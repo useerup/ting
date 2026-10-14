@@ -614,6 +614,8 @@ In juxtaposition `f x`, the callee `f` is referential in every covering scope fr
 
 Juxtaposition is left-associative: `f x y` denotes `(f x) y`. The property operators `.` and `..` bind more tightly than juxtaposition, so `f a.b` denotes `f (a.b)` and `Console.WriteLine message` denotes `(Console.WriteLine) message`. Juxtaposition binds more tightly than every other infix operator.
 
+The prefix keywords `fn`, `class`, `record`, `records`, `tuple` and `tuples` bind more tightly still. Each takes a single term as its operand - a name, a literal, or a parenthesized, bracketed or braced expression, possibly preceded by another of these keywords - and the result is itself a term, to which `.`, `..` and juxtaposition apply. Thus `record(a = 1).a` denotes `(record(a = 1)).a`, `fn { 0 -> 1 } 0` denotes `(fn { 0 -> 1 }) 0`, and `class records(string Name)` denotes `class (records(string Name))`. An operand that is not a single term needs parentheses: `class (float m => m)`. The other prefix keywords, including `primary` and `candidate`, take an operand that extends over juxtaposition and property access, so `candidate x.Payload` denotes `candidate (x.Payload)`.
+
 Applying a lambda `p => b` to an argument `a` introduces fresh variables for the declarations of `p` and `b`, unifies the pattern with the argument as by `p ?= a`, and then evaluates `b`. If the pattern and the argument cannot be unified, the application is undefined. Each distinct way of unifying them gives a separate alternative. Because application is unification, a function may be applied with its result known and its argument unknown, subject to mode analysis.
 
 Application is curried, and a tuple is a single argument. `f(x, y)` applies `f` once to the tuple `(x, y)`, and `(int a, int b) => a + b` accepts one tuple, whereas `a => b => a + b` is applied as `f x y`. There is no implicit conversion between curried and tupled functions.
@@ -1125,7 +1127,7 @@ Any binary operator may be written in prefix position with a single operand. The
 
 ### Unary prefix operators
 
-A unary prefix operator is written before its single operand. The operators listed here are prefix-only: the grammar accepts no infix form for them. Any binary infix operator may also be written in prefix position, but that denotes partial application rather than a distinct operator; see [Binary operators used as unary prefix operators](#binary-operators-used-as-unary-prefix-operators).
+A unary prefix operator is written before its single operand. The operators listed here are prefix-only: the grammar accepts no infix form for them. Any binary infix operator may also be written in prefix position, but that denotes partial application rather than a distinct operator; see [Binary operators used as unary prefix operators](#binary-operators-used-as-unary-prefix-operators). The operand of `fn`, `class`, `record`, `records`, `tuple` and `tuples` is a single term; see [Function composition and application](#function-composition-and-application).
 
 #### `!`
 

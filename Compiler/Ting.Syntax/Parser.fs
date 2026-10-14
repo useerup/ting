@@ -47,6 +47,7 @@ type private Parser(tokens: Token[]) =
         | TokenKind.Number _
         | TokenKind.String _ -> true
         | Keyword("this" | "void" | "true" | "false") -> true
+        | Keyword word -> isTermKeyword word
         | Symbol("(" | "[" | "{" | "{*") -> true
         | Symbol "-" -> isNegation token
         | _ -> false
@@ -133,6 +134,9 @@ type private Parser(tokens: Token[]) =
         | Keyword "void" -> Void token.Span
         | Keyword "true" -> Bool(token.Span, true)
         | Keyword "false" -> Bool(token.Span, false)
+        | Keyword word when isTermKeyword word ->
+            let operand = this.Atom()
+            Prefix(Span.between token.Span operand.Span, operatorOf token word, operand)
         | Symbol "-" when isNegation token ->
             let operand = this.Postfix()
             Prefix(Span.between token.Span operand.Span, operatorOf token "-", operand)

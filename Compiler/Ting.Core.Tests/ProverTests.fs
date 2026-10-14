@@ -59,7 +59,7 @@ let ``selecting a field of a bound record`` () =
 
 [<Fact>]
 let ``a record field refers to another through this`` () =
-    Assert.Equal(Resolution.Proved, holds "(record(a = 1, b = this.a + 1)).b" (Atom("=", [ value; Fn("+", [ num 1; num 1 ]) ])))
+    Assert.Equal(Resolution.Proved, holds "record(a = 1, b = this.a + 1).b" (Atom("=", [ value; Fn("+", [ num 1; num 1 ]) ])))
 
 [<Fact>]
 let ``a lambda selects a field of its argument`` () =

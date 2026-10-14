@@ -85,12 +85,18 @@ let prefixOperandPower (text: string) =
     | "let" | "public" | "private" | "protected" | "internal" -> 0
     | "total" | "partial" | "determ" | "nondeterm" | "throw" | "ask" -> leftPower infixTable["|"]
     | "!" -> leftPower infixTable[":"]
-    | "fn" | "class" | "record" | "records" | "tuple" | "tuples" | "primary" | "candidate" -> leftPower infixTable["."]
+    | "primary" | "candidate" -> leftPower infixTable["."]
     | _ -> invalidArg (nameof text) $"'{text}' is not a prefix operator"
 
 let isPrefixKeyword (word: string) =
     match word with
     | "let" | "public" | "private" | "protected" | "internal"
     | "total" | "partial" | "determ" | "nondeterm" | "throw" | "ask"
-    | "fn" | "class" | "record" | "records" | "tuple" | "tuples" | "primary" | "candidate" -> true
+    | "primary" | "candidate" -> true
+    | _ -> false
+
+/// Prefix keywords whose operand is a single term and whose result is a term, binding tighter than `.`, `..` and juxtaposition.
+let isTermKeyword (word: string) =
+    match word with
+    | "fn" | "class" | "record" | "records" | "tuple" | "tuples" -> true
     | _ -> false

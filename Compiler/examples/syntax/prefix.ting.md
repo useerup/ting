@@ -2,6 +2,8 @@
 
 Operand extents are provisional (specification issue SYN-01).
 
+`fn`, `class`, `record`, `records`, `tuple` and `tuples` take a single term as operand and form a term, so `.`, `..` and juxtaposition apply to the result.
+
 ```ting
 let int x \ x > 0
 ```
@@ -71,7 +73,7 @@ fn{0 -> 1} 0
 ```
 
 ```ting-output
-(fn (apply (set (-> 0 1)) 0))
+(apply (fn (set (-> 0 1))) 0)
 ```
 
 ```ting
@@ -88,6 +90,46 @@ records(string Name, int Age)
 
 ```ting-output
 (records (tuple (apply string Name) (apply int Age)))
+```
+
+```ting
+record(Name = "Bob").Name
+```
+
+```ting-output
+(. (record (= Name "Bob")) Name)
+```
+
+```ting
+records(string Name) p
+```
+
+```ting-output
+(apply (records (apply string Name)) p)
+```
+
+```ting
+records(string Name, int Age)..Name
+```
+
+```ting-output
+(.. (records (tuple (apply string Name) (apply int Age))) Name)
+```
+
+```ting
+Person = class records(string Name)
+```
+
+```ting-output
+(= Person (class (records (apply string Name))))
+```
+
+```ting
+Meters = class (float m => m)
+```
+
+```ting-output
+(= Meters (class (=> (apply float m) m)))
 ```
 
 ```ting

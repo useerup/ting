@@ -10,7 +10,7 @@ A class is based on a *candidate set*. All members of a class must be members of
 
 The `class` prefix operator is used to define new classes. It accepts a function as its operand. This function is the *class constructor*. The *codomain* of the constructor function is *candidate set* of the class.
 
-    Meters = class float m => m
+    Meters = class (float m => m)
 
 This expression binds `Meters` to be a class of `float`s.
 
@@ -84,5 +84,5 @@ This declares a `Currencies` class:
 
 This declares a `CurrencyAmounts` class:
     
-    CurrencyAmounts = class (decimal a, Currencies c) => rec { Amount=a, Currency=c } 
+    CurrencyAmounts = class ((decimal a, Currencies c) => rec { Amount=a, Currency=c }) 
 
