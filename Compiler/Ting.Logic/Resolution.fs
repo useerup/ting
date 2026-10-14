@@ -127,14 +127,16 @@ let private resolutionLoop
             else loop used' (List.foldBack (incorporate used') news rest) (steps + 1)
     loop [] clauses 0
 
-/// Refutes a formula's clause form; Proved means the formula is unsatisfiable.
-let refute (limit: int) (fm: Formula) =
-    let clauses = simpcnf (specialize (pnf fm))
-    if Paramodulation.usesEquality fm then
+let private saturate (equality: bool) (limit: int) (clauses: Clause list) =
+    if equality then
         let simplify used = Paramodulation.simplify (Paramodulation.rewriteRules used)
         resolutionLoop Paramodulation.equalityFactors resolveAndParamodulate simplify limit (Paramodulation.reflexivity :: clauses)
     else
         resolutionLoop (fun _ -> []) resolveClauses (fun _ cl -> Some cl) limit clauses
+
+/// Refutes a formula's clause form; Proved means the formula is unsatisfiable.
+let refute (limit: int) (fm: Formula) =
+    saturate (Paramodulation.usesEquality fm) limit (simpcnf (specialize (pnf fm)))
 
 /// Proves validity by refuting each disjunct of the Skolemized negation.
 let prove (limit: int) (fm: Formula) : Outcome =
@@ -142,6 +144,21 @@ let prove (limit: int) (fm: Formula) : Outcome =
         askolemize (Not(generalize fm))
         |> simpdnf
         |> List.map (fun d -> refute limit (listConj (Set.toList d)))
+    if outcomes |> List.forall ((=) Proved) then Proved
+    elif outcomes |> List.contains NotValid then NotValid
+    else Unknown
+
+/// Proves the goal from the assumptions. The assumptions go straight to clause form; only the negated goal is split into cases.
+let proveFrom (limit: int) (assumptions: Formula list) (goal: Formula) : Outcome =
+    let theory = askolemize (listConj (List.map generalize assumptions))
+    let axioms = simpcnf (specialize (pnf theory))
+    let outcomes =
+        askolemizeAvoiding (functions theory |> Set.map fst) (Not(generalize goal))
+        |> simpdnf
+        |> List.map (fun d ->
+            let case = listConj (Set.toList d)
+            let equality = Paramodulation.usesEquality (And(theory, case))
+            saturate equality limit (axioms @ simpcnf (specialize (pnf case))))
     if outcomes |> List.forall ((=) Proved) then Proved
     elif outcomes |> List.contains NotValid then NotValid
     else Unknown

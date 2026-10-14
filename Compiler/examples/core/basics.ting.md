@@ -151,14 +151,14 @@ Value:
 Constructs that are not translated yet are reported.
 
 ```ting
-x => x
+[1, 2]
 ```
 
 ```ting-output
 Value:
   unsupported
 Errors:
-  (1,1-1,7): not yet supported: operator '=>'
+  (1,1-1,7): not yet supported: list
 ```
 
 ```ting

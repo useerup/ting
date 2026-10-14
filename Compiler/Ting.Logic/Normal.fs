@@ -96,8 +96,11 @@ let rec private skolem (fm: Formula) (fns: Set<string>) : Formula * Set<string> 
         Or(p', q'), fns''
     | _ -> fm, fns
 
-let askolemize (fm: Formula) =
-    fst (skolem (nnf (simplify fm)) (functions fm |> Set.map fst))
+/// Skolemizes with function names that differ from those in `avoid` and in the formula.
+let askolemizeAvoiding (avoid: Set<string>) (fm: Formula) =
+    fst (skolem (nnf (simplify fm)) (Set.union avoid (functions fm |> Set.map fst)))
+
+let askolemize (fm: Formula) = askolemizeAvoiding Set.empty fm
 
 let skolemize (fm: Formula) = specialize (pnf (askolemize fm))
 

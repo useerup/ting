@@ -120,10 +120,10 @@ let private comparisons = set [ "<"; "<="; ">"; ">="; ":" ]
 
 let private paren (b: bool) (s: string) = if b then "(" + s + ")" else s
 
-/// Binding power of the arithmetic operators printed infix; `^` is right-associative.
-let private arithmetic = Map [ "+", 1; "-", 1; "*", 2; "/", 2; "%", 2; "^", 3 ]
+/// Binding power of the operators printed infix in terms; `^` is right-associative.
+let private arithmetic = Map [ "->", 0; "+", 1; "-", 1; "*", 2; "/", 2; "%", 2; "^", 3 ]
 
-// Term binding power, loosest first: `+ -` 1, `* / %` 2, `^` 3, juxtaposition 5, negation 6, atoms 7.
+// Term binding power, loosest first: `->` 0, `+ -` 1, `* / %` 2, `^` 3, juxtaposition 5, negation 6, atoms 7.
 let rec private showTerm (prec: int) (t: Term) =
     match t with
     | Var x
@@ -148,7 +148,7 @@ let rec private show (prec: int) (fm: Formula) =
     | False -> "false"
     | True -> "true"
     | Atom("=", [ a; b ]) -> paren (prec > 0) (termToString a + " = " + termToString b)
-    | Atom(p, [ a; b ]) when comparisons.Contains p -> paren (prec > 5) (termToString a + " " + p + " " + termToString b)
+    | Atom(p, [ a; b ]) when comparisons.Contains p -> paren (prec > 5) (showTerm 1 a + " " + p + " " + showTerm 1 b)
     | Atom(p, args) -> termToString (Fn(p, args))
     | Not p -> "!" + show 6 p
     | And(Exists _ as p, q) -> paren (prec > 3) (paren true (show 0 p) + " & " + show 3 q)
