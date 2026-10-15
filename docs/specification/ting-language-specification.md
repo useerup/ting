@@ -457,6 +457,30 @@ The compiler keeps track of an error bound only where it can be observed. A boun
 
 > TODO: the bounds for `/` and the other functions on inexact values; NaN, infinities and negative zero; how a program reads an error bound, and how it explicitly discards one to treat a represented value as exact; how error bounds relate to the value layers.
 
+### Numeric limits
+
+Each numeric set has a limited range, and the inexact sets also have a limited precision. Each numeric set hosts the direct properties `MinValue` and `MaxValue`, the least and the greatest of its values; both are members of the set itself, so `int.MinValue` is an `int`.
+
+| Set       | `MinValue`                     | `MaxValue`                     |
+| --------- | ------------------------------ | ------------------------------ |
+| `sbyte`   | -128                           | 127                            |
+| `byte`    | 0                              | 255                            |
+| `short`   | -32768                         | 32767                          |
+| `ushort`  | 0                              | 65535                          |
+| `int`     | -2147483648                    | 2147483647                     |
+| `uint`    | 0                              | 4294967295                     |
+| `long`    | -9223372036854775808           | 9223372036854775807            |
+| `ulong`   | 0                              | 18446744073709551615           |
+| `float`   | -3.4028235 x 10^38             | 3.4028235 x 10^38              |
+| `double`  | -1.7976931348623157 x 10^308   | 1.7976931348623157 x 10^308    |
+| `decimal` | -79228162514264337593543950335 | 79228162514264337593543950335  |
+
+Because numeric literals are unsigned, the least value of a signed integer set cannot be written as a negated literal: `-2147483648` is the negation of `2147483648`, which is not an `int`. `int.MinValue` denotes it.
+
+- Arithmetic on a numeric set is the arithmetic of the numbers its values denote. A result outside the range of its set is an *overflow*, a runtime error: the evaluation throws an `OverflowException`. Overflow is not undefinedness, so `;;` does not handle it. Keeping results within range is the responsibility of the programmer.
+- The compiler may rely on the range of a numeric set, for example that a member of `byte` is not negative, and may use it to omit overflow and bounds checks that cannot fail. That a numeric set is finite does not make the compiler enumerate its members; it enumerates only an ordered set the program asks for (see [Set countability](#set-countability)).
+- Compile-time reasoning treats inexact arithmetic as exact; rounding takes place at runtime (see [Error bounds](#error-bounds)).
+
 ### Unit
 
 `unit` is the singleton set whose only member is the empty tuple:
@@ -500,6 +524,20 @@ A *multiset definition*, written with `{*` and `*}`, has the same meaning except
 
 ### Set countability
 
+Membership in a set does not let the compiler run through the members of the set, not even where the set is finite. The compiler enumerates the members of a set only where the program asks for it by using an *ordered set*.
+
+An ordered set is a set that carries an order of its members as an attribute (see [Values and Equality](#values-and-equality)). It has the same members as the set without the order, so `S.ZigZagOrdered == S` holds while `S.ZigZagOrdered = S` does not. Membership in an ordered set enumerates its members in its order: `x : int.ZigZagOrdered \ x * x = 49` yields `-7` and then `7`. A set definition is an ordered set, ordered as its members are (see [Set definitions](#set-definitions)). A range `a...b` is not a set but an ordered nondeterministic expression, ascending from `a` to `b` (see the range operators under [Operators](#operators)); a set definition built on it, such as `{ 0...255 }`, is therefore an ordered set in ascending order.
+
+Other ordered sets are produced by the hosted properties of sets of sets. That a set belongs to such a set of sets only means that it can be ordered in a particular way; the program obtains the ordered set by using the property:
+
+- `ZigZagOrderables` contains the integer sets and their subsets. `S.ZigZagOrdered` orders the members of `S` as `0`, `-1`, `1`, `-2`, `2`, and so on, leaving out the values that are not members of `S`. The order alternates while both directions have values left in the range of the integer set; once one direction has stepped past the range, it continues in the other direction alone. A signed set has one more negative value than positive values, so the order reaches every value of its integer set, and for an unsigned set it is `0`, `1`, `2`, and so on.
+- `AscendingOrderables` contains the subsets of the integer sets that have a lower bound stated by the program, as in `{ int x \ x >= 0 }`. `S.AscendingOrdered` orders the members of `S` upward from that bound.
+
+The range of a numeric set is not a stated bound, so neither `int` nor `byte` is a member of `AscendingOrderables`, and `int.AscendingOrdered` is a compilation error because the property does not resolve. Nor does the range end an enumeration: an enumeration that has no next value within the range of its integer set throws an `OverflowException` (see [Numeric limits](#numeric-limits)) - an ascending enumeration once it steps past the largest value, a zigzag enumeration once both directions have stepped past the range. An enumeration of a subset therefore ends in an overflow after its last member unless it is stopped earlier; a search that must run to the end needs stated bounds.
+
+An enumeration of `S.ZigZagOrdered`, or of `S.AscendingOrdered` where `S` has no stated upper bound, is potentially infinite (see [Enumerable potentially infinite nondeterminism](#enumerable-potentially-infinite-nondeterminism)). With stated lower and upper bounds, `S.AscendingOrdered` is enumerable finite.
+
+> TODO: further orderings, such as descending order, length-then-alphabetical order of strings, and orders of products of ordered sets; how the hosted properties of `ZigZagOrderables` and `AscendingOrderables` are declared.
 
 
 ### Product sets
@@ -996,7 +1034,7 @@ TODO: Undefinedness participates in operator-specific ways (notably choice and g
 
 Nondeterminism is **unenumerable** when no enumeration procedure is available to the compiler for the alternatives. The compiler does not generate code to run through all of those alternatives. This is an operational classification, not a statement that the alternatives are mathematically uncountable.
 
-For example, an otherwise unconstrained member of `int` is unenumerable in this sense. Although `int` has a known finite range and is therefore mathematically countable, membership in `int` does not provide an enumeration procedure that causes the compiler to search through all integers. A finite number of possible values is not, by itself, sufficient to make an expression enumerable.
+For example, an otherwise unconstrained member of `int` is unenumerable in this sense. Although `int` has a known finite range and is therefore mathematically countable, membership in `int` does not provide an enumeration procedure that causes the compiler to search through all integers. A finite number of possible values is not, by itself, sufficient to make an expression enumerable. A program obtains an enumeration by using an ordered set, such as `int.ZigZagOrdered` (see [Set countability](#set-countability)).
 
 #### Enumerable finite nondeterminism
 
