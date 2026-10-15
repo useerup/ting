@@ -625,14 +625,70 @@ Names published this way are publication metadata attached to the declaration; t
 
 ### Implicit promotion
 
-When the compiler establishes that an argument can never be a member of the domain of the function it is passed to, it tries to promote the argument. Promotion is never applied to an argument that may fit as it is; where an overload accepts the argument unpromoted, that overload is used. If no promotion makes the argument fit, the application is undefined for that argument as usual.
+Promotion lets a function be applied to an argument that it does not accept as it is, by converting the argument first. It is deterministic: an application uses at most one promotion of its argument, so the alternatives of promotion never become alternatives of the application.
 
-The promotions are:
+#### Promote
 
-- **Integer widening.** A value of an integer set is promoted to an integer set with more bits that holds every value of the original set, for example `short` to `int`, `int` to `long`, and `byte` to `int`. Where several widenings would fit, the one with the fewest bits is chosen.
-- **Set to function.** A set is promoted to its identity function, as described below.
+`Promote` is a function supplied by the compiler. Applied to a value, it yields the values to which that value converts in one step, as ordered alternatives, the most preferred first. A program may override `Promote`; how an override is declared and how far it reaches is not yet specified. Everything else in this section is fixed by the language.
 
-The callee of an application is subject to the same rule: a callee that can never be a function is promoted.
+The default `Promote` yields:
+
+- **Numeric conversions**, as in the table below.
+- **Class member to candidate**: a member of a class yields its candidate value, after the other alternatives for that member. An `int` therefore yields `long`, then its primitive value.
+- **Set to function**: a set yields its identity function; see [Sets as identity functions](#sets-as-identity-functions).
+- **Products**, field by field: for each field in order, positional fields before named fields, every one-step promotion of that field with the other fields unchanged.
+
+| Value of | Yields, in order   |
+| -------- | ------------------ |
+| `sbyte`  | `short`            |
+| `byte`   | `short`, `ushort`  |
+| `short`  | `int`              |
+| `ushort` | `int`, `uint`      |
+| `int`    | `long`             |
+| `uint`   | `long`, `ulong`    |
+| `long`   | `float`, `decimal` |
+| `ulong`  | `float`, `decimal` |
+| `float`  | `double`           |
+
+The table holds only direct steps; the promotion closure reaches the others. From a signed integer set it reaches every wider signed integer set; from an unsigned integer set, every wider unsigned and every wider signed integer set; from every integer set, `float`, `decimal` and `double`; and from `float`, `double`. No set reaches a narrower set, no signed set reaches an unsigned set, `float` and `double` do not reach `decimal`, and `char` has no numeric promotion. Each step goes from one level of the sets `sbyte`/`byte`, `short`/`ushort`, `int`/`uint`, `long`/`ulong`, `float`/`decimal`, `double` to the next, so a more specific target is always reached in fewer steps and tried first: `long` before `float`, `float` before `double`. Between targets at the same distance the order of the table decides, which puts signed before unsigned and `float` before `decimal`.
+
+The conversions to `float` and `double` round where the value is not representable. They are deterministic, but not value-preserving.
+
+`Promote` should yield single steps only. Longer conversions arise from the promotion closure, which also gives the order in which they are tried.
+
+#### Promotion closure
+
+`Promotions a`, the *promotion closure* of `a`, yields `a` followed by every value reachable from `a` by repeated application of `Promote`, in breadth-first order:
+
+1. Level 0 is `a` itself.
+2. Level n+1 consists of the alternatives of `Promote` applied to each value of level n, taken in the order of level n, and for each value in the order of its `Promote` alternatives.
+3. `Promotions a` yields level 0, then level 1, then level 2, and so on. A value that has already been yielded is omitted, as a later contribution is in a set definition.
+
+A value reachable in fewer steps is therefore always tried before one that needs more, and among values at the same distance the order of `Promote` decides. Because a numeric value carries its set, `1` and `1L` are distinct values and both occur. For example, `Promotions (1s, 2s)` begins `(1s, 2s)`, `(1, 2s)`, `(1s, 2)`, `(1L, 2s)`, `(1, 2)`, `(1s, 2L)`.
+
+The promotion closure of every argument to which promotion is applied must be finite, so that an application that no alternative fits is known to be undefined. Where the compiler cannot establish that, the application is a compilation error.
+
+> TODO: the order of the alternatives of an expression, which `Promote` relies on, is not yet specified.
+
+#### Promoted extension
+
+Every application `f a` uses the *promoted extension* of `f`: it applies `f` to the first alternative of `Promotions a` at which `f` is defined. If there is none, the application is undefined.
+
+`f` is defined at an alternative when its parameter pattern, including any guard, accepts that alternative. Whether the body then yields a result does not matter: a body that turns out to be undefined makes the application undefined, and no further promotion is tried. In this the promoted extension differs from `f || g`, which falls back wherever `f` yields no result.
+
+Consequences:
+
+- The first alternative is `a` itself, so an argument that `f` accepts is never promoted.
+- A function built from several functions with `||` is one function. Its own order is tried in full before any promotion, so overloading written by the programmer always takes precedence over promotion.
+- Only one alternative of the promotion closure is used, so the nondeterminism of `Promote` does not reach `f`. The alternatives of `f` itself are retained.
+- Promotion depends on the argument value, not only on its set. With `f = (int x \ x > 0 => "positive") || (long y => "long")`, `f 5` yields `"positive"`, while `f -5` is not accepted as it is, is promoted to `-5L`, and yields `"long"`.
+- `+` has no `short * short` domain, so in `1s + 2s` the first alternative it accepts is `(1, 2)`, and the result is an `int`.
+
+Where the compiler can establish which alternative applies, which is usual when the sets of the arguments are known, it applies `f` to that alternative directly. Otherwise the selection takes place at runtime.
+
+An argument whose value is not yet determined, such as a free variable in a pattern, is not promoted: the application unifies it with the parameter pattern as written.
+
+The callee of an application is promoted the same way: a callee that is not a function is replaced by the first alternative of its promotion closure that is a function. This is how a set is applied as its identity function.
 
 ### Sets as identity functions
 
