@@ -1876,5 +1876,6 @@ The following parts of this specification are left out of the first implementati
 
 - [Entities](#entities).
 - [Error bounds](#error-bounds). In the first implementation, values of the inexact sets carry no error bound, and relations between them compare the represented values exactly.
+- Overriding [`Promote`](#promote). In the first implementation, `Promote` is the default and a program cannot change it.
 - [Units of Measure](#units-of-measure).
 
