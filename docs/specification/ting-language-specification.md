@@ -831,6 +831,21 @@ Function union `f | g` merges the results supplied by both functions at each sha
 - Enumerations are declared with `enums` syntax.
 - Tagged variants with payloads are documented by examples.
 
+## Units of Measure
+
+Units of measure are provided by a module rather than by the core language. They are built from classes, products and the overriding of the functions that the arithmetic operators apply.
+
+`UnitOfMeasure` is a class of its own. A measurement, a member of `UnitOfMeasure`, wraps a value of a numeric set together with a unit. `UnitOfMeasure` is not a class over a numeric set: the candidate of a measurement is the product of its value and its unit, so a measurement is never promoted to a plain number.
+
+A unit is a base unit, such as `Meters`, `Kilometers`, `Seconds` or `Ångstrøm`, or a product of powers of units, such as `Meters/Seconds^2`. Units are kept in a normal form: a product of base units, each raised to a non-zero integer exponent, in a fixed order of the base units. `Meters/Seconds/Seconds` and `Meters/Seconds^2` therefore have the same normal form and are the same unit. Two units are equal when their normal forms are.
+
+The module puts cases for measurements in front of the functions that the arithmetic operators apply, combining them with `||`:
+
+- `*` and `/` accept two measurements and yield the product or quotient of the values, with the product or quotient of the units. They also accept a measurement together with a plain number, and keep the unit.
+- `+` and `-` accept two measurements with the same unit, and keep the unit. Measurements with different units are not accepted, so their sum is undefined. Where the units are known at compile time, the compiler establishes this.
+- `^` with an integer exponent raises the unit to that power.
+
+> TODO: conversions between units, such as `Meters` to `Kilometers` or `Miles`, declared as explicit or implicit conversions much like promotions, so that the compiler converts measurements or generates the code to convert them; units that are not multiplicative, such as `Decibel` (logarithmic) and degrees Celsius (offset); fractional exponents, as for a square root; comparison of measurements; the syntax of measurement literals; how far the module's overriding reaches (see the module system).
 
 ## This Binding
 
@@ -1854,4 +1869,12 @@ Where an expression evaluates to `void` the expression is *undefined*, which is 
     let F = int n => n < 0 then void else n * 2
 
 `F` declares that it accepts an `int`; for a negative `int` it has no value to offer. It does not *return* `void`, and it does not return nothing either: for such an argument it does not return at all. Control leaves by the undefinedness path, which is equivalent to throwing an `UndefinedException`. See [Partiality](#partiality).
+
+## Scope of the First Implementation
+
+The following parts of this specification are left out of the first implementation of the language and its compiler:
+
+- [Entities](#entities).
+- [Error bounds](#error-bounds). In the first implementation, values of the inexact sets carry no error bound, and relations between them compare the represented values exactly.
+- [Units of Measure](#units-of-measure).
 
