@@ -434,7 +434,28 @@ Ting models types as sets.
 - `float`, `double`, `decimal`
 - `char`, `string`, `bool`
 
-The numeric sets are classes (see [Classes](#classes)). Every numeric value is a member of exactly one numeric set, as in C#: `42` is an `int`, `42s` a `short` and `42.0m` a `decimal`. Values of different numeric sets are never equal, even where they denote the same number, so `42 = 42s` is `false`. A value of one numeric set reaches another only by conversion; see [Implicit promotion](#implicit-promotion).
+The numeric sets are classes (see [Classes](#classes)). Every numeric value is a member of exactly one numeric set: `42` is an `int`, `42s` a `short` and `42.0m` a `decimal`. Values of different numeric sets are never equal, even where they denote the same number, so `42 = 42s` is `false`. A value of one numeric set reaches another only by conversion; see [Implicit promotion](#implicit-promotion).
+
+### Primitive values
+
+`Primitive` is the set of primitive values. A primitive value is a fixed number of bytes: a single, contiguous part of memory with no structure of its own. How the bytes are to be interpreted is known only to a class over `Primitive`, so no operation is defined on primitive values themselves: no arithmetic, and no relation, not even equality. Comparing two primitive values is undefined. Each class over `Primitive` defines the equality, and where it applies the ordering, of its own members; they are not derived from the candidates.
+
+Each numeric set is a class over `Primitive`, and so are other built-in sets. The numeric sets are disjoint: each is a class of its own over `Primitive`, and none is a class over another. The candidate of a numeric value is the primitive value holding its bytes, so `candidate 42` is a primitive value of four bytes. Because arithmetic is defined on the numeric sets and not on `Primitive`, promoting a number to its candidate never makes an arithmetic operation applicable.
+
+> TODO: which built-in sets other than the numeric sets are classes over `Primitive`.
+
+### Error bounds
+
+The floating-point and decimal sets, `float`, `double` and `decimal`, are *inexact*: their values cannot represent every result exactly. Each value of an inexact set carries an *error bound*, a non-negative number `e` stating that the exact result of the computation that produced the value lies within `e` of the represented value. A value whose error bound is zero is exact. Integer arithmetic is exact, and integer values carry no error bound.
+
+- A literal has the error bound of its representation: `0.5` is exact, while `0.1` is not, because its representation differs from one tenth.
+- A conversion that rounds, such as `long` to `float`, adds the rounding error to the bound. A conversion that represents every value exactly, such as `float` to `double`, keeps the bound.
+- An arithmetic operation yields a bound that covers the bounds of its operands as they propagate through the operation, plus the rounding of the result. For `+` and `-` this is the sum of the operand bounds and the rounding error; for `*` it is `|a|*eb + |b|*ea + ea*eb` plus the rounding error, where `ea` and `eb` are the bounds of `a` and `b`.
+- A relation between values of an inexact set holds, or fails, only where it would hold, or fail, for every pair of exact values within the bounds. Otherwise the relation is undefined. Two values with the same representation and a non-zero error bound are therefore neither equal nor unequal: `0.1 + 0.2 == 0.3` is undefined.
+
+The compiler keeps track of an error bound only where it can be observed. A bound that no relation and no other observation ever reaches is not computed, so a program that never compares inexact values pays nothing for error bounds.
+
+> TODO: the bounds for `/` and the other functions on inexact values; NaN, infinities and negative zero; how a program reads an error bound, and how it explicitly discards one to treat a represented value as exact; how error bounds relate to the value layers.
 
 ### Unit
 
@@ -740,7 +761,7 @@ Function union `f | g` merges the results supplied by both functions at each sha
 ## Classes
 
 - Classes are inclusive sets over candidate sets.
-- Equal payloads in same class are value-equal.
+- Equal payloads in same class are value-equal, except in a class over `Primitive`, which defines the equality of its members itself (see [Primitive values](#primitive-values)).
 - Created with `class`, instantiated with `new`.
 - Extended with `extend`.
 
