@@ -142,7 +142,7 @@ The following escape sequences are recognised inside regular strings and the exp
 | `\0`           | U+0000     | Null                                  |
 | `\uHHHH`       | U+HHHH     | Unicode scalar (exactly 4 hex digits) |
 | `\UHHHHHHHH`   | U+HHHHHHHH | Unicode scalar (exactly 8 hex digits) |
-| `\xH[H[H[H]]]` | U+H…       | Unicode scalar (1–4 hex digits)       |
+| `\xH[H[H[H]]]` | U+H...     | Unicode scalar (1-4 hex digits)       |
 
 Any `\` not forming a recognised escape sequence is a compile-time error.
 
@@ -164,7 +164,7 @@ line two"
 
 #### Raw strings
 
-A raw string is opened by a run of K quotation marks, where K ≥ 3, and terminated by the first occurrence of exactly K consecutive quotation marks that is not part of a longer run.
+A raw string is opened by a run of K quotation marks, where K >= 3, and terminated by the first occurrence of exactly K consecutive quotation marks that is not part of a longer run.
 
 Let K be the number of quotation marks in the opening run.
 
@@ -185,7 +185,7 @@ Value: `line one\nline two\n` (assuming 4-space base indentation stripped).
 
 #### Interpolated strings
 
-An interpolated string is a regular string, verbatim string, or raw string immediately preceded by N dollar-sign characters (N ≥ 1), with no whitespace between the last `$` and the opening delimiter.
+An interpolated string is a regular string, verbatim string, or raw string immediately preceded by N dollar-sign characters (N >= 1), with no whitespace between the last `$` and the opening delimiter.
 
 Let N be the number of leading `$` characters.
 
